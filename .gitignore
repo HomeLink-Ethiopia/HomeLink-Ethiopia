@@ -1,0 +1,15 @@
+# Secrets & Logs
+.env
+.env.*
+*.log
+
+# IDE & AI Tool Metadata
+.cursor/
+.vscode/
+.idea/
+.DS_Store
+
+# Generic Dependencies
+node_modules/
+venv/
+__pycache__/

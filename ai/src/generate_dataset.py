@@ -5,13 +5,15 @@ synthetic rental properties. Prices follow plausible Addis Ababa market
 logic: central subcities (Bole, Kirkos) carry a higher ETB/sqm rate
 while outskirts (Akaky Kaliti, Kolfe) are cheaper, with per-property
 premiums for bedrooms, bathrooms, water tanks, generators and
-furnishing.
+furnishing. Each listing also carries a synthetic ``description_text``
+so the NLP (TF-IDF) fraud model has real text to learn from.
 
 Run from ``ai/``:
 
     python -m src.generate_dataset
 
-The output CSV is consumed by ``ai/src/train_rent_model.py``.
+The output CSV is consumed by ``ai/src/train_rent_model.py`` and
+``ai/src/train_fraud_model.py``.
 """
 
 from __future__ import annotations
@@ -126,6 +128,60 @@ GENERATOR_PREMIUM = 2600.0
 #: Multiplicative uplift applied to furnished units.
 FURNISHED_MULTIPLIER = 1.15
 
+#: Phrase banks used to compose realistic, varied descriptions.
+DESCRIPTION_OPENERS: tuple = (
+    "{bedrooms}-bedroom apartment in {subcity} available for rent.",
+    "Rent a {bedrooms}-bedroom home located in {subcity}.",
+    "Apartment with {bedrooms} bedrooms in {subcity}, now available.",
+    "{bedrooms}-bedroom unit in {subcity} for long-term rental.",
+)
+DESCRIPTION_SIZES: tuple = (
+    "About {area:,.0f} square metres of living space.",
+    "Floor space of {area:,.0f} square metres.",
+    "{area:,.0f} square metres, well laid out.",
+)
+DESCRIPTION_CLOSERS: tuple = (
+    "Quiet neighbourhood with good access to transport.",
+    "Ideal for families or professionals.",
+    "Well maintained and secure.",
+    "Close to schools and markets.",
+)
+
+
+def _build_description(
+    rng: np.random.Generator,
+    subcity: str,
+    bedrooms: int,
+    area_sqm: float,
+    has_water_tank: bool,
+    has_generator: bool,
+    is_furnished: bool,
+) -> str:
+    """Compose a realistic synthetic property description.
+
+    Phrases are picked deterministically from the variant banks using
+    the shared random generator so the output is fully reproducible.
+    """
+    opener = DESCRIPTION_OPENERS[int(rng.integers(len(DESCRIPTION_OPENERS)))].format(
+        subcity=subcity, bedrooms=bedrooms
+    )
+    size = DESCRIPTION_SIZES[int(rng.integers(len(DESCRIPTION_SIZES)))].format(
+        area=float(area_sqm)
+    )
+
+    amenities = []
+    if has_water_tank:
+        amenities.append("Features a private water tank.")
+    if has_generator:
+        amenities.append("Comes with a backup generator.")
+    if is_furnished:
+        amenities.append("Furnished and ready to move in.")
+    if not amenities:
+        amenities.append("Well maintained apartment.")
+
+    closer = DESCRIPTION_CLOSERS[int(rng.integers(len(DESCRIPTION_CLOSERS)))]
+    return " ".join([opener, size, *amenities, closer])
+
 
 # ---------------------------------------------------------------------------
 # Generation
@@ -211,6 +267,15 @@ def generate_dataframe(rng: np.random.Generator, n_rows: int = N_ROWS) -> pd.Dat
                 "has_water_tank": has_water_tank[i],
                 "has_generator": has_generator[i],
                 "is_furnished": is_furnished[i],
+                "description_text": _build_description(
+                    rng=rng,
+                    subcity=subcities[i],
+                    bedrooms=int(bedrooms[i]),
+                    area_sqm=float(area_sqm[i]),
+                    has_water_tank=has_water_tank[i],
+                    has_generator=has_generator[i],
+                    is_furnished=is_furnished[i],
+                ),
                 "rent_price_etb": _rent_price_etb(
                     subcity=subcities[i],
                     area_sqm=float(area_sqm[i]),

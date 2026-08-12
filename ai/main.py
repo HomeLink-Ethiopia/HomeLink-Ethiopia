@@ -138,6 +138,9 @@ class FraudDetectRequest(BaseModel):
     description_text: str = Field(
         "", description="Free-text description of the listing."
     )
+    subcity: Optional[str] = Field(
+        None, description="Optional Addis Ababa subcity, e.g. 'Bole' (used by the ML anomaly model)."
+    )
 
 
 class FraudDetectResponse(BaseModel):
@@ -149,6 +152,10 @@ class FraudDetectResponse(BaseModel):
     )
     is_flagged: bool = Field(..., description="True when the listing should be flagged.")
     risk_indicators: List[str] = Field(..., description="Specific indicators that were triggered.")
+    score_breakdown: Optional[Dict[str, float]] = Field(
+        None,
+        description="Component scores (rule_based, ml_tabular, ml_text, ml_overall) when available.",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -261,6 +268,7 @@ def detect_fraud(request: FraudDetectRequest) -> FraudDetectResponse:
             price_etb=request.price_etb,
             area_sqm=request.area_sqm,
             description_text=request.description_text,
+            subcity=request.subcity,
         )
     except Exception as exc:  # noqa: BLE001 - surface as 500
         raise HTTPException(status_code=500, detail=f"Fraud detection failed: {exc}") from exc
@@ -270,4 +278,5 @@ def detect_fraud(request: FraudDetectRequest) -> FraudDetectResponse:
         fraud_risk_score=report.fraud_risk_score,
         is_flagged=report.is_flagged,
         risk_indicators=report.risk_indicators,
+        score_breakdown=report.score_breakdown,
     )

@@ -86,6 +86,8 @@ class RentEstimateRequest(BaseModel):
     bathrooms: int = Field(..., ge=0, le=20, description="Number of bathrooms.")
     area_sqm: float = Field(..., gt=0, le=100000, description="Floor area in square metres.")
     has_water_tank: bool = Field(False, description="Whether the unit has a private water tank.")
+    has_generator: bool = Field(False, description="Whether the unit has a backup generator.")
+    is_furnished: bool = Field(False, description="Whether the unit is rented furnished.")
 
 
 class RentEstimateResponse(BaseModel):
@@ -183,6 +185,8 @@ def estimate_rent(request: RentEstimateRequest) -> RentEstimateResponse:
             bathrooms=request.bathrooms,
             area_sqm=request.area_sqm,
             has_water_tank=request.has_water_tank,
+            has_generator=request.has_generator,
+            is_furnished=request.is_furnished,
         )
     except Exception as exc:  # noqa: BLE001 - surface as 500
         raise HTTPException(status_code=500, detail=f"Rent estimation failed: {exc}") from exc
@@ -197,6 +201,8 @@ def estimate_rent(request: RentEstimateRequest) -> RentEstimateResponse:
             "bathrooms": request.bathrooms,
             "area_sqm": request.area_sqm,
             "has_water_tank": request.has_water_tank,
+            "has_generator": request.has_generator,
+            "is_furnished": request.is_furnished,
         },
     )
 

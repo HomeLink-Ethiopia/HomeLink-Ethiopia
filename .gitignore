@@ -1,1 +1,4 @@
 .env 
+
+# Python virtual environment (AI microservice)
+ai/.venv/

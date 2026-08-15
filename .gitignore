@@ -1,15 +1,4 @@
-﻿# Dependencies
-backend/node_modules/
-frontend/node_modules/
+.env 
 
-# Environment variables
-.env
-backend/.env
-frontend/.env
-
-# Logs
-*.log
-
-# OS files
-.DS_Store
-Thumbs.db
+# Python virtual environment (AI microservice)
+ai/.venv/

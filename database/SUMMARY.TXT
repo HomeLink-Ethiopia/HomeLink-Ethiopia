@@ -1,0 +1,27 @@
+// ═══════════════════════════════════════════════════════════════
+// COLLECTION SUMMARY
+// ═══════════════════════════════════════════════════════════════
+//
+//  #   Collection                  FR Coverage
+//  ─── ─────────────────────────── ──────────────────────────────
+//  1   accounts                    FR-01
+//  2   tenant_profiles             FR-01, FR-04
+//  3   landlord_profiles           FR-01, FR-02
+//  4   properties                  FR-03, FR-04, FR-11
+//  5   property_verifications      FR-02
+//  6   viewing_appointments        FR-05
+//  7   applications                FR-06
+//  8   rental_agreements           FR-07
+//  9   payments                    FR-08
+//  10  maintenance_requests        FR-09
+//  11  conversations               messaging
+//  12  messages                    messaging
+//  13  reviews                     FR-10
+//  14  fraud_reports               FR-11
+//  15  disputes                    FR-12
+//  16  notifications               all FRs
+//  17  audit_logs                  security / admin
+//  18  favourites                  FR-03
+//  19  rent_estimates              FR-04, FR-13
+//  20  housing_analytics           FR-13
+//

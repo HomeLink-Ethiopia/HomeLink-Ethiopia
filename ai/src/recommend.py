@@ -1,47 +1,41 @@
 """Property recommendation module for the HomeLink AI Engine.
 
-Recommendations are computed against a listing catalog. The catalog is
-loaded from ``ai/models/catalog.json`` when present (produced by the
-backend data pipeline), otherwise a small built-in demo catalog is used
-so the service is runnable end to end.
+Recommends listings by computing a weighted match score (0–100) across
+four independent signals against the tenant's stated criteria:
 
-Matching logic
---------------
-When a trained pipeline exists (``ai/models/recommender_pipeline.joblib``)
-listings are embedded with a ``ColumnTransformer`` — ``StandardScaler``
-for numerical features (price, area, bedrooms, bathrooms) and
-``OneHotEncoder`` for subcity — and ranked by **cosine similarity**
-between the tenant's query preference vector and each catalog vector,
-combined with explainable budget/value components (total 0 - 100):
+Signal weights
+~~~~~~~~~~~~~~
+- **Budget Fit** (35 pts): How well the listing price fits within the
+  tenant's maximum budget. Full points when price ≤ budget; partial
+  credit up to +30% over budget.
+- **Subcity / Location Match** (35 pts): Exact subcity match gives full
+  points; neighbouring subcity gives partial credit via an adjacency
+  map of Addis Ababa subcities.
+- **Room / Space Fit** (20 pts): Whether bedrooms and bathrooms meet
+  the tenant's minimum requirements.
+- **Furnishing & Amenities Fit** (10 pts): Whether the listing meets
+  the tenant's furnishing preference.
 
-- **Vector-space similarity** (40 pts): cosine similarity between the
-  query vector (85% of the tenant's budget as target price, preferred
-  subcity) and the listing embedding.
-- **Budget fit** (40 pts): share of the budget the price consumes.
-- **Value / quality** (20 pts): price relative to the most expensive
-  affordable listing.
+When ``candidate_properties`` is provided in the request, those
+listings are scored directly; otherwise the built-in demo catalog (or
+a ``catalog.json`` on disk) is used.
 
-Without a trained pipeline a transparent rule-based fallback (subcity
-match + budget fit + value) is used so the service always responds.
-
-Indexing contract
------------------
-``ai/src/train_recommender.py`` fits the vectorizer on the active
-catalog and saves the fitted ``ColumnTransformer`` plus catalog vectors
-to ``ai/models/recommender_pipeline.joblib``. Re-run it whenever
-``catalog.json`` changes.
+Constraint relaxation
+~~~~~~~~~~~~~~~~~~~~~
+If the number of exact / high-confidence matches is smaller than the
+requested ``limit``, the scorer automatically includes top-scoring
+partial matches with explanatory notes such as
+"Slightly exceeds target budget (+8%)".
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
-
-import numpy as np
-import pandas as pd
+from typing import Dict, List, Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -49,43 +43,49 @@ MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
 CATALOG_PATH = MODELS_DIR / "catalog.json"
 RECOMMENDER_PIPELINE_PATH = MODELS_DIR / "recommender_pipeline.joblib"
 
+_cached_estimator = None
+
 #: Default number of recommendations to return.
-DEFAULT_TOP_K = 5
+DEFAULT_LIMIT = 5
 
-#: Score weights (percent) for the matching components.
-VECTOR_SIMILARITY_WEIGHT = 40.0
-BUDGET_FIT_WEIGHT = 40.0
-VALUE_WEIGHT = 20.0
-SUBCITY_MATCH_WEIGHT = 40.0  # used only by the rule-based fallback
+#: Hard cap on the ``limit`` parameter.
+MAX_LIMIT = 50
 
-#: Fraction of the budget used as the target price in the query vector.
-QUERY_PRICE_TARGET_FRACTION = 0.85
+# ---------------------------------------------------------------------------
+# Signal weights (must sum to 100)
+# ---------------------------------------------------------------------------
+BUDGET_WEIGHT = 35.0
+SUBCITY_WEIGHT = 35.0
+ROOM_WEIGHT = 20.0
+FURNISHING_WEIGHT = 10.0
 
-#: Feature layout shared between training and serving.
-REC_VECTORIZER_COLUMNS: List[str] = [
-    "price_etb",
-    "area_sqm",
-    "bedrooms",
-    "bathrooms",
-    "subcity",
-]
-REC_NUMERIC_COLUMNS: List[str] = ["price_etb", "area_sqm", "bedrooms", "bathrooms"]
-REC_CATEGORICAL_COLUMNS: List[str] = ["subcity"]
+# ---------------------------------------------------------------------------
+# Subcity adjacency graph for Addis Ababa
+# ---------------------------------------------------------------------------
+_SUBCITY_ADJACENCY: Dict[str, List[str]] = {
+    "bole": ["kirkos", "yeka"],
+    "kirkos": ["bole", "arada", "yeka"],
+    "arada": ["kirkos", "addis ketema"],
+    "yeka": ["bole", "kirkos", "nifas silk-lafto"],
+    "nifas silk-lafto": ["yeka", "akaky kaliti"],
+    "gulele": ["kolfe", "addis ketema"],
+    "kolfe": ["gulele", "lideta"],
+    "lideta": ["kolfe", "akaky kaliti"],
+    "addis ketema": ["arada", "gulele"],
+    "akaky kaliti": ["nifas silk-lafto", "lideta"],
+}
 
-#: Built-in demo catalog, used until a real ``catalog.json`` exists.
-DEFAULT_CATALOG: List[Dict[str, object]] = [
-    {"property_id": "P-0001", "subcity": "bole", "price_etb": 18000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 90.0},
-    {"property_id": "P-0002", "subcity": "bole", "price_etb": 25000.0, "bedrooms": 3, "bathrooms": 3, "area_sqm": 130.0},
-    {"property_id": "P-0003", "subcity": "arada", "price_etb": 22000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 105.0},
-    {"property_id": "P-0004", "subcity": "yeka", "price_etb": 15000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 85.0},
-    {"property_id": "P-0005", "subcity": "yeka", "price_etb": 12000.0, "bedrooms": 1, "bathrooms": 1, "area_sqm": 70.0},
-    {"property_id": "P-0006", "subcity": "kirkos", "price_etb": 28000.0, "bedrooms": 3, "bathrooms": 3, "area_sqm": 140.0},
-    {"property_id": "P-0007", "subcity": "kirkos", "price_etb": 19000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 100.0},
-    {"property_id": "P-0008", "subcity": "gulele", "price_etb": 10000.0, "bedrooms": 1, "bathrooms": 1, "area_sqm": 60.0},
-    {"property_id": "P-0009", "subcity": "nifas silk-lafto", "price_etb": 14000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 95.0},
-    {"property_id": "P-0010", "subcity": "addis ketema", "price_etb": 9000.0, "bedrooms": 1, "bathrooms": 1, "area_sqm": 55.0},
-]
+#: Fraction of budget tolerance for partial budget-match credit
+#: (e.g. 0.30 = up to 30 % over budget gets partial credit).
+BUDGET_OVER_TOLERANCE = 0.30
 
+#: Neighbouring-subcity partial score as a fraction of the full subcity
+#: weight (e.g. 0.55 = 55 % of 35 pts = ~19 pts).
+NEIGHBOUR_SUBCITY_FRACTION = 0.55
+
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class Recommendation:
@@ -93,9 +93,208 @@ class Recommendation:
 
     property_id: str
     match_score: float
-    explanation: str
-    details: Dict[str, object]
+    match_reasons: List[str] = field(default_factory=list)
+    estimated_market_rent: Optional[float] = None
 
+
+# ---------------------------------------------------------------------------
+# Scoring helpers (module-level, stateless)
+# ---------------------------------------------------------------------------
+
+def _budget_fit_score(price: float, budget: float) -> tuple[float, list[str]]:
+    """Return (score, reasons) for the budget fit signal (0–BUDGET_WEIGHT)."""
+    if budget <= 0:
+        return 0.0, []
+
+    if price <= budget:
+        pct = (price / budget) * 100.0 if budget else 0.0
+        return BUDGET_WEIGHT, [f"Within budget ({pct:.0f}% of ETB {budget:,.0f})"]
+
+    over_ratio = (price - budget) / budget
+    if over_ratio <= BUDGET_OVER_TOLERANCE:
+        fraction = 1.0 - (over_ratio / BUDGET_OVER_TOLERANCE)
+        score = fraction * BUDGET_WEIGHT
+        pct_over = over_ratio * 100.0
+        return round(score, 2), [f"Slightly exceeds target budget (+{pct_over:.0f}%)"]
+
+    return 0.0, [f"Exceeds budget (price ETB {price:,.0f} vs budget ETB {budget:,.0f})"]
+
+
+def _subcity_match_score(
+    listing_subcity: str,
+    preferred_subcities: Sequence[str],
+) -> tuple[float, list[str]]:
+    """Return (score, reasons) for the location signal (0–SUBCITY_WEIGHT)."""
+    normalised = listing_subcity.strip().lower()
+    preferred = [s.strip().lower() for s in preferred_subcities if s.strip()]
+
+    if not preferred:
+        return SUBCITY_WEIGHT / 2.0, ["No subcity preference specified"]
+
+    if normalised in preferred:
+        return SUBCITY_WEIGHT, [f"In preferred subcity {normalised.title()}"]
+
+    for pref in preferred:
+        neighbours = [n.strip().lower() for n in _SUBCITY_ADJACENCY.get(pref, [])]
+        if normalised in neighbours:
+            score = SUBCITY_WEIGHT * NEIGHBOUR_SUBCITY_FRACTION
+            return round(score, 2), [
+                f"Neighbouring subcity to preferred {pref.title()}",
+            ]
+
+    return 0.0, [f"Subcity {normalised.title()} not in preferred list"]
+
+
+def _room_fit_score(
+    bedrooms: int,
+    bathrooms: int,
+    min_bedrooms: int,
+    min_bathrooms: int,
+) -> tuple[float, list[str]]:
+    """Return (score, reasons) for the room fit signal (0–ROOM_WEIGHT)."""
+    reasons: list[str] = []
+    bedroom_pts = 0.0
+    bathroom_pts = 0.0
+
+    half = ROOM_WEIGHT / 2.0
+
+    if bedrooms >= min_bedrooms:
+        bedroom_pts = half
+        reasons.append(f"Meets bedroom requirement ({bedrooms} ≥ {min_bedrooms})")
+    else:
+        fraction = bedrooms / min_bedrooms if min_bedrooms > 0 else 1.0
+        bedroom_pts = round(fraction * half, 2)
+        reasons.append(f"Below bedroom requirement ({bedrooms} < {min_bedrooms})")
+
+    if bathrooms >= min_bathrooms:
+        bathroom_pts = half
+        reasons.append(f"Meets bathroom requirement ({bathrooms} ≥ {min_bathrooms})")
+    else:
+        fraction = bathrooms / min_bathrooms if min_bathrooms > 0 else 1.0
+        bathroom_pts = round(fraction * half, 2)
+        reasons.append(f"Below bathroom requirement ({bathrooms} < {min_bathrooms})")
+
+    return round(bedroom_pts + bathroom_pts, 2), reasons
+
+
+def _furnishing_score(
+    is_furnished: bool,
+    is_furnished_required: Optional[bool],
+) -> tuple[float, list[str]]:
+    """Return (score, reasons) for the furnishing signal (0–FURNISHING_WEIGHT)."""
+    if is_furnished_required is None:
+        return FURNISHING_WEIGHT / 2.0, ["Furnishing preference not specified"]
+
+    if is_furnished_required:
+        if is_furnished:
+            return FURNISHING_WEIGHT, ["Furnished as required"]
+        return 0.0, ["Not furnished (furnishing required)"]
+
+    return FURNISHING_WEIGHT, ["Furnishing not required"]
+
+
+def _compute_total(
+    budget_pts: float,
+    subcity_pts: float,
+    room_pts: float,
+    furnish_pts: float,
+) -> float:
+    """Sum component scores and clamp to 0–100."""
+    total = budget_pts + subcity_pts + room_pts + furnish_pts
+    return round(min(total, 100.0), 2)
+
+
+# ---------------------------------------------------------------------------
+# Main public scorer
+# ---------------------------------------------------------------------------
+
+def rank_properties(
+    *,
+    candidates: Sequence[Dict[str, object]],
+    max_budget_etb: float,
+    preferred_subcities: Sequence[str],
+    min_bedrooms: int = 1,
+    min_bathrooms: int = 1,
+    is_furnished_required: Optional[bool] = None,
+    limit: int = DEFAULT_LIMIT,
+) -> List[Recommendation]:
+    """Score and rank candidate properties against tenant criteria.
+
+    Each candidate dict is expected to contain at least:
+    ``property_id``, ``price_etb``, ``bedrooms``, ``bathrooms``,
+    ``subcity``.  Optional: ``is_furnished``, ``area_sqm``.
+
+    Returns a list of :class:`Recommendation` objects sorted by
+    ``match_score`` descending, truncated to ``limit``.
+    """
+    scored: list[tuple[float, Recommendation]] = []
+
+    for prop in candidates:
+        prop_id = str(prop.get("property_id", "unknown"))
+        price = _as_float(prop.get("price_etb"))
+        bedrooms = int(prop.get("bedrooms") or 0)
+        bathrooms = int(prop.get("bathrooms") or 0)
+        subcity = str(prop.get("subcity", "")).strip().lower()
+        furnished = bool(prop.get("is_furnished", False))
+
+        b_pts, b_reasons = _budget_fit_score(price, max_budget_etb)
+        s_pts, s_reasons = _subcity_match_score(subcity, preferred_subcities)
+        r_pts, r_reasons = _room_fit_score(
+            bedrooms, bathrooms, min_bedrooms, min_bathrooms,
+        )
+        f_pts, f_reasons = _furnishing_score(furnished, is_furnished_required)
+
+        total = _compute_total(b_pts, s_pts, r_pts, f_pts)
+        reasons = b_reasons + s_reasons + r_reasons + f_reasons
+
+        # Attempt to attach an estimated market rent via the rent estimator
+        est_rent: Optional[float] = None
+        try:
+            global _cached_estimator
+            if _cached_estimator is None:
+                from src.rent_estimator import RentEstimator
+                _cached_estimator = RentEstimator()
+            prediction = _cached_estimator.predict(
+                subcity=subcity,
+                bedrooms=bedrooms,
+                bathrooms=bathrooms,
+                area_sqm=_as_float(prop.get("area_sqm")),
+            )
+            est_rent = round(prediction.estimated_rent_etb, 2)
+        except Exception:  # noqa: BLE001
+            pass
+
+        rec = Recommendation(
+            property_id=prop_id,
+            match_score=total,
+            match_reasons=reasons,
+            estimated_market_rent=est_rent,
+        )
+        scored.append((total, rec))
+
+    scored.sort(key=lambda t: t[0], reverse=True)
+
+    # --- constraint relaxation ---
+    # Exact / high matches (>= 60) first, then fill remainder with partial matches
+    high = [(s, r) for s, r in scored if s >= 60.0]
+    partial = [(s, r) for s, r in scored if s < 60.0]
+
+    result: list[Recommendation] = []
+    for _, rec in high:
+        if len(result) >= limit:
+            break
+        result.append(rec)
+    for _, rec in partial:
+        if len(result) >= limit:
+            break
+        result.append(rec)
+
+    return result[:limit]
+
+
+# ---------------------------------------------------------------------------
+# Legacy API wrapper – keeps old ``Recommender`` class usable
+# ---------------------------------------------------------------------------
 
 class Recommender:
     """Ranks listings from a catalog against a tenant's budget/preferences."""
@@ -105,59 +304,40 @@ class Recommender:
         catalog_path: Path = CATALOG_PATH,
         pipeline_path: Path = RECOMMENDER_PIPELINE_PATH,
     ) -> None:
-        """Initialize the recommender and load catalog + ML pipeline.
-
-        Args:
-            catalog_path: Optional path to a JSON catalog file.
-            pipeline_path: Optional path to ``recommender_pipeline.joblib``.
-        """
         self._catalog = load_catalog(catalog_path)
         self._pipeline_path = pipeline_path
-        self._pipeline = None  # type: Optional[Dict[str, object]]
+        self._pipeline = None
         self._load_pipeline()
-
-    # -- public API ---------------------------------------------------------
 
     def recommend(
         self,
         user_id: str,
         max_budget: float,
         preferred_subcity: Optional[str] = None,
-        top_k: int = DEFAULT_TOP_K,
+        top_k: int = DEFAULT_LIMIT,
+        *,
+        min_bedrooms: int = 1,
+        min_bathrooms: int = 1,
+        is_furnished_required: Optional[bool] = None,
+        candidate_properties: Optional[List[Dict[str, object]]] = None,
     ) -> List[Recommendation]:
         """Return the best-matching listings for a tenant.
 
-        Args:
-            user_id: Tenant identifier (used for future personalisation).
-            max_budget: Maximum monthly rent the tenant can afford, in ETB.
-            preferred_subcity: Optional preferred Addis Ababa subcity.
-            top_k: Maximum number of recommendations to return.
-
-        Returns:
-            A list of :class:`Recommendation` objects, best match first.
+        Accepts the new-style parameters while remaining backwards-
+        compatible with the old ``user_id + max_budget + top_k`` call
+        signature.
         """
-        budget = float(max_budget)
-        preferred = (preferred_subcity or "").strip().lower()
-        candidates = [
-            listing for listing in self._catalog if _as_float(listing.get("price_etb")) <= budget
-        ]
-
-        if self._pipeline is not None:
-            query_row = self._query_row(budget=budget, preferred_subcity=preferred)
-            scored = [
-                self._score_vector_listing(
-                    listing, query_row=query_row, max_budget=budget, preferred_subcity=preferred
-                )
-                for listing in candidates
-            ]
-        else:
-            scored = [
-                self._score_fallback_listing(listing, max_budget=budget, preferred_subcity=preferred)
-                for listing in candidates
-            ]
-
-        scored.sort(key=lambda rec: rec.match_score, reverse=True)
-        return scored[: max(int(top_k), 0)]
+        candidates = candidate_properties if candidate_properties else self._catalog
+        preferred = [preferred_subcity] if preferred_subcity else []
+        return rank_properties(
+            candidates=candidates,
+            max_budget_etb=max_budget,
+            preferred_subcities=preferred,
+            min_bedrooms=min_bedrooms,
+            min_bathrooms=min_bathrooms,
+            is_furnished_required=is_furnished_required,
+            limit=top_k,
+        )
 
     def catalog_size(self) -> int:
         """Return the number of listings in the catalog."""
@@ -167,21 +347,19 @@ class Recommender:
         """Return whether the ML recommendation pipeline is in use."""
         return self._pipeline is not None
 
-    # -- ML internals -------------------------------------------------------
+    # -- ML internals (kept for potential future use) -----------------------
 
     def _load_pipeline(self) -> None:
-        """Attempt to load the trained recommendation pipeline, if present."""
         try:
-            import joblib
-        except ImportError:  # pragma: no cover - joblib ships with sklearn
-            logger.warning("joblib unavailable; using rule-based fallback.")
+            import joblib  # noqa: F401
+        except ImportError:  # pragma: no cover
             return
 
         if not self._pipeline_path.exists():
-            logger.info("No recommender pipeline at %s; using rule fallback.", self._pipeline_path)
             return
 
         try:
+            import joblib
             bundle = joblib.load(self._pipeline_path)
             if "vectorizer" not in bundle:
                 raise ValueError("pipeline bundle missing 'vectorizer'")
@@ -191,177 +369,10 @@ class Recommender:
             logger.warning("Failed to load recommender pipeline (%s); using rule fallback.", exc)
             self._pipeline = None
 
-    def _score_vector_listing(
-        self,
-        listing: Dict[str, object],
-        query_row: pd.DataFrame,
-        max_budget: float,
-        preferred_subcity: str,
-    ) -> Recommendation:
-        """Score a listing using vector-space similarity + budget/value."""
-        price = _as_float(listing.get("price_etb"))
-        bedrooms = int(listing.get("bedrooms") or 0)
-        bathrooms = int(listing.get("bathrooms") or 1)
-        area = _as_float(listing.get("area_sqm"))
-        listing_subcity = str(listing.get("subcity", "")).strip().lower()
 
-        cosine = self._cosine_similarity(query_row, listing)
-        cos01 = (cosine + 1.0) / 2.0
-        vector_score = cos01 * VECTOR_SIMILARITY_WEIGHT
-
-        if max_budget > 0:
-            budget_fit = min((price / max_budget) * BUDGET_FIT_WEIGHT, BUDGET_FIT_WEIGHT)
-        else:
-            budget_fit = 0.0
-
-        max_price = max(
-            (_as_float(item.get("price_etb")) for item in self._catalog
-             if _as_float(item.get("price_etb")) <= max_budget),
-            default=1.0,
-        )
-        value_score = (price / max_price) * VALUE_WEIGHT if max_price > 0 else 0.0
-
-        total = round(vector_score + budget_fit + value_score, 2)
-        explanation = self._build_explanation(
-            listing_subcity=listing_subcity,
-            preferred_subcity=preferred_subcity,
-            price=price,
-            max_budget=max_budget,
-            bedrooms=bedrooms,
-            area=area,
-            cos_pct=cos01 * 100.0,
-        )
-
-        return Recommendation(
-            property_id=str(listing.get("property_id")),
-            match_score=total,
-            explanation=explanation,
-            details={
-                "subcity": listing_subcity,
-                "price_etb": price,
-                "bedrooms": bedrooms,
-                "bathrooms": bathrooms,
-                "area_sqm": area,
-                "vector_similarity": round(cos01, 4),
-            },
-        )
-
-    def _query_row(self, budget: float, preferred_subcity: str) -> pd.DataFrame:
-        """Build the user's query preference vector as a single-row frame."""
-        areas = [_as_float(item.get("area_sqm")) for item in self._catalog]
-        bedrooms = [int(item.get("bedrooms") or 0) for item in self._catalog]
-        bathrooms = [int(item.get("bathrooms") or 1) for item in self._catalog]
-
-        row = {
-            "price_etb": budget * QUERY_PRICE_TARGET_FRACTION,
-            "area_sqm": float(np.median(areas)) if areas else 0.0,
-            "bedrooms": float(np.median(bedrooms)) if bedrooms else 1.0,
-            "bathrooms": float(np.median(bathrooms)) if bathrooms else 1.0,
-            "subcity": preferred_subcity,
-        }
-        return pd.DataFrame([row], columns=REC_VECTORIZER_COLUMNS)
-
-    def _listing_row(self, listing: Dict[str, object]) -> pd.DataFrame:
-        """Build a catalog listing's vectorizer row (same layout as training)."""
-        row = {
-            "price_etb": _as_float(listing.get("price_etb")),
-            "area_sqm": _as_float(listing.get("area_sqm")),
-            "bedrooms": float(int(listing.get("bedrooms") or 0)),
-            "bathrooms": float(int(listing.get("bathrooms") or 1)),
-            "subcity": str(listing.get("subcity", "")).strip().lower(),
-        }
-        return pd.DataFrame([row], columns=REC_VECTORIZER_COLUMNS)
-
-    def _cosine_similarity(self, query_row: pd.DataFrame, listing: Dict[str, object]) -> float:
-        """Compute cosine similarity between query and listing embeddings.
-
-        Equivalent to ``sklearn.metrics.pairwise.cosine_similarity`` but
-        returns 0.0 for zero-norm vectors (e.g. an empty preferred
-        subcity block) instead of relying on library edge behaviour.
-        """
-        vectorizer = self._pipeline["vectorizer"]
-        query_vec = np.asarray(vectorizer.transform(query_row).toarray()).ravel()
-        listing_vec = np.asarray(vectorizer.transform(self._listing_row(listing)).toarray()).ravel()
-
-        query_norm = float(np.linalg.norm(query_vec))
-        listing_norm = float(np.linalg.norm(listing_vec))
-        if query_norm == 0.0 or listing_norm == 0.0:
-            return 0.0
-        return float(np.dot(query_vec, listing_vec) / (query_norm * listing_norm))
-
-    # -- rule-based fallback -------------------------------------------------
-
-    def _score_fallback_listing(
-        self,
-        listing: Dict[str, object],
-        max_budget: float,
-        preferred_subcity: str,
-    ) -> Recommendation:
-        """Score a listing using the explainable rule-based fallback."""
-        listing_subcity = str(listing.get("subcity", "")).strip().lower()
-        price = _as_float(listing.get("price_etb"))
-        bedrooms = int(listing.get("bedrooms") or 0)
-        area = _as_float(listing.get("area_sqm"))
-
-        subcity_score = SUBCITY_MATCH_WEIGHT if listing_subcity == preferred_subcity else 0.0
-        if max_budget > 0:
-            budget_fit = min((price / max_budget) * BUDGET_FIT_WEIGHT, BUDGET_FIT_WEIGHT)
-        else:
-            budget_fit = 0.0
-
-        max_price = max(
-            (_as_float(item.get("price_etb")) for item in self._catalog
-             if _as_float(item.get("price_etb")) <= max_budget),
-            default=1.0,
-        )
-        value_score = (price / max_price) * VALUE_WEIGHT if max_price > 0 else 0.0
-
-        total = round(subcity_score + budget_fit + value_score, 2)
-        explanation = self._build_explanation(
-            listing_subcity=listing_subcity,
-            preferred_subcity=preferred_subcity,
-            price=price,
-            max_budget=max_budget,
-            bedrooms=bedrooms,
-            area=area,
-        )
-
-        return Recommendation(
-            property_id=str(listing.get("property_id")),
-            match_score=total,
-            explanation=explanation,
-            details={
-                "subcity": listing_subcity,
-                "price_etb": price,
-                "bedrooms": bedrooms,
-                "area_sqm": area,
-            },
-        )
-
-    def _build_explanation(
-        self,
-        listing_subcity: str,
-        preferred_subcity: str,
-        price: float,
-        max_budget: float,
-        bedrooms: int,
-        area: float,
-        cos_pct: Optional[float] = None,
-    ) -> str:
-        """Build a human-readable explanation for a match."""
-        parts: List[str] = []
-        if cos_pct is not None:
-            parts.append(f"{cos_pct:.0f}% vector-space similarity to your preferences")
-        if preferred_subcity and listing_subcity == preferred_subcity:
-            parts.append(f"in your preferred subcity {listing_subcity.title()}")
-        if max_budget > 0:
-            utilization = min((price / max_budget) * 100.0, 100.0)
-            parts.append(f"uses {utilization:.0f}% of your ETB {max_budget:,.0f} budget")
-        parts.append(f"{bedrooms}-bedroom, {area:,.0f} sqm unit")
-        if not parts:
-            parts.append("within your search criteria")
-        return "; ".join(parts)
-
+# ---------------------------------------------------------------------------
+# Catalog loader
+# ---------------------------------------------------------------------------
 
 def load_catalog(catalog_path: Path = CATALOG_PATH) -> List[Dict[str, object]]:
     """Load the listing catalog from JSON, falling back to the demo data."""
@@ -378,6 +389,25 @@ def load_catalog(catalog_path: Path = CATALOG_PATH) -> List[Dict[str, object]]:
     logger.info("No catalog at %s; using built-in demo catalog.", catalog_path)
     return [dict(item) for item in DEFAULT_CATALOG]
 
+
+#: Built-in demo catalog, used until a real ``catalog.json`` exists.
+DEFAULT_CATALOG: List[Dict[str, object]] = [
+    {"property_id": "P-0001", "subcity": "bole", "price_etb": 18000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 90.0, "is_furnished": False},
+    {"property_id": "P-0002", "subcity": "bole", "price_etb": 25000.0, "bedrooms": 3, "bathrooms": 3, "area_sqm": 130.0, "is_furnished": True},
+    {"property_id": "P-0003", "subcity": "arada", "price_etb": 22000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 105.0, "is_furnished": False},
+    {"property_id": "P-0004", "subcity": "yeka", "price_etb": 15000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 85.0, "is_furnished": False},
+    {"property_id": "P-0005", "subcity": "yeka", "price_etb": 12000.0, "bedrooms": 1, "bathrooms": 1, "area_sqm": 70.0, "is_furnished": True},
+    {"property_id": "P-0006", "subcity": "kirkos", "price_etb": 28000.0, "bedrooms": 3, "bathrooms": 3, "area_sqm": 140.0, "is_furnished": False},
+    {"property_id": "P-0007", "subcity": "kirkos", "price_etb": 19000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 100.0, "is_furnished": False},
+    {"property_id": "P-0008", "subcity": "gulele", "price_etb": 10000.0, "bedrooms": 1, "bathrooms": 1, "area_sqm": 60.0, "is_furnished": False},
+    {"property_id": "P-0009", "subcity": "nifas silk-lafto", "price_etb": 14000.0, "bedrooms": 2, "bathrooms": 2, "area_sqm": 95.0, "is_furnished": False},
+    {"property_id": "P-0010", "subcity": "addis ketema", "price_etb": 9000.0, "bedrooms": 1, "bathrooms": 1, "area_sqm": 55.0, "is_furnished": False},
+]
+
+
+# ---------------------------------------------------------------------------
+# Utility
+# ---------------------------------------------------------------------------
 
 def _as_float(value: object) -> float:
     """Safely coerce a value to float, returning 0.0 on failure."""

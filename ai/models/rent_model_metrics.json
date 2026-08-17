@@ -27,5 +27,16 @@
     "model__min_samples_split": 2,
     "model__n_estimators": 300
   },
-  "improvement_pct": 0.8860441072173342
+  "improvement_pct": 0.8860441072173342,
+  "median_baseline": {
+    "model_name": "MedianBaseline (subcity+bedrooms)",
+    "test_mae": 3977.5,
+    "test_rmse": 5015.008723820927,
+    "test_r2": 0.8861377157261505
+  },
+  "baseline_vs_ml_improvement": {
+    "mae_reduction_pct": 71.12,
+    "rmse_reduction_pct": 68.69,
+    "r2_delta": 0.1027
+  }
 }

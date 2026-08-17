@@ -1,0 +1,795 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HomeLink AI Engine",
+    "description": "AI microservice for HomeLink-Ethiopia: monthly rent estimation in ETB, tenant property recommendations, and listing fraud-risk detection.",
+    "contact": {
+      "name": "HomeLink-Ethiopia"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Health",
+        "description": "Liveness probe — confirms the process is running.\n\nReturns:\n    Status, uptime, API version, and a timestamp.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Ready",
+        "description": "Readiness probe — verifies models and manifest are available.\n\nReturns HTTP 200 when all checks pass, or HTTP 503 with a list of\nspecific failures when the service is not ready to serve traffic.",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Health Check",
+        "description": "Health check endpoint.\n\nReturns:\n    A simple status payload confirming the service is online.",
+        "operationId": "health_check__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/estimate-rent": {
+      "post": {
+        "tags": [
+          "ml"
+        ],
+        "summary": "Estimate Rent",
+        "description": "Predict the monthly rent in ETB for a residential property.\n\nArgs:\n    request: Property attributes (subcity, bedrooms, bathrooms,\n        area, water tank).\n\nReturns:\n    Predicted rent, model confidence, and an input summary.",
+        "operationId": "estimate_rent_api_v1_estimate_rent_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RentEstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RentEstimateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recommend": {
+      "post": {
+        "tags": [
+          "ml"
+        ],
+        "summary": "Recommend",
+        "description": "Recommend listings for a tenant based on budget and preferences.\n\nComputes a weighted match score (0–100) across four signals:\nbudget fit (35%), subcity/location match (35%), room/space fit\n(20%), and furnishing & amenities (10%).\n\nArgs:\n    request: Tenant budget, preferred subcities, room requirements,\n        and an optional batch of candidate properties.\n\nReturns:\n    Ranked list of recommendations with per-item match reasons.",
+        "operationId": "recommend_api_v1_recommend_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/detect-fraud": {
+      "post": {
+        "tags": [
+          "ml"
+        ],
+        "summary": "Detect Fraud",
+        "description": "Multi-signal fraud risk analysis for a property listing.\n\nComputes a 0-100 risk score from three weighted signals:\nprice anomaly (vs. market estimate), text/metadata red flags,\nand ML-based anomaly detection.\n\nArgs:\n    request: Listing details (price, area, bedrooms, description).\n\nReturns:\n    Structured risk analysis with score, level, and red flags.",
+        "operationId": "detect_fraud_api_v1_detect_fraud_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FraudCheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CandidateProperty": {
+        "properties": {
+          "property_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Property Id",
+            "description": "Listing identifier."
+          },
+          "price_etb": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Price Etb",
+            "description": "Monthly asking price in ETB."
+          },
+          "bedrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Bedrooms",
+            "description": "Number of bedrooms."
+          },
+          "bathrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Bathrooms",
+            "description": "Number of bathrooms."
+          },
+          "subcity": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Subcity",
+            "description": "Addis Ababa subcity."
+          },
+          "area_sqm": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Area Sqm",
+            "description": "Floor area in square metres.",
+            "default": 0.0
+          },
+          "is_furnished": {
+            "type": "boolean",
+            "title": "Is Furnished",
+            "description": "Whether the unit is furnished.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "property_id",
+          "price_etb",
+          "bedrooms",
+          "bathrooms",
+          "subcity"
+        ],
+        "title": "CandidateProperty",
+        "description": "A single property the backend sends for scoring."
+      },
+      "FraudCheckRequest": {
+        "properties": {
+          "listing_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Listing Id",
+            "description": "Listing identifier to assess."
+          },
+          "price_etb": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Price Etb",
+            "description": "Monthly asking price in ETB."
+          },
+          "area_sqm": {
+            "type": "number",
+            "maximum": 100000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Area Sqm",
+            "description": "Floor area in square metres."
+          },
+          "bedrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Bedrooms",
+            "description": "Number of bedrooms."
+          },
+          "bathrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Bathrooms",
+            "description": "Number of bathrooms."
+          },
+          "description_text": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Description Text",
+            "description": "Free-text description of the listing.",
+            "default": ""
+          },
+          "subcity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcity",
+            "description": "Addis Ababa subcity, e.g. 'Bole'."
+          }
+        },
+        "type": "object",
+        "required": [
+          "listing_id",
+          "price_etb",
+          "area_sqm",
+          "bedrooms",
+          "bathrooms"
+        ],
+        "title": "FraudCheckRequest",
+        "description": "Inputs for the multi-signal fraud analysis endpoint."
+      },
+      "FraudCheckResponse": {
+        "properties": {
+          "listing_id": {
+            "type": "string",
+            "title": "Listing Id",
+            "description": "Echo of the assessed listing id."
+          },
+          "risk_score": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Risk Score",
+            "description": "Composite risk score (0=safe, 100=critical)."
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "description": "Human-readable risk level: 'low', 'medium', or 'high'."
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags",
+            "description": "Actionable red-flag descriptions explaining detected risks."
+          },
+          "price_deviation_percent": {
+            "type": "number",
+            "title": "Price Deviation Percent",
+            "description": "Percentage difference between listed price and market estimate. Negative = underpriced, positive = overpriced."
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "description": "Analysis confidence (ML model loaded: 0.85, fallback: 0.65)."
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "description": "Version of the fraud analysis engine.",
+            "default": "fraud-v1.1.0"
+          },
+          "signal_breakdown": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signal Breakdown",
+            "description": "Component scores: price_anomaly (0-40), text_metadata (0-30), ml_anomaly (0-30)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "listing_id",
+          "risk_score",
+          "risk_level",
+          "price_deviation_percent",
+          "confidence"
+        ],
+        "title": "FraudCheckResponse",
+        "description": "Output of the multi-signal fraud analysis endpoint."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Service status ('ok')."
+          },
+          "uptime_seconds": {
+            "type": "number",
+            "title": "Uptime Seconds",
+            "description": "Seconds since the process started."
+          },
+          "api_version": {
+            "type": "string",
+            "title": "Api Version",
+            "description": "FastAPI application version."
+          },
+          "timestamp": {
+            "type": "number",
+            "title": "Timestamp",
+            "description": "Unix timestamp of the response."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "uptime_seconds",
+          "api_version",
+          "timestamp"
+        ],
+        "title": "HealthResponse",
+        "description": "Liveness probe response."
+      },
+      "ReadyResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Readiness status ('ready')."
+          },
+          "models_loaded": {
+            "type": "boolean",
+            "title": "Models Loaded",
+            "description": "True if all ML models are loaded in memory."
+          },
+          "manifest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Version",
+            "description": "Model manifest schema version, if available."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "models_loaded"
+        ],
+        "title": "ReadyResponse",
+        "description": "Readiness probe response (HTTP 200)."
+      },
+      "RecommendationItem": {
+        "properties": {
+          "property_id": {
+            "type": "string",
+            "title": "Property Id",
+            "description": "Listing identifier from the catalog."
+          },
+          "match_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Match Score",
+            "description": "Composite match score (0–100)."
+          },
+          "match_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Match Reasons",
+            "description": "Human-readable reasons explaining the match."
+          },
+          "estimated_market_rent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Market Rent",
+            "description": "ML-estimated market rent in ETB (if available)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "property_id",
+          "match_score"
+        ],
+        "title": "RecommendationItem",
+        "description": "A single recommended listing in the response."
+      },
+      "RecommendationRequest": {
+        "properties": {
+          "max_budget_etb": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Max Budget Etb",
+            "description": "Maximum monthly rent the tenant can afford, in ETB."
+          },
+          "preferred_subcities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Preferred Subcities",
+            "description": "Ordered list of preferred Addis Ababa subcities (at least one)."
+          },
+          "min_bedrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Min Bedrooms",
+            "description": "Minimum number of bedrooms required.",
+            "default": 1
+          },
+          "min_bathrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Min Bathrooms",
+            "description": "Minimum number of bathrooms required.",
+            "default": 1
+          },
+          "preferred_property_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Property Type",
+            "description": "Optional property-type filter (e.g. 'apartment')."
+          },
+          "is_furnished_required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Furnished Required",
+            "description": "If True only furnished listings are returned."
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "description": "Maximum number of recommendations to return.",
+            "default": 5
+          },
+          "candidate_properties": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CandidateProperty"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Properties",
+            "description": "Optional batch of candidate properties supplied by the backend. When provided, these listings are scored instead of the built-in catalog."
+          }
+        },
+        "type": "object",
+        "required": [
+          "max_budget_etb",
+          "preferred_subcities"
+        ],
+        "title": "RecommendationRequest",
+        "description": "Inputs for the property recommendation endpoint."
+      },
+      "RecommendationResponse": {
+        "properties": {
+          "total_candidates_evaluated": {
+            "type": "integer",
+            "title": "Total Candidates Evaluated",
+            "description": "Number of candidate listings evaluated."
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationItem"
+            },
+            "type": "array",
+            "title": "Recommendations",
+            "description": "Ranked recommendations (best match first)."
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "description": "Version of the recommendation engine.",
+            "default": "rec-v1.0.0"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_candidates_evaluated",
+          "recommendations"
+        ],
+        "title": "RecommendationResponse",
+        "description": "Output of the recommendation endpoint."
+      },
+      "RentEstimateRequest": {
+        "properties": {
+          "subcity": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Subcity",
+            "description": "Addis Ababa subcity, e.g. 'Bole'."
+          },
+          "bedrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Bedrooms",
+            "description": "Number of bedrooms."
+          },
+          "bathrooms": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Bathrooms",
+            "description": "Number of bathrooms."
+          },
+          "area_sqm": {
+            "type": "number",
+            "maximum": 100000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Area Sqm",
+            "description": "Floor area in square metres (realistic range: 10-1000)."
+          },
+          "has_water_tank": {
+            "type": "boolean",
+            "title": "Has Water Tank",
+            "description": "Whether the unit has a private water tank.",
+            "default": false
+          },
+          "has_generator": {
+            "type": "boolean",
+            "title": "Has Generator",
+            "description": "Whether the unit has a backup generator.",
+            "default": false
+          },
+          "is_furnished": {
+            "type": "boolean",
+            "title": "Is Furnished",
+            "description": "Whether the unit is rented furnished.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "subcity",
+          "bedrooms",
+          "bathrooms",
+          "area_sqm"
+        ],
+        "title": "RentEstimateRequest",
+        "description": "Inputs for the rent estimation endpoint."
+      },
+      "RentEstimateResponse": {
+        "properties": {
+          "estimated_rent_etb": {
+            "type": "number",
+            "title": "Estimated Rent Etb",
+            "description": "Predicted monthly rent in ETB."
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "description": "Model confidence (0=low, 1=high). ML model: 0.92, heuristic: 0.58."
+          },
+          "model_used": {
+            "type": "string",
+            "title": "Model Used",
+            "description": "Model artifact name, e.g. 'rent_model.joblib' or 'heuristic-baseline'."
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "description": "API/model version of the prediction engine.",
+            "default": "0.1.0"
+          },
+          "input_summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Summary",
+            "description": "Echo of the validated input used for the prediction."
+          }
+        },
+        "type": "object",
+        "required": [
+          "estimated_rent_etb",
+          "confidence",
+          "model_used",
+          "input_summary"
+        ],
+        "title": "RentEstimateResponse",
+        "description": "Output of the rent estimation endpoint."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

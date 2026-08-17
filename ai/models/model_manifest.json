@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-17T03:54:57.625070+00:00",
+  "dataset": {
+    "path": "data\\ethiopia_housing_data.csv",
+    "sha256": "c4a66b2556edfb80196381240846f06eec149f4ec3e7f4f9fe4e59e1af5d5fd1",
+    "rows": 200,
+    "columns": 9,
+    "column_names": [
+      "subcity",
+      "bedrooms",
+      "bathrooms",
+      "area_sqm",
+      "has_water_tank",
+      "has_generator",
+      "is_furnished",
+      "description_text",
+      "rent_price_etb"
+    ]
+  },
+  "training_config": {
+    "random_state": 42,
+    "test_size": 0.2
+  },
+  "rent_model": {
+    "version": "rent-v1.1.0",
+    "artifact": "rent_model.joblib",
+    "algorithm": "GradientBoostingRegressor",
+    "hyperparameters": {
+      "model__learning_rate": 0.1,
+      "model__max_depth": 3,
+      "model__min_samples_split": 2,
+      "model__n_estimators": 200
+    },
+    "feature_columns": [
+      "subcity",
+      "bedrooms",
+      "bathrooms",
+      "area_sqm",
+      "has_water_tank",
+      "has_generator",
+      "is_furnished"
+    ],
+    "numeric_columns": [
+      "bedrooms",
+      "bathrooms",
+      "area_sqm",
+      "has_water_tank",
+      "has_generator",
+      "is_furnished"
+    ],
+    "categorical_columns": [
+      "subcity"
+    ],
+    "target_column": "rent_price_etb",
+    "metrics": {
+      "test_mae": 1511.6508329623962,
+      "test_rmse": 1882.9083507639598,
+      "test_r2": 0.9854317557389896,
+      "cv_r2_mean": 0.9597078073157018,
+      "cv_r2_std": 0.018586789269186665
+    },
+    "baseline_comparison": {
+      "median_baseline": {
+        "test_mae": 5775.0,
+        "test_rmse": 7448.993220563434,
+        "test_r2": 0.7719951897610996
+      },
+      "mae_reduction_pct": 73.82,
+      "rmse_reduction_pct": 74.72,
+      "r2_delta": 0.2134
+    },
+    "candidate_models": [
+      {
+        "name": "GradientBoostingRegressor",
+        "mae": 1511.6508329623962,
+        "rmse": 1882.9083507639598,
+        "r2": 0.9854317557389896
+      },
+      {
+        "name": "LinearRegression",
+        "mae": 1812.4556415955008,
+        "rmse": 2252.7632417416858,
+        "r2": 0.9791464521089147
+      },
+      {
+        "name": "RandomForestRegressor",
+        "mae": 2311.7083333333335,
+        "rmse": 3012.7311690926263,
+        "r2": 0.9627033682444476
+      }
+    ]
+  },
+  "fraud_model": {
+    "version": "fraud-v1.1.0",
+    "artifact": "fraud_model.joblib",
+    "algorithm": "IsolationForest + TF-IDF",
+    "feature_columns": [
+      "rent_price_etb",
+      "area_sqm",
+      "price_per_sqm",
+      "subcity_rank"
+    ],
+    "metrics": {
+      "n_training_samples": 200,
+      "feature_columns": [
+        "rent_price_etb",
+        "area_sqm",
+        "price_per_sqm",
+        "subcity_rank"
+      ],
+      "tfidf_vocabulary_size": 145,
+      "isolation_forest_n_estimators": 200,
+      "isolation_forest_contamination": 0.05,
+      "train_score_min": -0.6647803609670841,
+      "train_score_max": -0.4267202979779545,
+      "benign_suspicious_cosine": 0.13080037171051329
+    }
+  }
+}

@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
 FRAUD_MODEL_PATH = MODELS_DIR / "fraud_model.joblib"
+_MANIFEST_PATH = MODELS_DIR / "model_manifest.json"
 
 #: Columns the IsolationForest is trained/predicted on.
 FRAUD_FEATURE_COLUMNS: List[str] = [
@@ -152,6 +153,69 @@ TEXT_FLAG_THRESHOLD = 0.6
 
 _EPS = 1e-8
 
+# ---------------------------------------------------------------------------
+# Multi-signal analysis constants
+# ---------------------------------------------------------------------------
+
+#: Maximum points each signal can contribute to the final 0-100 score.
+PRICE_SIGNAL_MAX = 40.0
+TEXT_SIGNAL_MAX = 30.0
+ML_SIGNAL_MAX = 30.0
+
+#: Risk-level thresholds on the 0-100 scale.
+RISK_LOW_MAX = 30
+RISK_HIGH_MIN = 60
+
+#: Price deviation thresholds (ratio of listing price to market estimate).
+UNDERPRICE_SEVERE = -0.45   # listing < 55% of estimate
+UNDERPRICE_MODERATE = -0.25 # listing < 75% of estimate
+OVERPRICE_MODERATE = 1.0    # listing > 200% of estimate
+OVERPRICE_SEVERE = 1.5      # listing > 250% of estimate
+
+#: Unrealistic area-per-bedroom ratio (sqm per bedroom).
+LOW_AREA_PER_BEDROOM = 10.0
+
+#: Description length below which a short-desc flag is raised.
+SHORT_DESC_THRESHOLD = 20
+
+#: Phrases that strongly indicate advance-payment scam patterns.
+ADVANCE_PAYMENT_KEYWORDS: Tuple[str, ...] = (
+    "wire transfer",
+    "western union",
+    "moneygram",
+    "money gram",
+    "pay in advance",
+    "pay first",
+    "bitcoin",
+    "crypto",
+    "before viewing",
+    "send money",
+    "deposit before",
+)
+
+#: Phrases that indicate urgency-pressure tactics.
+URGENCY_KEYWORDS: Tuple[str, ...] = (
+    "urgent",
+    "act fast",
+    "today only",
+    "limited time",
+    "hurry",
+    "last chance",
+    "dont wait",
+    "don't wait",
+    "before it's gone",
+    "moving soon",
+)
+
+
+def _score_to_level(score: int) -> str:
+    """Map a 0-100 risk score to a human-readable risk level."""
+    if score < RISK_LOW_MAX:
+        return "low"
+    if score >= RISK_HIGH_MIN:
+        return "high"
+    return "medium"
+
 
 @dataclass(frozen=True)
 class FraudReport:
@@ -162,6 +226,20 @@ class FraudReport:
     is_flagged: bool
     risk_indicators: List[str] = field(default_factory=list)
     score_breakdown: Optional[Dict[str, float]] = None
+
+
+@dataclass(frozen=True)
+class FraudAnalysisReport:
+    """Structured, explainable result of the multi-signal fraud analysis."""
+
+    listing_id: str
+    risk_score: int
+    risk_level: str
+    red_flags: List[str]
+    price_deviation_percent: float
+    confidence: float
+    model_version: str
+    signal_breakdown: Dict[str, float]
 
 
 class FraudDetector:
@@ -175,6 +253,7 @@ class FraudDetector:
         """
         self._model_path = model_path
         self._bundle = None  # type: Optional[Dict[str, object]]
+        self._model_version = self._load_manifest_version()
         self._load_model()
 
     # -- public API ---------------------------------------------------------
@@ -247,7 +326,250 @@ class FraudDetector:
         """Return whether the ML model bundle is currently in use."""
         return self._bundle is not None
 
+    def analyze(
+        self,
+        listing_id: str,
+        price_etb: float,
+        area_sqm: float,
+        bedrooms: int,
+        bathrooms: int,
+        description_text: str,
+        subcity: Optional[str] = None,
+    ) -> FraudAnalysisReport:
+        """Multi-signal risk analysis returning a 0-100 score with red flags.
+
+        Combines three weighted signals:
+
+        1. **Price anomaly** (0-40 pts): compares listing price against
+           the rent model's market estimate.
+        2. **Text & metadata red flags** (0-30 pts): scans the description
+           for urgency language, advance-payment requests, short/missing
+           descriptions, and checks area-per-bedroom realism.
+        3. **ML anomaly** (0-30 pts): IsolationForest + TF-IDF scores
+           from ``fraud_model.joblib``.
+
+        Args:
+            listing_id: Backend identifier of the listing.
+            price_etb: Monthly asking price in ETB.
+            area_sqm: Floor area in square metres.
+            bedrooms: Number of bedrooms.
+            bathrooms: Number of bathrooms.
+            description_text: Free-text listing description.
+            subcity: Optional Addis Ababa subcity.
+
+        Returns:
+            A :class:`FraudAnalysisReport` with score, level, and flags.
+        """
+        price = max(float(price_etb), 0.0)
+        area = max(float(area_sqm), 0.0)
+        desc = re.sub(r"\s+", " ", str(description_text or "")).strip()
+
+        # --- Signal 1: Price anomaly ---
+        price_score, price_dev_pct, price_flags = self._price_anomaly_signal(
+            price=price, area=area, bedrooms=int(bedrooms),
+            bathrooms=int(bathrooms), subcity=subcity,
+        )
+
+        # --- Signal 2: Text & metadata red flags ---
+        text_score, text_flags = self._text_metadata_signal(
+            description=desc, area=area, bedrooms=int(bedrooms),
+        )
+
+        # --- Signal 3: ML anomaly ---
+        ml_score, ml_flags = self._ml_anomaly_signal(
+            price=price, area=area, subcity=subcity, description=desc,
+        )
+
+        # --- Combine ---
+        raw_score = price_score + text_score + ml_score
+        risk_score = int(min(max(round(raw_score), 0), 100))
+        risk_level = _score_to_level(risk_score)
+        all_flags = price_flags + text_flags + ml_flags
+
+        # Confidence: higher when ML model is available
+        confidence = 0.85 if self._bundle is not None else 0.65
+
+        return FraudAnalysisReport(
+            listing_id=listing_id,
+            risk_score=risk_score,
+            risk_level=risk_level,
+            red_flags=all_flags,
+            price_deviation_percent=round(price_dev_pct, 1),
+            confidence=confidence,
+            model_version=self._model_version,
+            signal_breakdown={
+                "price_anomaly": round(price_score, 2),
+                "text_metadata": round(text_score, 2),
+                "ml_anomaly": round(ml_score, 2),
+                "total": round(raw_score, 2),
+            },
+        )
+
+    # -- multi-signal internals ---------------------------------------------
+
+    def _price_anomaly_signal(
+        self,
+        price: float,
+        area: float,
+        bedrooms: int,
+        bathrooms: int,
+        subcity: Optional[str],
+    ) -> Tuple[float, float, List[str]]:
+        """Compute price-anomaly score (0-40), deviation %, and flags."""
+        flags: List[str] = []
+        estimated = self._estimate_market_rent(
+            area=area, bedrooms=bedrooms, bathrooms=bathrooms, subcity=subcity,
+        )
+        if estimated <= 0:
+            return 0.0, 0.0, flags
+
+        deviation = (price - estimated) / estimated
+        dev_pct = deviation * 100.0
+
+        score = 0.0
+        if deviation < UNDERPRICE_SEVERE:
+            score = PRICE_SIGNAL_MAX
+            flags.append(
+                f"Severe underpricing: listed ETB {price:,.0f} is {abs(dev_pct):.0f}% "
+                f"below market estimate of ETB {estimated:,.0f}"
+            )
+        elif deviation < UNDERPRICE_MODERATE:
+            score = PRICE_SIGNAL_MAX * 0.6
+            flags.append(
+                f"Moderate underpricing: listed ETB {price:,.0f} is {abs(dev_pct):.0f}% "
+                f"below market estimate of ETB {estimated:,.0f}"
+            )
+        elif deviation > OVERPRICE_SEVERE:
+            score = PRICE_SIGNAL_MAX * 0.85
+            flags.append(
+                f"Extreme overpricing: listed ETB {price:,.0f} is {dev_pct:.0f}% "
+                f"above market estimate of ETB {estimated:,.0f}"
+            )
+        elif deviation > OVERPRICE_MODERATE:
+            score = PRICE_SIGNAL_MAX * 0.4
+            flags.append(
+                f"Significant overpricing: listed ETB {price:,.0f} is {dev_pct:.0f}% "
+                f"above market estimate of ETB {estimated:,.0f}"
+            )
+
+        return score, dev_pct, flags
+
+    def _estimate_market_rent(
+        self,
+        area: float,
+        bedrooms: int,
+        bathrooms: int,
+        subcity: Optional[str],
+    ) -> float:
+        """Estimate market rent using the rent model or heuristic fallback."""
+        try:
+            from src.rent_estimator import RentEstimator
+            estimator = RentEstimator()
+            result = estimator.predict(
+                subcity=subcity or "addis ketema",
+                bedrooms=bedrooms,
+                bathrooms=bathrooms,
+                area_sqm=area,
+                has_water_tank=False,
+                has_generator=False,
+                is_furnished=False,
+            )
+            return result.estimated_rent_etb
+        except Exception:  # noqa: BLE001
+            # Fallback: simple heuristic
+            rate = SUBCITY_RANK.get((subcity or "").strip().lower(), DEFAULT_SUBCITY_RANK)
+            return max(area * 250.0 + bedrooms * 2200.0 + bathrooms * 1200.0, 1.0)
+
+    def _text_metadata_signal(
+        self,
+        description: str,
+        area: float,
+        bedrooms: int,
+    ) -> Tuple[float, float, List[str]]:
+        """Compute text/metadata red-flag score (0-30) and flags."""
+        flags: List[str] = []
+        score = 0.0
+
+        # Short or missing description
+        if len(description) < SHORT_DESC_THRESHOLD:
+            score += 10.0
+            flags.append("Description is very short or missing (common in scam listings)")
+
+        # Urgency language
+        matched_urgency = [kw for kw in URGENCY_KEYWORDS if kw in description.lower()]
+        if matched_urgency:
+            score += 8.0
+            flags.append(f"Urgency pressure language detected: {', '.join(matched_urgency)}")
+
+        # Advance-payment / wire-transfer language
+        matched_payment = [kw for kw in ADVANCE_PAYMENT_KEYWORDS if kw in description.lower()]
+        if matched_payment:
+            score += 12.0
+            flags.append(f"Advance payment / wire-transfer language detected: {', '.join(matched_payment)}")
+
+        # Excessive exclamation marks
+        if description.count("!") >= 3:
+            score += 3.0
+            flags.append("Excessive exclamation marks suggest pushy advertising")
+
+        # Unrealistic area-per-bedroom ratio
+        if bedrooms > 0 and area > 0:
+            area_per_bed = area / bedrooms
+            if area_per_bed < LOW_AREA_PER_BEDROOM:
+                score += 7.0
+                flags.append(
+                    f"Unrealistic area-to-bedroom ratio: {area_per_bed:.0f} sqm/bedroom "
+                    f"(minimum realistic: {LOW_AREA_PER_BEDROOM:.0f})"
+                )
+
+        return min(score, TEXT_SIGNAL_MAX), flags
+
+    def _ml_anomaly_signal(
+        self,
+        price: float,
+        area: float,
+        subcity: Optional[str],
+        description: str,
+    ) -> Tuple[float, float, List[str]]:
+        """Compute ML-based anomaly score (0-30) and flags."""
+        flags: List[str] = []
+
+        if self._bundle is None:
+            return 0.0, flags
+
+        try:
+            # Tabular anomaly
+            tabular = self._tabular_anomaly_score(price=price, area=area, subcity=subcity)
+            # Text suspiciousness
+            text_susp = self._text_suspiciousness_score(description=description)
+            combined = TABULAR_WEIGHT * tabular + TEXT_WEIGHT * text_susp
+            ml_pts = combined * ML_SIGNAL_MAX
+
+            if tabular >= TABULAR_FLAG_THRESHOLD:
+                flags.append(
+                    "ML tabular anomaly: statistically unusual price/size for its subcity"
+                )
+            if text_susp >= TEXT_FLAG_THRESHOLD:
+                flags.append(
+                    "Description semantically similar to known scam templates"
+                )
+
+            return ml_pts, flags
+        except Exception:  # noqa: BLE001
+            logger.warning("ML fraud scoring failed in analyze(); returning 0.")
+            return 0.0, flags
+
     # -- ML internals -------------------------------------------------------
+
+    def _load_manifest_version(self) -> str:
+        """Read fraud model version from ``model_manifest.json``."""
+        try:
+            import json as _json
+            with open(_MANIFEST_PATH, encoding="utf-8") as fh:
+                manifest = _json.load(fh)
+            return manifest.get("fraud_model", {}).get("version", "fraud-v1.0.0")
+        except (OSError, ValueError, KeyError):
+            return "fraud-v1.0.0"
 
     def _load_model(self) -> None:
         """Attempt to load the ``.joblib`` fraud model bundle, if present."""

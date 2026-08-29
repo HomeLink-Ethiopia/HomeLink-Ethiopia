@@ -9,6 +9,48 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/fraud/analyze": {
+      "post": {
+        "tags": [
+          "fraud"
+        ],
+        "summary": "Fraud Analyze",
+        "description": "Run explainable fraud screening for a listing.",
+        "operationId": "fraud_analyze_fraud_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FraudAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -72,6 +114,48 @@
                   },
                   "type": "object",
                   "title": "Response Health Check  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rent/predict": {
+      "post": {
+        "tags": [
+          "ml"
+        ],
+        "summary": "Predict Rent",
+        "description": "Predict the estimated monthly market rent for a property using the baseline ML model.",
+        "operationId": "predict_rent_rent_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RentPredictionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RentPredictionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -266,6 +350,117 @@
         ],
         "title": "CandidateProperty",
         "description": "A single property the backend sends for scoring."
+      },
+      "FraudAnalysisRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Title",
+            "description": "Title of the listing."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Description",
+            "description": "Listing description text."
+          },
+          "price": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Price",
+            "description": "Listed price in ETB."
+          },
+          "subcity": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Subcity",
+            "description": "Addis Ababa subcity name."
+          },
+          "bedrooms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bedrooms",
+            "description": "Number of bedrooms."
+          },
+          "bathrooms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bathrooms",
+            "description": "Number of bathrooms."
+          },
+          "size_sqm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Size Sqm",
+            "description": "Property size in square metres."
+          },
+          "furnished": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Furnished",
+            "description": "1 if furnished, else 0."
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "price",
+          "subcity",
+          "bedrooms",
+          "bathrooms",
+          "size_sqm",
+          "furnished"
+        ],
+        "title": "FraudAnalysisRequest",
+        "description": "Input payload for a fraud risk assessment."
+      },
+      "FraudAnalysisResponse": {
+        "properties": {
+          "risk_score": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Risk Score",
+            "description": "Composite risk score from 0 to 100."
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "description": "Risk band: low, medium, or high."
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags",
+            "description": "List of red flags identified."
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "description": "Confidence score for the risk assessment."
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "description": "Version of the fraud risk engine.",
+            "default": "fraud-risk-v1"
+          }
+        },
+        "type": "object",
+        "required": [
+          "risk_score",
+          "risk_level",
+          "confidence"
+        ],
+        "title": "FraudAnalysisResponse",
+        "description": "Explainable fraud risk result for a listing."
       },
       "FraudCheckRequest": {
         "properties": {
@@ -749,6 +944,85 @@
         ],
         "title": "RentEstimateResponse",
         "description": "Output of the rent estimation endpoint."
+      },
+      "RentPredictionRequest": {
+        "properties": {
+          "subcity": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Subcity",
+            "description": "Addis Ababa subcity name."
+          },
+          "bedrooms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bedrooms",
+            "description": "Number of bedrooms."
+          },
+          "bathrooms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bathrooms",
+            "description": "Number of bathrooms."
+          },
+          "size_sqm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Size Sqm",
+            "description": "Property size in square metres."
+          },
+          "furnished": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Furnished",
+            "description": "1 if furnished, else 0."
+          }
+        },
+        "type": "object",
+        "required": [
+          "subcity",
+          "bedrooms",
+          "bathrooms",
+          "size_sqm",
+          "furnished"
+        ],
+        "title": "RentPredictionRequest",
+        "description": "Input payload for the baseline market-rent predictor."
+      },
+      "RentPredictionResponse": {
+        "properties": {
+          "estimated_market_rent": {
+            "type": "number",
+            "title": "Estimated Market Rent",
+            "description": "Estimated monthly rent in ETB."
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "Currency of the estimate.",
+            "default": "ETB"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "description": "Version of the loaded baseline model.",
+            "default": "baseline-v1"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "description": "Risk disclaimer for consumers.",
+            "default": "This is an estimated market rent based on historical listings, not a guaranteed price."
+          }
+        },
+        "type": "object",
+        "required": [
+          "estimated_market_rent"
+        ],
+        "title": "RentPredictionResponse",
+        "description": "Output payload for the baseline market-rent predictor."
       },
       "ValidationError": {
         "properties": {

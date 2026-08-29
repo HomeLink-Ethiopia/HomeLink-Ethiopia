@@ -17,21 +17,26 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
+import joblib
+import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, model_validator
 
+from src.api.routes import router as fraud_router
 from src.fraud_detector import FraudDetector
 from src.recommend import Recommender, rank_properties
 from src.rent_estimator import RentEstimator
 
 #: Path to the model manifest written by ``src.train``.
 _MANIFEST_PATH = Path(__file__).resolve().parent / "models" / "model_manifest.json"
+_BASELINE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "baseline_rent_model.joblib"
 
 #: Timestamp when the application started (used by uptime reporting).
 _STARTUP_TIME = time.time()
+_baseline_model: Optional[Any] = None
 
 
 def _load_manifest_versions() -> Dict[str, str]:
@@ -74,6 +79,8 @@ _rent_estimator: Optional[RentEstimator] = None
 _recommender: Optional[Recommender] = None
 _fraud_detector: Optional[FraudDetector] = None
 
+app.include_router(fraud_router)
+
 
 def get_rent_estimator() -> RentEstimator:
     """Return the shared rent estimator instance."""
@@ -97,6 +104,27 @@ def get_fraud_detector() -> FraudDetector:
     if _fraud_detector is None:
         _fraud_detector = FraudDetector()
     return _fraud_detector
+
+
+def get_baseline_model() -> Any:
+    """Return the persisted baseline rent model, loading it on demand if needed."""
+    global _baseline_model
+    if _baseline_model is None:
+        if not _BASELINE_MODEL_PATH.exists():
+            raise FileNotFoundError(f"Baseline model not found at {_BASELINE_MODEL_PATH}")
+        _baseline_model = joblib.load(_BASELINE_MODEL_PATH)
+    return _baseline_model
+
+
+@app.on_event("startup")
+def startup_model_load() -> None:
+    """Load the baseline rent pipeline at startup and keep any failure contained."""
+    try:
+        get_baseline_model()
+    except Exception:
+        app.state.baseline_model_error = "baseline model unavailable"
+    else:
+        app.state.baseline_model_error = None
 
 
 # ---------------------------------------------------------------------------
@@ -333,6 +361,25 @@ class FraudCheckResponse(BaseModel):
     )
 
 
+class RentPredictionRequest(BaseModel):
+    """Input payload for the baseline market-rent predictor."""
+
+    subcity: str = Field(..., min_length=1, max_length=80, description="Addis Ababa subcity name.")
+    bedrooms: int = Field(..., ge=0, description="Number of bedrooms.")
+    bathrooms: int = Field(..., ge=0, description="Number of bathrooms.")
+    size_sqm: float = Field(..., gt=0, description="Property size in square metres.")
+    furnished: int = Field(..., ge=0, le=1, description="1 if furnished, else 0.")
+
+
+class RentPredictionResponse(BaseModel):
+    """Output payload for the baseline market-rent predictor."""
+
+    estimated_market_rent: float = Field(..., description="Estimated monthly rent in ETB.")
+    currency: str = Field(default="ETB", description="Currency of the estimate.")
+    model_version: str = Field(default="baseline-v1", description="Version of the loaded baseline model.")
+    disclaimer: str = Field(default="This is an estimated market rent based on historical listings, not a guaranteed price.", description="Risk disclaimer for consumers.")
+
+
 class HealthResponse(BaseModel):
     """Liveness probe response."""
 
@@ -448,6 +495,33 @@ def health_check() -> Dict[str, str]:
         A simple status payload confirming the service is online.
     """
     return {"status": "online", "service": "HomeLink AI Engine"}
+
+
+@app.post("/rent/predict", response_model=RentPredictionResponse, tags=["ml"])
+def predict_rent(request: RentPredictionRequest) -> RentPredictionResponse:
+    """Predict the estimated monthly market rent for a property using the baseline ML model."""
+    try:
+        model = get_baseline_model()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Baseline rent model unavailable: {exc}") from exc
+
+    payload = pd.DataFrame([
+        {
+            "subcity": request.subcity,
+            "bedrooms": request.bedrooms,
+            "bathrooms": request.bathrooms,
+            "size_sqm": request.size_sqm,
+            "furnished": request.furnished,
+        }
+    ])
+
+    prediction = float(model.predict(payload)[0])
+    return RentPredictionResponse(
+        estimated_market_rent=prediction,
+        currency="ETB",
+        model_version="baseline-v1",
+        disclaimer="This is an estimated market rent based on historical listings, not a guaranteed price.",
+    )
 
 
 @app.post("/api/v1/estimate-rent", response_model=RentEstimateResponse, tags=["ml"])

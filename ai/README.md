@@ -194,6 +194,81 @@ RentEstimateResponse { estimated_rent_etb, confidence, model_used, model_version
 
 ---
 
+## Fraud Analysis: `POST /fraud/analyze`
+
+### Endpoint contract
+
+This explainable fraud-risk endpoint is optimized for real estate listing screening without requiring a labeled fraud dataset.
+
+#### Request body
+
+```json
+{
+  "title": "2BR apartment in Bole",
+  "description": "Bright 2-bedroom apartment with balcony. Available immediately. Please contact us for viewing.",
+  "price": 35000,
+  "subcity": "bole",
+  "bedrooms": 2,
+  "bathrooms": 1,
+  "size_sqm": 80,
+  "furnished": 1
+}
+```
+
+| Field | Type | Constraints | Required |
+|-------|------|-------------|:--------:|
+| `title` | string | `min_length=1` | yes |
+| `description` | string | `min_length=1` | yes |
+| `price` | float | `> 0` | yes |
+| `subcity` | string | `min_length=1` | yes |
+| `bedrooms` | integer | `>= 0` | yes |
+| `bathrooms` | integer | `>= 0` | yes |
+| `size_sqm` | float | `> 0` | yes |
+| `furnished` | integer | `0 or 1` | yes |
+
+#### Response body
+
+```json
+{
+  "risk_score": 15,
+  "risk_level": "low",
+  "red_flags": [],
+  "confidence": 0.85,
+  "model_version": "fraud-risk-v1"
+}
+```
+
+#### curl example
+
+```bash
+curl -X POST http://localhost:8000/fraud/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "2BR apartment in Bole",
+    "description": "Bright 2-bedroom apartment with balcony. Available immediately.",
+    "price": 35000,
+    "subcity": "bole",
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "size_sqm": 80,
+    "furnished": 1
+  }'
+```
+
+### Risk logic
+
+The engine combines a price anomaly check against the market-rent estimate and suspicious text scanning for scam-like payment language. It adds red flags for:
+
+- suspiciously low prices relative to estimated market rent
+- suspiciously high prices relative to estimated market rent
+- payment or transfer language such as "advance payment", "wire transfer", "western union", "urgent cash", "pay before viewing", or "bank transfer before inspection"
+
+The final score is capped at 0-100 and mapped as:
+
+- `0-30`: low
+- `31-70`: medium
+- `71-100`: high
+
 ## Fraud Analysis: `POST /api/v1/detect-fraud`
 
 ### Methodology

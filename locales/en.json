@@ -1,0 +1,245 @@
+{
+  "common": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "getStarted": "Get Started",
+    "home": "Home",
+    "explore": "Explore",
+    "howItWorks": "How It Works",
+    "listProperty": "List Property",
+    "about": "About",
+    "support": "Support",
+    "search": "Search",
+    "filter": "Filter",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "save": "Save",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "logout": "Logout"
+  },
+  "hero": {
+    "title": "A home should feel like yours.",
+    "subtitle": "Find verified homes in Addis Ababa. Trusted. Transparent. Truly HomeLink.",
+    "searchPlaceholder": "City or neighborhood",
+    "whereToLive": "WHERE DO YOU WANT TO LIVE?",
+    "propertyType": "PROPERTY TYPE",
+    "budget": "BUDGET (ETB)",
+    "bedrooms": "BEDROOMS",
+    "searchButton": "Search Homes"
+  },
+  "stats": {
+    "properties": "Verified properties",
+    "landlords": "Verified landlords",
+    "happyTenants": "Happy tenants",
+    "secure": "Secure",
+    "dataSafe": "Your data is safe"
+  },
+  "neighborhoods": {
+    "title": "Explore Addis Ababa",
+    "subtitle": "Different neighborhoods. Different lifestyles.",
+    "viewAll": "View all neighborhoods",
+    "homes": "homes"
+  },
+  "properties": {
+    "title": "Verified homes you can trust",
+    "forYou": "For You",
+    "new": "New Homes",
+    "popular": "Popular",
+    "topRated": "Top Rated",
+    "viewAll": "View all homes",
+    "month": "month",
+    "verified": "Verified"
+  },
+  "aiMatch": {
+    "title": "Let AI find your perfect match",
+    "subtitle": "We learn your preferences to show you homes you'll love.",
+    "match": "Match",
+    "whyMatches": "Why this home matches you",
+    "withinBudget": "Within your budget",
+    "preferredLocation": "Preferred location",
+    "parkingAvailable": "Parking available",
+    "verifiedLandlord": "Verified landlord",
+    "seeMatches": "See Matches"
+  },
+  "howItWorks": {
+    "title": "How HomeLink works",
+    "discover": "Discover",
+    "discoverDesc": "Explore verified homes that fit your needs.",
+    "verify": "Verify",
+    "verifyDesc": "Every property and landlord is verified.",
+    "view": "View",
+    "viewDesc": "Schedule viewings and find your favorite.",
+    "applyTitle": "Apply",
+    "applyDesc": "Submit your application with confidence.",
+    "live": "Live",
+    "liveDesc": "Manage rent, maintenance, and more in one place."
+  },
+  "cta": {
+    "title": "Rent with confidence.",
+    "subtitle": "From finding a house to managing your tenancy, we're with you all the way.",
+    "getStarted": "Get Started",
+    "maintenanceSupport": "Maintenance support",
+    "helpSupport": "24/7 help & support"
+  },
+  "search": {
+    "noResults": "No properties found",
+    "noResultsDescription": "Try adjusting your filters or search query",
+    "clearFilters": "Clear all filters",
+    "neighborhood": "Neighborhood",
+    "propertyType": "Property Type",
+    "priceRange": "Price Range",
+    "bedrooms": "Bedrooms",
+    "anyNeighborhood": "Any Neighborhood",
+    "anyType": "Any Type",
+    "minPrice": "Min Price",
+    "maxPrice": "Max Price",
+    "applyFilters": "Apply Filters"
+  },
+  "property": {
+    "notFound": "Property Not Found",
+    "notFoundDescription": "The property you're looking for doesn't exist or has been removed.",
+    "backToExplore": "Back to Explore",
+    "contactLandlord": "Contact Landlord",
+    "details": "Property Details",
+    "amenities": "Amenities",
+    "location": "Location",
+    "description": "Description",
+    "viewAllPhotos": "View All Photos"
+  },
+  "dashboard": {
+    "tenant": {
+      "title": "Tenant Dashboard",
+      "applications": {
+        "title": "My Applications",
+        "subtitle": "Track your rental applications",
+        "noApplications": "No applications yet",
+        "status": "Status",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "payments": {
+        "title": "Payment History",
+        "subtitle": "View rent payments and invoices",
+        "noPayments": "No payments yet",
+        "amount": "Amount",
+        "date": "Date",
+        "status": "Status",
+        "paid": "Paid",
+        "unpaid": "Unpaid"
+      },
+      "messages": {
+        "title": "Messages",
+        "subtitle": "Communicate with landlords",
+        "noMessages": "No messages yet",
+        "newMessage": "New Message",
+        "sendMessage": "Send"
+      },
+      "maintenance": {
+        "title": "Maintenance Requests",
+        "subtitle": "Report and track maintenance issues",
+        "noRequests": "No maintenance requests",
+        "newRequest": "New Request",
+        "submitRequest": "Submit Request",
+        "issue": "Issue",
+        "priority": "Priority",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      }
+    },
+    "landlord": {
+      "title": "Landlord Dashboard",
+      "properties": {
+        "title": "My Properties",
+        "subtitle": "Manage your property listings",
+        "addNew": "Add New Property",
+        "myProperties": "My Properties",
+        "edit": "Edit",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "noProperties": "No properties yet"
+      },
+      "tenants": {
+        "title": "My Tenants",
+        "subtitle": "Manage tenant relationships",
+        "noTenants": "No tenants yet",
+        "currentTenants": "Current Tenants",
+        "pastTenants": "Past Tenants"
+      },
+      "rentPayments": {
+        "title": "Rent & Payments",
+        "subtitle": "Track rent collection",
+        "noPayments": "No payments yet",
+        "collected": "Collected",
+        "pending": "Pending",
+        "overdue": "Overdue"
+      },
+      "maintenance": {
+        "title": "Maintenance Requests",
+        "subtitle": "Handle property maintenance",
+        "noRequests": "No maintenance requests"
+      }
+    },
+    "admin": {
+      "title": "Admin Dashboard",
+      "verificationQueue": {
+        "title": "Verification Queue",
+        "subtitle": "Review landlord verification requests",
+        "approve": "Approve",
+        "reject": "Reject",
+        "rejectionReasonPlaceholder": "Enter rejection reason",
+        "confirmReject": "Confirm Rejection",
+        "submittedOn": "Submitted on",
+        "documents": "Documents",
+        "identityDocument": "Identity Document",
+        "propertyDocument": "Property Document",
+        "noVerifications": "No pending verifications"
+      }
+    }
+  },
+  "verification": {
+    "title": "Verification Status",
+    "subtitle": "Submit documents to verify your landlord account",
+    "uploadPrompt": "Upload your identification and property ownership documents",
+    "pendingMessage": "Your documents are under review. We'll notify you once verified.",
+    "rejectedMessage": "Your verification was rejected. Please review the reason and resubmit.",
+    "verifiedMessage": "Your account is verified! You can now list properties.",
+    "resubmit": "Resubmit Documents",
+    "verificationRequired": "You must be verified to list properties",
+    "uploadDocument": "Upload Document",
+    "identityDocument": "Identity Document",
+    "propertyDocument": "Property Ownership Document"
+  },
+  "propertyForm": {
+    "title": "List a New Property",
+    "subtitle": "Fill in the details of your property",
+    "titleLabel": "Property Title",
+    "neighborhoodLabel": "Neighborhood",
+    "priceLabel": "Monthly Rent (ETB)",
+    "bedsLabel": "Bedrooms",
+    "bathsLabel": "Bathrooms",
+    "sizeLabel": "Size (sq m)",
+    "descriptionLabel": "Description",
+    "imagesLabel": "Property Images",
+    "typeLabel": "Property Type",
+    "amenitiesLabel": "Amenities",
+    "submit": "List Property",
+    "update": "Update Property",
+    "apartment": "Apartment",
+    "house": "House",
+    "studio": "Studio",
+    "villa": "Villa",
+    "parking": "Parking",
+    "wifi": "WiFi",
+    "generator": "Generator",
+    "security": "Security"
+  }
+}

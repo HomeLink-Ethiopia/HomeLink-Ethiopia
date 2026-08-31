@@ -1,0 +1,245 @@
+{
+  "common": {
+    "login": "ግባ",
+    "signup": "ይመዝገቡ",
+    "getStarted": "ይጀምሩ",
+    "home": "መነሻ",
+    "explore": "ያስስ",
+    "howItWorks": "እንዴት ይሰራል",
+    "listProperty": "ንብረት ዝርዝር",
+    "about": "ስለእኛ",
+    "support": "ድጋፍ",
+    "search": "ፈልግ",
+    "filter": "አጣራ",
+    "apply": "ያመልክቱ",
+    "cancel": "ሰርዝ",
+    "save": "አስቀምጥ",
+    "back": "ተመለስ",
+    "next": "ቀጥል",
+    "close": "ዝጋ",
+    "edit": "አርትዕ",
+    "delete": "ሰርዝ",
+    "confirm": "አረጋግጥ",
+    "submit": "አስገባ",
+    "loading": "በመጫን ላይ...",
+    "logout": "ውጣ"
+  },
+  "hero": {
+    "title": "ቤት የራስዎ ሊሰማዎት ይገባል።",
+    "subtitle": "በአዲስ አበባ የተረጋገጡ ቤቶችን ያግኙ። የታመነ። ግልፅ። በእውነት ሆምሊንክ።",
+    "searchPlaceholder": "ከተማ ወይም አካባቢ",
+    "whereToLive": "የት መኖር ይፈልጋሉ?",
+    "propertyType": "የንብረት ዓይነት",
+    "budget": "በጀት (ብር)",
+    "bedrooms": "መኝታ ቤቶች",
+    "searchButton": "ቤቶችን ፈልግ"
+  },
+  "stats": {
+    "properties": "የተረጋገጡ ንብረቶች",
+    "landlords": "የተረጋገጡ የቤት ባለቤቶች",
+    "happyTenants": "ደስተኛ ተከራዮች",
+    "secure": "ደህንነቱ የተጠበቀ",
+    "dataSafe": "መረጃዎ ደህንነቱ የተጠበቀ ነው"
+  },
+  "neighborhoods": {
+    "title": "አዲስ አበባን ያስሱ",
+    "subtitle": "የተለያዩ አካባቢዎች። የተለያዩ የአኗኗር ዘይቤዎች።",
+    "viewAll": "ሁሉንም አካባቢዎች ይመልከቱ",
+    "homes": "ቤቶች"
+  },
+  "properties": {
+    "title": "ማመን የሚችሏቸው የተረጋገጡ ቤቶች",
+    "forYou": "ለእርስዎ",
+    "new": "አዳዲስ ቤቶች",
+    "popular": "ታዋቂ",
+    "topRated": "ከፍተኛ ደረጃ",
+    "viewAll": "ሁሉንም ቤቶች ይመልከቱ",
+    "month": "ወር",
+    "verified": "የተረጋገጠ"
+  },
+  "aiMatch": {
+    "title": "AI ፍጹም ተስማሚዎን ያግኙ",
+    "subtitle": "ምርጫዎን እንመለከታለን እና የሚወዷቸውን ቤቶች እናሳይዎታለን።",
+    "match": "ተስማሚ",
+    "whyMatches": "ለምን ይህ ቤት ከእርስዎ ጋር ይስማማል",
+    "withinBudget": "በበጀትዎ ውስጥ",
+    "preferredLocation": "የተመረጠ አካባቢ",
+    "parkingAvailable": "የመኪና ማቆሚያ አለ",
+    "verifiedLandlord": "የተረጋገጠ የቤት ባለቤት",
+    "seeMatches": "ተስማሚዎችን ይመልከቱ"
+  },
+  "howItWorks": {
+    "title": "ሆምሊንክ እንዴት ይሰራል",
+    "discover": "ያግኙ",
+    "discoverDesc": "ከፍላጎትዎ ጋር የሚስማሙ የተረጋገጡ ቤቶችን ያስሱ።",
+    "verify": "አረጋግጥ",
+    "verifyDesc": "እያንዳንዱ ንብረት እና የቤት ባለቤት የተረጋገጠ ነው።",
+    "view": "ይመልከቱ",
+    "viewDesc": "እይታዎችን ያቅዱ እና ተወዳጅዎን ያግኙ።",
+    "applyTitle": "ያመልክቱ",
+    "applyDesc": "ማመልከቻዎን በልበ ሙሉነት ያቅርቡ።",
+    "live": "ይኑሩ",
+    "liveDesc": "ኪራይን፣ የጥገና ስራዎችን እና ሌሎችም በአንድ ቦታ ያስተዳድሩ።"
+  },
+  "cta": {
+    "title": "በልበ ሙሉነት ይከራዩ።",
+    "subtitle": "ቤት ከማግኘት ጀምሮ እስከ ኪራይዎ አስተዳደር ድረስ፣ ሁልጊዜ ከእርስዎ ጋር ነን።",
+    "getStarted": "ይጀምሩ",
+    "maintenanceSupport": "የጥገና ድጋፍ",
+    "helpSupport": "24/7 እገዛ እና ድጋፍ"
+  },
+  "search": {
+    "noResults": "ምንም ንብረቶች አልተገኙም",
+    "noResultsDescription": "ማጣሪያዎችን ወይም የፍለጋ ጥያቄዎን ማስተካከል ይሞክሩ",
+    "clearFilters": "ሁሉንም ማጣሪያዎች አጽዳ",
+    "neighborhood": "አካባቢ",
+    "propertyType": "የንብረት ዓይነት",
+    "priceRange": "የዋጋ ክልል",
+    "bedrooms": "መኝታ ቤቶች",
+    "anyNeighborhood": "ማናቸውም አካባቢ",
+    "anyType": "ማናቸውም ዓይነት",
+    "minPrice": "ዝቅተኛ ዋጋ",
+    "maxPrice": "ከፍተኛ ዋጋ",
+    "applyFilters": "ማጣሪያዎችን ተግብር"
+  },
+  "property": {
+    "notFound": "ንብረት አልተገኘም",
+    "notFoundDescription": "የሚፈልጉት ንብረት አልተገኘም ወይም ተወግዷል።",
+    "backToExplore": "ወደ ማሰስ ተመለስ",
+    "contactLandlord": "የቤት ባለቤትን አነጋግር",
+    "details": "የንብረት ዝርዝሮች",
+    "amenities": "አገልግሎቶች",
+    "location": "አካባቢ",
+    "description": "መግለጫ",
+    "viewAllPhotos": "ሁሉንም ፎቶዎች ይመልከቱ"
+  },
+  "dashboard": {
+    "tenant": {
+      "title": "የተከራይ ዳሽቦርድ",
+      "applications": {
+        "title": "ማመልከቻዎቼ",
+        "subtitle": "የኪራይ ማመልከቻዎችዎን ይከታተሉ",
+        "noApplications": "ገና ማመልከቻዎች የሉም",
+        "status": "ሁኔታ",
+        "pending": "በመጠባበቅ ላይ",
+        "approved": "ጸድቋል",
+        "rejected": "ውድቅ ተደርጓል"
+      },
+      "payments": {
+        "title": "የክፍያ ታሪክ",
+        "subtitle": "የኪራይ ክፍያዎችን እና ደረሰኞችን ይመልከቱ",
+        "noPayments": "ገና ክፍያዎች የሉም",
+        "amount": "መጠን",
+        "date": "ቀን",
+        "status": "ሁኔታ",
+        "paid": "ተከፍሏል",
+        "unpaid": "ያልተከፈለ"
+      },
+      "messages": {
+        "title": "መልዕክቶች",
+        "subtitle": "ከቤት ባለቤቶች ጋር ተገናኝ",
+        "noMessages": "ገና መልእክቶች የሉም",
+        "newMessage": "አዲስ መልእክት",
+        "sendMessage": "ላክ"
+      },
+      "maintenance": {
+        "title": "የጥገና ጥያቄዎች",
+        "subtitle": "የጥገና ችግሮችን ሪፖርት እና ይከታተሉ",
+        "noRequests": "የጥገና ጥያቄዎች የሉም",
+        "newRequest": "አዲስ ጥያቄ",
+        "submitRequest": "ጥያቄ አስገባ",
+        "issue": "ችግር",
+        "priority": "ቅድሚያ",
+        "high": "ከፍተኛ",
+        "medium": "መካከለኛ",
+        "low": "ዝቅተኛ"
+      }
+    },
+    "landlord": {
+      "title": "የቤት ባለቤት ዳሽቦርድ",
+      "properties": {
+        "title": "ንብረቶቼ",
+        "subtitle": "የንብረት ዝርዝሮችዎን ያስተዳድሩ",
+        "addNew": "አዲስ ንብረት ጨምር",
+        "myProperties": "ንብረቶቼ",
+        "edit": "አርትዕ",
+        "activate": "አግብር",
+        "deactivate": "አሰናክል",
+        "noProperties": "ገና ንብረቶች የሉም"
+      },
+      "tenants": {
+        "title": "ተከራዮቼ",
+        "subtitle": "የተከራይ ግንኙነቶችን ያስተዳድሩ",
+        "noTenants": "ገና ተከራዮች የሉም",
+        "currentTenants": "አሁን ያሉ ተከራዮች",
+        "pastTenants": "ያለፉ ተከራዮች"
+      },
+      "rentPayments": {
+        "title": "ኪራይ እና ክፍያዎች",
+        "subtitle": "የኪራይ አከማቸትን ይከታተሉ",
+        "noPayments": "ገና ክፍያዎች የሉም",
+        "collected": "ተሰብስቧል",
+        "pending": "በመጠባበቅ ላይ",
+        "overdue": "ዘግይቷል"
+      },
+      "maintenance": {
+        "title": "የጥገና ጥያቄዎች",
+        "subtitle": "የንብረት ጥገና ይያዙ",
+        "noRequests": "የጥገና ጥያቄዎች የሉም"
+      }
+    },
+    "admin": {
+      "title": "የአስተዳዳሪ ዳሽቦርድ",
+      "verificationQueue": {
+        "title": "የማረጋገጫ ወረፋ",
+        "subtitle": "የቤት ባለቤት ማረጋገጫ ጥያቄዎችን ይገምግሙ",
+        "approve": "ጸድቅ",
+        "reject": "ውድቅ አድርግ",
+        "rejectionReasonPlaceholder": "የውድቅ ምክንያት ያስገቡ",
+        "confirmReject": "ውድቅ አረጋግጥ",
+        "submittedOn": "የቀረበበት",
+        "documents": "ሰነዶች",
+        "identityDocument": "የመታወቂያ ሰነድ",
+        "propertyDocument": "የንብረት ሰነድ",
+        "noVerifications": "ምንም በመጠባበቅ ላይ ያሉ ማረጋገጫዎች የሉም"
+      }
+    }
+  },
+  "verification": {
+    "title": "የማረጋገጫ ሁኔታ",
+    "subtitle": "የቤት ባለቤት መለያዎን ለማረጋገጥ ሰነዶችን ያቅርቡ",
+    "uploadPrompt": "የመታወቂያ እና የንብረት ባለቤትነት ሰነዶችዎን ይስቀሉ",
+    "pendingMessage": "ሰነዶችዎ በግምገማ ላይ ናቸው። እንደተረጋገጠ እናሳውቅዎታለን።",
+    "rejectedMessage": "ማረጋገጫዎ ውድቅ ተደርጓል። እባክዎ ምክንያቱን ይገምግሙ እና እንደገና ያቅርቡ።",
+    "verifiedMessage": "መለያዎ ተረጋግጧል! አሁን ንብረቶችን ማዘርዘር ይችላሉ።",
+    "resubmit": "ሰነዶችን እንደገና አቅርብ",
+    "verificationRequired": "ንብረቶችን ለማዘርዘር ማረጋገጥ አለብዎት",
+    "uploadDocument": "ሰነድ ስቀል",
+    "identityDocument": "የመታወቂያ ሰነድ",
+    "propertyDocument": "የንብረት ባለቤትነት ሰነድ"
+  },
+  "propertyForm": {
+    "title": "አዲስ ንብረት ያዘርዝሩ",
+    "subtitle": "የንብረትዎን ዝርዝሮች ይሙሉ",
+    "titleLabel": "የንብረት ርዕስ",
+    "neighborhoodLabel": "አካባቢ",
+    "priceLabel": "ወርሃዊ ኪራይ (ብር)",
+    "bedsLabel": "መኝታ ቤቶች",
+    "bathsLabel": "መታጠቢያ ቤቶች",
+    "sizeLabel": "መጠን (ካሬ ሜትር)",
+    "descriptionLabel": "መግለጫ",
+    "imagesLabel": "የንብረት ምስሎች",
+    "typeLabel": "የንብረት ዓይነት",
+    "amenitiesLabel": "አገልግሎቶች",
+    "submit": "ንብረት ዝርዝር",
+    "update": "ንብረት አዘምን",
+    "apartment": "አፓርትመንት",
+    "house": "ቤት",
+    "studio": "ስቱዲዮ",
+    "villa": "ቪላ",
+    "parking": "የመኪና ማቆሚያ",
+    "wifi": "ዋይፋይ",
+    "generator": "ጄነሬተር",
+    "security": "ደህንነት"
+  }
+}

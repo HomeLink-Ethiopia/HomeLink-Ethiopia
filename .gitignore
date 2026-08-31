@@ -10,3 +10,4 @@ backend/.env
 .freebuff/
 *.tmp
 homelink-backend-temp/
+backend/

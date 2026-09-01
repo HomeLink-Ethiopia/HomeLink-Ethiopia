@@ -2,30 +2,59 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
+const upload = require("../middleware/upload");
+
 const {
     createProperty,
     getMyProperties,
-    getPropertyById
+    getPropertyById,
+    updateProperty,
+    deleteProperty,
+    uploadPropertyImages,
+    deletePropertyImage,
+    setPrimaryImage
 } = require('../controller/propertyController');
 
+router.get('/my', authMiddleware, roleMiddleware('landlord'), getMyProperties);
+
 router.post(
-    '/',
+    '/:id/images',
     authMiddleware,
     roleMiddleware('landlord'),
-    createProperty
+    (req, res, next) => {
+        console.log('--- UPLOAD DEBUG ---');
+        console.log('Content-Type:', req.headers['content-type']);
+        console.log('Content-Length:', req.headers['content-length']);
+        upload.array('images', 10)(req, res, (err) => {
+            if (err) {
+                console.log('Multer error:', err.message);
+                return res.status(400).json({ message: err.message || 'File upload failed' });
+            }
+            console.log('Files received:', req.files ? req.files.length : 0);
+            console.log('Body:', req.body);
+            next();
+        });
+    },
+    uploadPropertyImages
 );
 
-router.get(
-    '/my',
+router.delete(
+    '/:id/images/:imageId',
     authMiddleware,
     roleMiddleware('landlord'),
-    getMyProperties
+    deletePropertyImage
 );
 
-router.get(
-    '/:id',
+router.put(
+    '/:id/images/:imageId/primary',
     authMiddleware,
-    getPropertyById
+    roleMiddleware('landlord'),
+    setPrimaryImage
 );
+
+router.post('/', authMiddleware, roleMiddleware('landlord'), createProperty);
+router.get('/:id', authMiddleware, getPropertyById);
+router.put('/:id', authMiddleware, roleMiddleware('landlord'), updateProperty);
+router.delete('/:id', authMiddleware, roleMiddleware('landlord'), deleteProperty);
 
 module.exports = router;

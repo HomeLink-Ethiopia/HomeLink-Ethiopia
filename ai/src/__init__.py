@@ -7,7 +7,7 @@ Package layout:
 """
 
 from src.fraud_detector import FraudDetector, FraudReport
-from src.recommend import Recommendation, Recommender
+from src.recommend import Recommendation, Recommender, rank_properties
 from src.rent_estimator import RentEstimator, RentPrediction
 
 __all__ = [
@@ -17,4 +17,5 @@ __all__ = [
     "Recommender",
     "RentEstimator",
     "RentPrediction",
+    "rank_properties",
 ]

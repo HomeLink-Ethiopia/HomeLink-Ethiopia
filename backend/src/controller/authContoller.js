@@ -501,7 +501,7 @@ const logoutUser = async (req,res)=>{
       message:"Logout succesful",
     });
   } catch(error){
-    console.error("Loginout error:", error);
+    console.error("Logout error:", error);
 
     res.status(500).json({
       message:"Server error",

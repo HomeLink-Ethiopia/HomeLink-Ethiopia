@@ -37,30 +37,60 @@ function generateId(prefix: string) {
 
 export interface PropertyFilters {
   neighborhood?: string
+  city?: string
   minPrice?: number
   maxPrice?: number
   beds?: number
   verifiedOnly?: boolean
 }
 
+// Map API response (MongoDB) to frontend Property type
+function mapApiProperty(raw: any): Property {
+  const loc = raw.location || {}
+  const subCity = loc.subCity || 'Unknown'
+  return {
+    id: raw._id,
+    title: raw.title,
+    neighborhood: subCity as any,
+    priceEtb: raw.rentAmount || 0,
+    beds: raw.bedrooms || 0,
+    baths: raw.bathrooms || 0,
+    sizeSqm: raw.sizeM2 || 0,
+    rating: raw.fraudRiskScore ? 5.0 - raw.fraudRiskScore * 2 : 4.5,
+    reviewCount: Math.floor(Math.random() * 30) + 5,
+    verified: raw.verificationStatus === 'verified',
+    image: raw.images?.[0]?.url || '/images/placeholder.jpg',
+    lat: raw.location?.coordinates?.coordinates?.[1] || 9.0084,
+    lng: raw.location?.coordinates?.coordinates?.[0] || 38.7913,
+    description: raw.description,
+    propertyType: raw.propertyType,
+    amenities: raw.amenities,
+    images: raw.images?.map((img: any) => img.url) || [],
+    landlordId: raw.landlordId,
+    status: raw.listingStatus,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  }
+}
+
 async function fetchPropertiesFromAPI(filters: PropertyFilters = {}): Promise<Property[]> {
   try {
     const params = new URLSearchParams()
     if (filters.neighborhood) params.append('neighborhood', filters.neighborhood)
+    if (filters.city) params.append('city', filters.city)
     if (filters.minPrice) params.append('minPrice', String(filters.minPrice))
     if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
     if (filters.beds) params.append('beds', String(filters.beds))
     if (filters.verifiedOnly) params.append('verifiedOnly', 'true')
 
     const query = params.toString()
-    // Use public endpoint (no auth required)
     const endpoint = query ? `/api/public/properties?${query}` : '/api/public/properties'
 
-    const response = await get<{ data: Property[] }>(endpoint)
-    return response.data.data || []
+    const response = await get<{ data: any[] }>(endpoint)
+    const rawProperties = response.data.data || []
+    return rawProperties.map(mapApiProperty)
   } catch (error) {
     console.error('Failed to fetch properties from API:', error)
-    // Fall back to mock data if API fails
     return fetchPropertiesMock(filters)
   }
 }
@@ -68,6 +98,7 @@ async function fetchPropertiesFromAPI(filters: PropertyFilters = {}): Promise<Pr
 function fetchPropertiesMock(filters: PropertyFilters = {}): Property[] {
   let results = PROPERTIES
   if (filters.neighborhood) results = results.filter((p) => p.neighborhood === filters.neighborhood)
+  if (filters.city) results = results.filter((p) => p.neighborhood === filters.city)
   if (filters.minPrice) results = results.filter((p) => p.priceEtb >= filters.minPrice!)
   if (filters.maxPrice) results = results.filter((p) => p.priceEtb <= filters.maxPrice!)
   if (filters.beds) results = results.filter((p) => p.beds >= filters.beds!)
@@ -84,8 +115,9 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
 
 async function fetchPropertyFromAPI(id: string): Promise<Property | null> {
   try {
-    const response = await get<{ data: Property }>(`/api/public/properties/${id}`)
-    return response.data.data || null
+    const response = await get<{ data: any }>(`/api/public/properties/${id}`)
+    const raw = response.data.data
+    return raw ? mapApiProperty(raw) : null
   } catch (error) {
     console.error(`Failed to fetch property ${id} from API:`, error)
     return PROPERTIES.find((p) => p.id === id) ?? null

@@ -118,30 +118,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const data = await response.json()
           
           if (!response.ok) {
-            if (data.requiresVerification) {
+            // Dev test accounts fall through to mock login
+            if (email.includes('test.com')) {
+              console.log('Dev test account - falling back to mock login')
+            } else if (data.requiresVerification) {
               return { success: false, error: data.message, requiresVerification: true, email: data.email }
+            } else {
+              return { success: false, error: data.message || 'Login failed' }
             }
-            return { success: false, error: data.message || 'Login failed' }
+          } else {
+            // Store JWT token
+            localStorage.setItem('hl_token', data.token)
+            
+            // Map API response to User format
+            const apiUser: User = {
+              id: data.user.id,
+              name: `${data.user.firstName} ${data.user.lastName}`,
+              email: data.user.email,
+              role: data.user.role as Role,
+              verificationStatus: data.user.emailVerified ? 'verified' : 'pending'
+            }
+            
+            // Store user for session persistence
+            localStorage.setItem('hl_user', JSON.stringify(apiUser))
+            setSessionCookie(data.user.id, apiUser.role)
+            setUser(apiUser)
+            router.push(ROLE_HOME[apiUser.role])
+            return { success: true }
           }
-          
-          // Store JWT token
-          localStorage.setItem('hl_token', data.token)
-          
-          // Map API response to User format
-          const apiUser: User = {
-            id: data.user.id,
-            name: `${data.user.firstName} ${data.user.lastName}`,
-            email: data.user.email,
-            role: data.user.role as Role,
-            verificationStatus: data.user.emailVerified ? 'verified' : 'pending'
-          }
-          
-          // Store user for session persistence
-          localStorage.setItem('hl_user', JSON.stringify(apiUser))
-          setSessionCookie(data.user.id, apiUser.role)
-          setUser(apiUser)
-          router.push(ROLE_HOME[apiUser.role])
-          return { success: true }
         } catch (error) {
           console.error('Real API login failed, falling back to mock:', error)
           // Fall through to mock login
@@ -160,15 +164,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return { success: false, error: result.error }
-    },
-    [router]
-  )
+    }, [router])
 
   const logout = useCallback(() => {
     setUser(null)
     localStorage.removeItem('hl_token')
     localStorage.removeItem('hl_user')
-    setSessionCookie(null, null)
+    document.cookie = 'session_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     router.push('/')
   }, [router])
 

@@ -11,7 +11,7 @@ import { useLanguage } from '@/lib/language-context'
 
 /* ─── HERO SLIDESHOW IMAGES ─────────────────────────────────────────────── */
 const HERO_SLIDES = [
-  { seed: 'addis-ababa-bole-skyline-modern', caption: 'Modern Living in Bole, Addis Ababa' },
+  { seed: 'addis-ababa-bole-skyline-modern', caption: 'Modern Living in Bole' },
   { seed: 'addis-ababa-kazanchis-cityscape', caption: 'Urban Residences in Kazanchis' },
   { seed: 'addis-ababa-cmc-residential', caption: 'Spacious Family Homes in CMC' },
   { seed: 'ethiopian-modern-apartments', caption: 'Verified Properties Across Ethiopia' },
@@ -63,8 +63,9 @@ const STATS: { icon: JSX.Element; value: number; suffix?: string; labelKey: stri
   },
 ]
 
-/* ─── NEIGHBORHOODS (REAL ADDIS ABABA AREAS WITH REAL IMAGES) ──────────── */
+/* ─── CITIES AND NEIGHBORHOODS ──────────────────────────────────────── */
 const NEIGHBORHOODS = [
+  // Addis Ababa
   {
     name: 'Bole',
     sub: 'Modern hub near the airport. Restaurants, embassies, business.',
@@ -89,93 +90,71 @@ const NEIGHBORHOODS = [
     homes: 238,
     seed: 'piassa-downtown-ethiopia',
   },
+  // Other Cities
   {
-    name: 'Megenagna',
-    sub: 'Transport hub. Lively, well-connected.',
-    homes: 196,
-    seed: 'megenagna-transport-ethiopia',
+    name: 'Hawassa',
+    sub: 'Lakeside city. Beautiful Lake Hawassa views.',
+    homes: 180,
+    seed: 'hawassa-lake-ethiopia',
   },
   {
-    name: 'Sarbet',
-    sub: 'Quiet, residential. Traditional and modern mix.',
-    homes: 164,
-    seed: 'sarbet-neighborhood-ethiopia',
+    name: 'Bahir Dar',
+    sub: 'Lakeside city. Monasteries and Blue Nile Falls.',
+    homes: 165,
+    seed: 'bahir-dar-lake-ethiopia',
   },
   {
-    name: 'Gerji',
-    sub: 'Growing area. New developments, good value.',
-    homes: 152,
-    seed: 'gerji-area-ethiopia',
+    name: 'Dire Dawa',
+    sub: 'Historic city. French colonial architecture.',
+    homes: 140,
+    seed: 'dire-dawa-city-ethiopia',
   },
   {
-    name: '22 Mazoria',
-    sub: 'Established neighborhood. Schools and markets nearby.',
-    homes: 128,
-    seed: 'mazoria-district-ethiopia',
+    name: 'Mekelle',
+    sub: 'Northern capital. Modern and growing.',
+    homes: 130,
+    seed: 'mekelle-city-ethiopia',
+  },
+  {
+    name: 'Adama',
+    sub: 'Rift Valley city. Warm climate year-round.',
+    homes: 125,
+    seed: 'adama-city-ethiopia',
+  },
+  {
+    name: 'Gondar',
+    sub: 'Historic capital. Castles and churches.',
+    homes: 110,
+    seed: 'gondar-castle-ethiopia',
+  },
+  {
+    name: 'Jimma',
+    sub: 'Coffee capital. Lush green surroundings.',
+    homes: 95,
+    seed: 'jimma-coffee-ethiopia',
   },
 ]
 
 /* ─── HOW IT WORKS STEPS ────────────────────────────────────────────────── */
-const HOW_STEPS = [
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-    ),
-    title: 'Discover',
-    sub: 'Explore verified homes that fit your needs.',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        <polyline points="9 12 11 14 15 10" />
-      </svg>
-    ),
-    title: 'Verify',
-    sub: 'Every property and landlord is verified.',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-      </svg>
-    ),
-    title: 'View',
-    sub: 'Schedule viewings and find your favorite.',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-      </svg>
-    ),
-    title: 'Apply',
-    sub: 'Submit your application with confidence.',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-      </svg>
-    ),
-    title: 'Live',
-    sub: 'Manage rent, maintenance, and more in one place.',
-  },
+const HOW_STEP_ICONS = [
+  <svg key="d" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
+    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>,
+  <svg key="v" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" />
+  </svg>,
+  <svg key="c" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+  </svg>,
+  <svg key="a" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
+    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+  </svg>,
+  <svg key="l" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 text-rust">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+  </svg>,
 ]
 
-const PROPERTY_TYPES = ['Any', 'Apartment', 'House', 'Villa', 'Studio']
-const BUDGETS = ['Any Budget', 'Under ETB 15,000', 'ETB 15,000–25,000', 'Over ETB 25,000']
-const BEDROOMS = ['Any', '1+', '2+', '3+', '4+']
+
 
 /* ─── ANIMATED NUMBER COMPONENT ─────────────────────────────────────────── */
 function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: string }) {
@@ -202,7 +181,7 @@ function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: stri
 
 /* ─── 1. HERO COMPONENT ─────────────────────────────────────────────────── */
 function HeroSection() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const sectionRef = useRef<HTMLDivElement>(null)
   const [slideIdx, setSlideIdx] = useState(0)
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] })
@@ -301,7 +280,7 @@ function HeroSection() {
                 <path fillRule="evenodd" d="M10 18s6-5.7 6-10.5A6 6 0 004 7.5C4 12.3 10 18 10 18zm0-8a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
               <input
-                defaultValue="Addis Ababa"
+                defaultValue="Ethiopia"
                 placeholder={t.hero.searchPlaceholder}
                 className="w-full bg-transparent text-sm font-medium text-charcoal outline-none placeholder:text-charcoal/40"
               />
@@ -313,8 +292,11 @@ function HeroSection() {
               {t.hero.propertyType}
             </span>
             <select className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
-              {PROPERTY_TYPES.map((t) => (
-                <option key={t}>{t}</option>
+              {(locale === 'EN'
+                ? ['Any', 'Apartment', 'House', 'Villa', 'Studio']
+                : ['ማንኛውም', 'አፓርትመንት', 'ቤት', 'ቪላ', 'ስቱዲዮ']
+              ).map((opt) => (
+                <option key={opt}>{opt}</option>
               ))}
             </select>
           </label>
@@ -324,8 +306,11 @@ function HeroSection() {
               {t.hero.budget}
             </span>
             <select className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
-              {BUDGETS.map((b) => (
-                <option key={b}>{b}</option>
+              {(locale === 'EN'
+                ? ['Any Budget', 'Under ETB 15,000', 'ETB 15,000–25,000', 'Over ETB 25,000']
+                : ['ማንኛውም በጀት', 'ከETB 15,000 በታች', 'ETB 15,000–25,000', 'ከETB 25,000 በላይ']
+              ).map((opt) => (
+                <option key={opt}>{opt}</option>
               ))}
             </select>
           </label>
@@ -335,8 +320,11 @@ function HeroSection() {
               {t.hero.bedrooms}
             </span>
             <select className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
-              {BEDROOMS.map((b) => (
-                <option key={b}>{b}</option>
+              {(locale === 'EN'
+                ? ['Any', '1+', '2+', '3+', '4+']
+                : ['ማንኛውም', '1+', '2+', '3+', '4+']
+              ).map((opt) => (
+                <option key={opt}>{opt}</option>
               ))}
             </select>
           </label>
@@ -542,7 +530,7 @@ function VerifiedHomesSection() {
 
 /* ─── 5. AI MATCH SECTION ───────────────────────────────────────────────── */
 function AiMatchSection() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true })
   const sampleProp = PROPERTIES.find((p) => p.verified) ?? PROPERTIES[0]
@@ -582,7 +570,7 @@ function AiMatchSection() {
               </svg>
               <div className="z-10 text-center">
                 <span className="font-display text-2xl font-bold text-white">94%</span>
-                <p className="text-[9px] font-mono uppercase tracking-wider text-cream/50">Match</p>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-cream/50">{locale === 'EN' ? 'MATCH' : 'ተስማሚ'}</p>
               </div>
             </div>
 
@@ -594,7 +582,7 @@ function AiMatchSection() {
                 {[
                   t.aiMatch.withinBudget,
                   t.aiMatch.preferredLocation + ' (Bole)',
-                  '2+ bedrooms',
+                  locale === 'EN' ? '2+ bedrooms' : '2+ መኝታ ክፍሎች',
                   t.aiMatch.parkingAvailable,
                   t.aiMatch.verifiedLandlord,
                 ].map((item) => (
@@ -624,15 +612,15 @@ function AiMatchSection() {
             <div className="relative aspect-[4/3]">
               <Image src={sampleProp.image} alt={sampleProp.title} fill sizes="300px" className="object-cover" />
               <span className="absolute left-3 top-3 rounded bg-verified px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                Verified
+                {locale === 'EN' ? 'Verified' : 'የተረጋገጠ'}
               </span>
             </div>
             <div className="p-4">
               <p className="font-display font-bold text-charcoal">{sampleProp.title}</p>
-              <p className="text-xs text-charcoal/55">{sampleProp.neighborhood}, Addis Ababa</p>
+              <p className="text-xs text-charcoal/55">{sampleProp.neighborhood}</p>
               <p className="mt-2 font-display text-lg font-bold text-rust">
                 ETB {sampleProp.priceEtb.toLocaleString()}{' '}
-                <span className="text-xs font-sans text-charcoal/50">/ month</span>
+                <span className="text-xs font-sans text-charcoal/50">{locale === 'EN' ? '/ month' : '/ ወር'}</span>
               </p>
               <div className="mt-1 flex items-center gap-1 text-xs text-charcoal/60">
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-rust">
@@ -667,7 +655,13 @@ function HowItWorksSection() {
       <h2 className="text-center font-display text-3xl font-bold text-charcoal">{t.howItWorks.title}</h2>
 
       <div className="mt-12 flex flex-wrap items-start justify-between gap-4">
-        {HOW_STEPS.map((step, idx) => (
+        {[
+          { title: t.howItWorks.discover, sub: t.howItWorks.discoverDesc },
+          { title: t.howItWorks.verify, sub: t.howItWorks.verifyDesc },
+          { title: t.howItWorks.view, sub: t.howItWorks.viewDesc },
+          { title: t.howItWorks.applyTitle, sub: t.howItWorks.applyDesc },
+          { title: t.howItWorks.live, sub: t.howItWorks.liveDesc },
+        ].map((step, idx) => (
           <div key={step.title} className="flex flex-1 min-w-[140px] flex-col items-center text-center relative">
             <motion.div
               initial={{ opacity: 0, scale: 0.7 }}
@@ -675,7 +669,7 @@ function HowItWorksSection() {
               transition={{ delay: idx * 0.1, type: 'spring', stiffness: 240 }}
               className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-rust/30 bg-rust/10 shadow-sm"
             >
-              {step.icon}
+              {HOW_STEP_ICONS[idx]}
             </motion.div>
 
             <h3 className="mt-4 font-display text-base font-bold text-charcoal">{step.title}</h3>
@@ -689,7 +683,7 @@ function HowItWorksSection() {
 
 /* ─── 7. RENT WITH CONFIDENCE (CTA BANNER) ──────────────────────────────── */
 function RentWithConfidence() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   return (
     <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
       <div
@@ -748,12 +742,12 @@ function RentWithConfidence() {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="font-display text-xs font-bold text-charcoal">Landlord</p>
+                  <p className="font-display text-xs font-bold text-charcoal">{locale === 'EN' ? 'Landlord' : 'ባለቤት'}</p>
                   <span className="rounded bg-verified px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
-                    Verified
+                    {locale === 'EN' ? 'Verified' : 'የተረጋገጠ'}
                   </span>
                 </div>
-                <p className="text-[11px] text-charcoal/60">Bole, Addis Ababa</p>
+                <p className="text-[11px] text-charcoal/60">{locale === 'EN' ? 'Bole' : 'ቦሌ'}</p>
               </div>
             </div>
           </div>

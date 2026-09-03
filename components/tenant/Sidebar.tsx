@@ -3,28 +3,35 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/lib/store'
+import { useLanguage } from '@/lib/language-context'
 
-const MAIN_NAV = [
-  { label: 'Home', href: '/', icon: 'home' },
-  { label: 'Search', href: '/explore', icon: 'search' },
-  { label: 'My Dashboard', href: '/tenant/dashboard', icon: 'house' },
-  { label: 'Applications', href: '/tenant/applications', icon: 'file' },
-  { label: 'Payments', href: '/tenant/payments', icon: 'card' },
-  { label: 'Agreements', href: '/tenant/agreements', icon: 'book' },
-  { label: 'Messages', href: '/tenant/messages', icon: 'mail' },
-  { label: 'Maintenance', href: '/tenant/maintenance', icon: 'wrench' },
-] as const
+export default function Sidebar() {
+  const pathname = usePathname()
+  const { sidebarOpen, setSidebarOpen } = useUIStore()
+  const { t } = useLanguage()
 
-const SECONDARY_NAV = [
-  { label: 'Favorites', href: '/tenant/favorites', icon: 'heart' },
-  { label: 'Saved Searches', href: '#', icon: 'bookmark' },
-] as const
+  const MAIN_NAV = [
+    { label: t.sidebar.home, href: '/', icon: 'home' },
+    { label: t.sidebar.search, href: '/explore', icon: 'search' },
+    { label: t.sidebar.dashboard, href: '/tenant/dashboard', icon: 'house' },
+    { label: t.sidebar.applications, href: '/tenant/applications', icon: 'file' },
+    { label: t.sidebar.payments, href: '/tenant/payments', icon: 'card' },
+    { label: t.sidebar.agreements, href: '/tenant/agreements', icon: 'book' },
+    { label: t.sidebar.messages, href: '/tenant/messages', icon: 'mail' },
+    { label: t.sidebar.maintenance, href: '/tenant/maintenance', icon: 'wrench' },
+    { label: t.sidebar.aiMatch, href: '/tenant/ai-match', icon: 'match' },
+  ]
 
-const FOOTER_NAV = [
-  { label: 'Profile', href: '#', icon: 'user' },
-  { label: 'Settings', href: '#', icon: 'settings' },
-  { label: 'Logout', href: '/logout', icon: 'logout' },
-] as const
+  const SECONDARY_NAV = [
+    { label: t.sidebar.favorites, href: '/tenant/favorites', icon: 'heart' },
+    { label: t.sidebar.savedSearches, href: '#', icon: 'bookmark' },
+  ]
+
+  const FOOTER_NAV = [
+    { label: t.sidebar.profile, href: '#', icon: 'user' },
+    { label: t.sidebar.settings, href: '#', icon: 'settings' },
+    { label: t.sidebar.logout, href: '/logout', icon: 'logout' },
+  ]
 
 const ICON_PATH: Record<string, string> = {
   home: 'M3 10l7-6 7 6M5 9v7h10V9',
@@ -41,6 +48,7 @@ const ICON_PATH: Record<string, string> = {
   help: 'M10 18a8 8 0 100-16 8 8 0 000 16zM7.8 7.5a2.2 2.2 0 014.2.9c0 1.5-2 1.6-2 3.1M10 14.2v.1',
   book: 'M4 3h9a2 2 0 012 2v11a1.5 1.5 0 00-1.5-1.5H4V3zM4 14.5V3',
   logout: 'M11 16l4-4m0 0l-4-4m4 4H5m0-8v16',
+  match: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
 }
 
 function NavIcon({ name }: { name: string }) {
@@ -63,10 +71,6 @@ function NavIcon({ name }: { name: string }) {
  * that toggles it. Above `lg`, it's always visible and the drawer
  * state is ignored (see the `lg:` overrides below).
  */
-export default function Sidebar() {
-  const pathname = usePathname()
-  const { sidebarOpen, setSidebarOpen } = useUIStore()
-
   function itemClass(href: string) {
     const active = href !== '#' && pathname === href
     return `flex items-center gap-3 rounded px-3 py-2.5 text-sm transition-colors ${
@@ -143,11 +147,11 @@ export default function Sidebar() {
         <div className="space-y-1 border-t border-white/10 pt-3">
           <Link href="/support" className={itemClass('#')}>
             <NavIcon name="help" />
-            Need help?
+            {t.sidebar.needHelp}
           </Link>
           <Link href="/support" className={itemClass('#')}>
             <NavIcon name="book" />
-            Help Center
+            {t.sidebar.helpCenter}
           </Link>
         </div>
       </aside>

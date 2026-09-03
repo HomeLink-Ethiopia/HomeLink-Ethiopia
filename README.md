@@ -1,242 +1,254 @@
 # HomeLink Ethiopia
 
-**A trusted digital housing & landlord–tenant platform for Ethiopia.**
+**A trusted digital housing platform connecting tenants, landlords, and communities across Ethiopia.**
 
-This repository is the frontend prototype submitted for INSA
-competition review. It implements the product vision from the
-HomeLink Ethiopia Proposal as a working, navigable Next.js
-application across all three user roles — Tenant, Landlord, and
-Administrator — with mocked data standing in for the backend/API
-layer described in the proposal's system architecture.
-
-> HomeLink Ethiopia — *from finding a house to managing a trusted
-> tenancy.*
+HomeLink solves Ethiopia's fragmented rental market by providing verified property listings, AI-powered matching, landlord verification, and end-to-end rental management — all in Amharic and English.
 
 ---
 
-## 1. Project Overview
+## Features
 
-Ethiopia's rental market is fragmented: tenants and landlords rely on
-disconnected listings, brokers, informal communication, and
-paper-based records, with no reliable way to verify a listing or a
-landlord before money changes hands. HomeLink does not claim to solve
-the national housing shortage — it targets the part of the problem
-software can realistically fix: **discovery, trust, verification,
-communication, applications, tenancy records, maintenance, and
-market transparency.**
+- **Property Discovery** — Search and filter properties across Ethiopian cities (Addis Ababa, Hawassa, Bahir Dar, Dire Dawa, Mekelle, and more)
+- **AI Matching** — Personalized property recommendations based on budget, location, and preferences
+- **Landlord Verification** — Document upload and admin approval workflow
+- **Property Management** — Full CRUD for landlords (create, edit, delete listings)
+- **Rental Applications** — Tenants apply, landlords review and approve
+- **Viewing Scheduling** — Request and confirm property viewings
+- **Maintenance Requests** — Tenants report issues, landlords track resolution
+- **Rent Management** — Payment tracking, due dates, receipts
+- **Fraud Reporting** — Report suspicious properties with AI risk scoring
+- **Bilingual UI** — Full Amharic/English translation toggle
+- **Responsive Design** — Mobile-first, works on all devices
 
-The platform connects three sides of the rental process in one
-trusted digital environment:
+---
 
-- **Tenants** — discover verified properties, schedule viewings,
-  apply, track rent and maintenance, and message landlords.
-- **Landlords** — list and verify properties, review applications,
-  manage tenants, track rent collection, and handle maintenance
-  requests.
-- **Administrators** — run the verification queue, review fraud
-  reports and disputes, and monitor aggregated housing-market
-  analytics.
+## Tech Stack
 
-This prototype covers the functional requirements from the proposal
-that are realistic for a frontend-only submission — structured
-listings and discovery (FR-03), viewing/application/maintenance
-workflows (FR-05/06/09), a landlord property-intake flow tied to
-verification (FR-02), rent tracking (FR-08), and the admin trust,
-fraud, and analytics surfaces (FR-02/04/11) — using mocked data and a
-simulated session in place of the real auth, database, and AI
-services the full architecture calls for. See
-[§5 What's Implemented vs. Mocked](#5-whats-implemented-vs-mocked)
-for the exact boundary, and
-[`docs/DEVELOPMENT_LOG.md`](./docs/DEVELOPMENT_LOG.md) for a
-phase-by-phase account of how each piece was built.
-
-## 2. Tech Stack
-
-| Layer | Choice |
-|---|---|
-| Framework | [Next.js 14](https://nextjs.org) (App Router) |
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) |
 | Language | TypeScript |
 | UI | React 18 |
-| Styling | [Tailwind CSS](https://tailwindcss.com) |
-| Animation | [Framer Motion](https://www.framer.com/motion/) |
-| Maps | [Leaflet](https://leafletjs.com) / [React-Leaflet](https://react-leaflet.js.org) over OpenStreetMap tiles (no API key required) |
-| Charts | [Recharts](https://recharts.org) |
-| Forms & validation | [react-hook-form](https://react-hook-form.com) + [Zod](https://zod.dev) |
-| Client state | [Zustand](https://zustand-demo.pmnd.rs) |
+| Styling | Tailwind CSS |
+| Animation | Framer Motion |
+| Maps | Leaflet + React-Leaflet (OpenStreetMap) |
+| Charts | Recharts |
+| Forms | React Hook Form + Zod |
+| State | Zustand |
 
-No backend, database, or paid API keys are required to run this
-prototype — everything renders from mocked, in-repo data (`lib/*.ts`)
-behind an API-shaped mock layer (`services/api.ts`), so swapping in a
-real backend later is a matter of replacing function bodies, not
-rewriting components.
+---
 
-## 3. Running It Locally
+## Getting Started
 
-**Requirements:** Node.js 18.17+ and npm.
+**Requirements:** Node.js 18.17+ and npm
 
 ```bash
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000)
 
-Other scripts:
+### Available Scripts
 
 ```bash
-npm run build   # production build
-npm run start   # run the production build
-npm run lint    # lint the codebase
+npm run dev      # Development server
+npm run build    # Production build
+npm run start    # Run production build
+npm run lint     # Lint codebase
 ```
 
-### Trying each role
+---
 
-There's no real login yet (see [§5](#5-whats-implemented-vs-mocked)),
-so a floating **Dev** switcher — bottom-center on every page — lets
-you jump straight into any role:
-
-| Role | Lands on | Also visits |
-|---|---|---|
-| Tenant | `/tenant/dashboard` | `applications`, `payments`, `maintenance`, `messages` |
-| Landlord | `/landlord/dashboard` | `applications`, `tenants`, `rent-payments`, `maintenance`, `properties/new` |
-| Admin | `/admin/dashboard` | `market-insights`, `verification-queue`, `fraud-reports`, `disputes` |
-
-Unauthenticated visitors land on `/` (public marketing/browse) and
-`/explore` (the split list/map discovery view) — no role needed for
-either.
-
-### Mobile / responsive testing
-
-The app is built mobile-first per the proposal's non-functional
-requirement to support lower-end Android devices. To check it: open
-Chrome DevTools → Device Toolbar (`Cmd/Ctrl+Shift+M`) and pick a
-narrow device profile, or resize the browser below ~1024px (the `lg`
-breakpoint). Dashboards, sidebars, tables, and the map view collapse
-into single-column, drawer-based layouts below that width; the
-sidebar becomes a slide-in drawer opened via the hamburger icon in
-each dashboard's top bar.
-
-## 4. Architecture & Structure
-
-### 4.1 High-level shape
-
-```
-Presentation (this repo)
-   Public site  ->  Tenant dashboard  ->  Landlord dashboard  ->  Admin console
-        \_______________|_______________|________________/
-                         |
-                 services/api.ts   <- mock API layer, one function per FR
-                         |
-                    lib/*.ts       <- mocked datasets (properties, tenants,
-                                      applications, rent, maintenance, fraud...)
-```
-
-`services/api.ts` is the seam for a real backend: every exported
-function already has the `(typed params) => Promise<TypedResult>`
-shape a real `fetch('/api/...')` call would have, grouped by FR
-number. Swapping a mock body for a real request doesn't change any
-component.
-
-### 4.2 Repository layout
+## Project Structure
 
 ```
 app/
-  (public)/            Marketing + discovery -- no auth required
-    page.tsx              Home (hero, featured listings)
-    explore/               Split list/map discovery (FR-03)
-    property/[id]/          Property detail page
-  tenant/               Tenant dashboard tree (FR-05/06/08/09)
-    dashboard/, applications/, payments/, maintenance/, messages/
-  landlord/             Landlord dashboard tree (FR-02/07/08/09)
-    dashboard/, applications/, tenants/, rent-payments/, maintenance/,
-    properties/new/        Property intake wizard (FR-02/03)
-  admin/                Admin console (FR-02/04/11)
-    dashboard/              Trust & Verification Center
-    market-insights/        Housing analytics
-  layout.tsx            Root layout -- fonts, AuthProvider, modal root,
-                         floating Dev role switcher
+  (public)/              Public pages (no auth required)
+    page.tsx               Homepage
+    explore/               Property discovery with map
+    property/[id]/         Property detail page
+    login/                 Login page
+    signup/                Registration page
+    verify-email/          Email verification
+    forgot-password/       Password reset
+  tenant/                Tenant dashboard
+    dashboard/             Overview and quick actions
+    applications/          My rental applications
+    payments/              Payment history
+    maintenance/           Maintenance requests
+    messages/              Landlord messaging
+    ai-match/              AI property matching
+    favorites/             Saved properties
+    agreements/            Rental agreements
+  landlord/              Landlord dashboard
+    dashboard/             Overview and analytics
+    properties/            Property management
+    properties/new/        Add new property
+    applications/          Review tenant applications
+    tenants/               Tenant management
+    rent-payments/         Rent collection tracking
+    maintenance/           Maintenance requests
+    verification/          Verification status
+  admin/                 Admin dashboard
+    dashboard/             System overview
+    verification-queue/    Landlord verification
+    fraud-reports/         Fraud investigation
+    disputes/              Dispute management
+    risk-monitoring/       Risk score dashboard
+    market-insights/       Housing analytics
+    audit-logs/            Audit trail
 
-components/
-  discovery/            Hero, PropertyCard, split list/map + Leaflet map
-  property/             Gallery, rent-estimate gauge, action card, etc.
-  tenant/, landlord/, admin/   Per-role Sidebar, TopBar, and dashboard widgets
-  modals/                Application / Viewing / Maintenance / Fraud workflow
-                          modals (FR-05/06/09/11), shared ModalShell
-  RoleSwitcher.tsx       Floating dev-only role toggle
-  TopNav.tsx / Footer.tsx   Public site chrome
+components/              Reusable UI components
+  discovery/             Property cards, map, search
+  tenant/                Tenant sidebar, widgets
+  landlord/              Landlord sidebar, widgets
+  admin/                 Admin sidebar, widgets
+  modals/                Application, viewing, maintenance modals
 
-lib/                    Mocked datasets + domain logic per feature area
-services/api.ts         Mock API layer (typed, promise-based, FR-grouped)
-types/roles.ts           Shared Role type
-middleware.ts            Route-guards /tenant, /landlord, /admin by role cookie
-docs/DEVELOPMENT_LOG.md  Full phase-by-phase build history
+lib/                     Utilities and data
+  language-context.tsx   Amharic/English translation system
+  properties.ts          Property data and types
+  ai-matching.ts         AI matching algorithm
+  images.ts              Image management
+  store.ts               Zustand state management
+
+locales/
+  en.json                English translations (361+ keys)
+  am.json                Amharic translations (361+ keys)
+
+services/
+  api.ts                 API service layer
 ```
 
-### 4.3 UI/UX workflow overview
+---
 
+## API Endpoints
+
+The frontend expects the following REST API endpoints. The backend should implement these for full integration.
+
+### Authentication
+
+| Method | Endpoint | Description | Body |
+|--------|----------|-------------|------|
+| POST | `/api/auth/register` | Register new user | `{ firstName, lastName, email, phone, password, role }` |
+| POST | `/api/auth/login` | Login | `{ email, password }` |
+| POST | `/api/auth/verify-email` | Verify email code | `{ email, code }` |
+| POST | `/api/auth/forgot-password` | Request reset code | `{ email }` |
+| POST | `/api/auth/reset-password` | Reset password | `{ email, code, newPassword }` |
+
+### Properties (Public)
+
+| Method | Endpoint | Description | Query Params |
+|--------|----------|-------------|--------------|
+| GET | `/api/public/properties` | Search properties | `neighborhood, city, minPrice, maxPrice, beds, baths, type, furnished, page, limit` |
+| GET | `/api/public/properties/:id` | Get property detail | — |
+
+### Properties (Authenticated)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/v1/properties/my` | Get landlord's properties | Landlord |
+| POST | `/api/v1/properties` | Create property | Landlord |
+| PUT | `/api/v1/properties/:id` | Update property | Landlord (owner) |
+| DELETE | `/api/v1/properties/:id` | Delete property | Landlord (owner) |
+
+### Verification
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/v1/verification/pending` | Get pending verifications | Admin |
+| POST | `/api/v1/verification/submit` | Submit verification docs | Landlord |
+| PUT | `/api/v1/verification/:id/approve` | Approve verification | Admin |
+| PUT | `/api/v1/verification/:id/reject` | Reject verification | Admin |
+
+### Applications
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/v1/applications` | Submit application | Tenant |
+| GET | `/api/v1/applications/my` | Get my applications | Tenant |
+| GET | `/api/v1/applications/property/:id` | Get applications for property | Landlord |
+| PUT | `/api/v1/applications/:id/approve` | Approve application | Landlord |
+| PUT | `/api/v1/applications/:id/reject` | Reject application | Landlord |
+
+### Viewings
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/v1/viewings` | Request viewing | Tenant |
+| GET | `/api/v1/viewings/my` | Get my viewings | Tenant/Landlord |
+| PUT | `/api/v1/viewings/:id/confirm` | Confirm viewing | Landlord |
+| PUT | `/api/v1/viewings/:id/cancel` | Cancel viewing | Either |
+
+### Maintenance
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/v1/maintenance` | Submit maintenance request | Tenant |
+| GET | `/api/v1/maintenance/my` | Get my requests | Tenant |
+| GET | `/api/v1/maintenance/property/:id` | Get requests for property | Landlord |
+| PUT | `/api/v1/maintenance/:id/status` | Update status | Landlord |
+
+### Response Format
+
+All API responses should follow this format:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation completed"
+}
 ```
-                 +-------------------------------------------+
-                 |             Public / Discovery             |
-                 |   Home -> /explore (list+map) -> /property  |
-                 +--------------------+------------------------+
-                                      |  Apply / Schedule viewing / Report
-                                      v
-                     +--------------------------------------+
-                     |   Workflow modals (FR-05/06/09/11)     |
-                     |  Application . Viewing . Maintenance    |
-                     |            . Fraud report               |
-                     +--------------------+--------------------+
-                                          |
-        +----------------------------------+-----------------------------------+
-        v                                  v                                   v
-+----------------+              +--------------------+              +--------------------+
-| Tenant          |              | Landlord             |              | Admin                |
-| dashboard       |              | dashboard             |              | console               |
-| . Home journey  |              | . Property list        |              | . Verification queue  |
-| . Rent/payments |              | . Applications          |              | . Fraud reports         |
-| . Maintenance   |<------------>| . Tenants                |<------------>| . Disputes               |
-| . Messages      |  shared FR   | . Rent & payments         |  shared FR   | . Market insights         |
-+----------------+  data model  | . Maintenance               |  data model  +--------------------+
-                                | . Property wizard             |
-                                |   (FR-02/03 intake)             |
-                                +--------------------+
+
+Error response:
+
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "code": "ERROR_CODE"
+}
 ```
 
-Role switching (Dev toolbar) and session state flow through a single
-`AuthProvider` (`lib/auth-context.tsx`), which sets the same
-`session_role` cookie `middleware.ts` reads to gate each role's route
-tree -- so switching roles in the UI immediately unlocks (or locks)
-the matching pages, the same way real auth would.
+---
 
-## 5. What's Implemented vs. Mocked
+## User Roles
 
-**Implemented as real, working UI:**
-Property discovery & map search, property detail pages, the tenant
-dashboard (home journey, rent, maintenance), the landlord dashboard
-(property list, applications, tenants, rent collection, maintenance,
-a full multi-step property intake wizard), the admin Trust &
-Verification Center and Market Insights analytics, the four workflow
-modals (application, viewing, maintenance, fraud report), and
-role-based route guarding.
+| Role | Dashboard | Can Do |
+|------|-----------|--------|
+| **Tenant** | `/tenant/dashboard` | Search properties, apply, schedule viewings, pay rent, report maintenance |
+| **Landlord** | `/landlord/dashboard` | List properties, verify identity, manage applications, track rent |
+| **Admin** | `/admin/dashboard` | Verify landlords, investigate fraud, resolve disputes, view analytics |
 
-**Mocked or not yet built** (see
-[`docs/DEVELOPMENT_LOG.md`](./docs/DEVELOPMENT_LOG.md) for details on
-each):
-- **Authentication (FR-01)** -- the floating Dev role switcher stands
-  in for real login; it should be removed or gated behind a
-  dev-only flag before any production deployment.
-- **Backend / database / AI services** -- all data comes from
-  `lib/*.ts` mocks behind `services/api.ts`; the rent-estimate,
-  property-matching, and fraud-risk scores shown in the UI are
-  illustrative, not computed by a live model.
-- **Digital rental agreements (FR-07)** beyond structured summary
-  data, ratings & reviews (FR-10), and a live payment gateway behind
-  the rent-payment form (it records a payment but doesn't call a real
-  processor).
-- Marketing pages (How It Works / About / Support) are route stubs.
+---
 
-## 6. References
+## Environment Variables
 
-This project responds to the housing-market and NFR data cited in the
-proposal (UN-Habitat, World Bank, and Ethiopian Statistics Service
-sources) -- see the proposal document for full citations.
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+```
+
+---
+
+## Testing the App
+
+1. **Homepage** — Browse featured properties, search by city
+2. **Explore** — Filter properties with map view
+3. **Signup** — Register as tenant or landlord
+4. **Login** — Access dashboard
+5. **Tenant Dashboard** — View applications, payments, maintenance
+6. **Landlord Dashboard** — Manage properties, review applications
+7. **Admin Dashboard** — Verification queue, fraud reports, analytics
+
+---
+
+## License
+
+Proprietary — HomeLink Ethiopia Team

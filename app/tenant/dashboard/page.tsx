@@ -21,6 +21,7 @@ export const metadata = {
 }
 
 export default function TenantDashboardPage() {
+  const { t } = useLanguage()
   const { name, currentHome, nextPayment, lastPayment, maintenanceRequests, recommended } = MOCK_TENANT
 
   return (

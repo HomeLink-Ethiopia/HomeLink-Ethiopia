@@ -12,23 +12,23 @@
  */
 export const HERO_IMAGES = [
   {
-    url: 'https://images.unsplash.com/photo-1572531812473-34e31c9ac378?w=1920&h=1080&fit=crop',
-    fallback: 'https://images.unsplash.com/photo-1572531812473-34e31c9ac378?w=1920&h=1080&fit=crop',
+    url: 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?w=1920&h=1080&fit=crop',
+    fallback: 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?w=1920&h=1080&fit=crop',
     caption: 'Modern Living in Bole, Addis Ababa',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&h=1080&fit=crop',
-    fallback: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&h=1080&fit=crop',
-    caption: 'Urban Residences in Kazanchis',
   },
   {
     url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&h=1080&fit=crop',
     fallback: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&h=1080&fit=crop',
-    caption: 'Spacious Family Homes in CMC',
+    caption: 'Urban Residences in Kazanchis',
   },
   {
     url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&h=1080&fit=crop',
     fallback: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&h=1080&fit=crop',
+    caption: 'Spacious Family Homes in CMC',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&h=1080&fit=crop',
+    fallback: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&h=1080&fit=crop',
     caption: 'Verified Properties Across Ethiopia',
   },
 ]
@@ -38,7 +38,7 @@ export const HERO_IMAGES = [
  * Photos representing different areas of Addis Ababa
  */
 export const NEIGHBORHOOD_PHOTOS: Record<string, string> = {
-  'Bole': 'https://images.unsplash.com/photo-1572531812473-34e31c9ac378?w=800&h=600&fit=crop',
+  'Bole': 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?w=800&h=600&fit=crop',
   'Kazanchis': 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&h=600&fit=crop',
   'CMC': 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
   'Old Airport': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
@@ -82,6 +82,11 @@ export const PROPERTY_PHOTOS = [
 export function stockPhoto(seed: string, width = 800, height = 600): string {
   // Map specific seeds to curated Unsplash images
   const curatedMap: Record<string, string> = {
+    // Hero slideshow seeds
+    'addis-ababa-bole-skyline-modern': 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?w=1920&h=1080&fit=crop',
+    'addis-ababa-kazanchis-cityscape': 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&h=1080&fit=crop',
+    'addis-ababa-cmc-residential': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&h=1080&fit=crop',
+    'ethiopian-modern-apartments': 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&h=1080&fit=crop',
     // Neighborhood images
     'addis-ababa-bole-area': NEIGHBORHOOD_PHOTOS['Bole'],
     'addis-ababa-kazanchis-area': NEIGHBORHOOD_PHOTOS['Kazanchis'],
@@ -91,6 +96,14 @@ export function stockPhoto(seed: string, width = 800, height = 600): string {
     'addis-ababa-sarbet': NEIGHBORHOOD_PHOTOS['Sarbet'],
     'addis-ababa-gerji': NEIGHBORHOOD_PHOTOS['Gerji'],
     'addis-ababa-22-mazoria': NEIGHBORHOOD_PHOTOS['22 Mazoria'],
+    // Neighborhood section seeds
+    'bole-addis-ababa-ethiopia': 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?w=800&h=600&fit=crop',
+    'kazanchis-city-ethiopia': 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&h=600&fit=crop',
+    'cmc-residential-ethiopia': 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+    'piassa-downtown-ethiopia': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
+    'hawassa-lake-ethiopia': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
+    // CTA section
+    'addis-living-room-furnished': 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=900&h=600&fit=crop',
   }
 
   if (curatedMap[seed]) {

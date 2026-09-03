@@ -3,23 +3,30 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/lib/store'
+import { useLanguage } from '@/lib/language-context'
 
-const MAIN_NAV = [
-  { label: 'Home', href: '/', icon: 'home' },
-  { label: 'Overview', href: '/landlord/dashboard', icon: 'grid' },
-  { label: 'Properties', href: '/landlord/properties', icon: 'house', match: '/landlord/properties' },
-  { label: 'Applications', href: '/landlord/applications', icon: 'file', badge: 5 },
-  { label: 'Tenants', href: '/landlord/tenants', icon: 'users' },
-  { label: 'Rent & Payments', href: '/landlord/rent-payments', icon: 'card' },
-  { label: 'Maintenance', href: '/landlord/maintenance', icon: 'wrench' },
-  { label: 'Reports', href: '#', icon: 'chart' },
-  { label: 'Messages', href: '#', icon: 'mail', badge: 2 },
-] as const
+export default function Sidebar() {
+  const pathname = usePathname()
+  const { sidebarOpen, setSidebarOpen } = useUIStore()
+  const { t } = useLanguage()
 
-const FOOTER_NAV = [
-  { label: 'Settings', href: '#', icon: 'settings' },
-  { label: 'Logout', href: '/logout', icon: 'logout' },
-] as const
+  const MAIN_NAV = [
+    { label: t.sidebar.home, href: '/', icon: 'home' },
+    { label: t.sidebar.overview, href: '/landlord/dashboard', icon: 'grid' },
+    { label: t.sidebar.properties, href: '/landlord/properties', icon: 'house', match: '/landlord/properties' },
+    { label: t.sidebar.verification, href: '/landlord/verification', icon: 'check' },
+    { label: t.sidebar.applications, href: '/landlord/applications', icon: 'file', badge: 5 },
+    { label: t.sidebar.tenants, href: '/landlord/tenants', icon: 'users' },
+    { label: t.sidebar.rentPayments, href: '/landlord/rent-payments', icon: 'card' },
+    { label: t.sidebar.maintenance, href: '/landlord/maintenance', icon: 'wrench' },
+    { label: t.sidebar.reports, href: '#', icon: 'chart' },
+    { label: t.sidebar.messages, href: '#', icon: 'mail', badge: 2 },
+  ]
+
+  const FOOTER_NAV = [
+    { label: t.sidebar.settings, href: '#', icon: 'settings' },
+    { label: t.sidebar.logout, href: '/logout', icon: 'logout' },
+  ]
 
 const ICON_PATH: Record<string, string> = {
   home: 'M3 10l7-6 7 6M5 9v7h10V9',
@@ -55,10 +62,6 @@ function NavIcon({ name }: { name: string }) {
  * Mobile behavior: same off-canvas drawer pattern as the tenant
  * sidebar — see the comment there for details.
  */
-export default function Sidebar() {
-  const pathname = usePathname()
-  const { sidebarOpen, setSidebarOpen } = useUIStore()
-
   function itemClass(item: (typeof MAIN_NAV)[number] | (typeof FOOTER_NAV)[number]) {
     const target = 'match' in item && item.match ? item.match : item.href
     const active = target !== '#' && pathname === target
@@ -132,11 +135,11 @@ export default function Sidebar() {
         <div className="space-y-1 border-t border-white/10 pt-3">
           <Link href="/support" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="help" />
-            Need Help?
+            {t.sidebar.needHelp}
           </Link>
           <Link href="/support" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="support" />
-            Contact Support
+            {t.sidebar.contactSupport}
           </Link>
         </div>
       </aside>

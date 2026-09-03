@@ -1,6 +1,10 @@
 import { stockPhoto } from './images'
 
-export type Neighborhood = 'Bole' | 'Kazanchis' | 'CMC' | 'Saris' | 'Yeka'
+export type Neighborhood =
+  // Addis Ababa
+  | 'Bole' | 'Kazanchis' | 'CMC' | 'Saris' | 'Yeka' | 'Piassa' | 'Merkato' | 'Arat Kilo'
+  // Other Cities
+  | 'Dire Dawa' | 'Hawassa' | 'Bahir Dar' | 'Mekelle' | 'Adama' | 'Jimma' | 'Gondar' | 'Dessie' | 'Harar' | 'Axum'
 
 export interface Property {
   id: string
@@ -33,11 +37,26 @@ export interface Property {
  * on top of each other on the map.
  */
 const NEIGHBORHOOD_CENTERS: Record<Neighborhood, [number, number]> = {
+  // Addis Ababa
   Bole: [9.0084, 38.7913],
   Kazanchis: [9.0227, 38.7621],
   CMC: [9.0522, 38.8067],
   Saris: [8.9806, 38.7756],
   Yeka: [9.0392, 38.8125],
+  Piassa: [9.0340, 38.7460],
+  Merkato: [9.0170, 38.7480],
+  'Arat Kilo': [9.0380, 38.7610],
+  // Other Cities
+  'Dire Dawa': [9.5930, 41.8520],
+  'Hawassa': [7.0621, 38.4763],
+  'Bahir Dar': [11.5940, 37.3910],
+  'Mekelle': [13.4967, 39.4753],
+  'Adama': [8.5400, 39.2700],
+  'Jimma': [7.6789, 36.8340],
+  'Gondar': [12.6030, 37.4510],
+  'Dessie': [11.1080, 39.6360],
+  'Harar': [9.3115, 42.1190],
+  'Axum': [14.1210, 38.7470],
 }
 
 /** Deterministic small offset so the same property always renders at the same spot. */

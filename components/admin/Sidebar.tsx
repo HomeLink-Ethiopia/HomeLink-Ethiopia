@@ -3,19 +3,25 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/lib/store'
+import { useLanguage } from '@/lib/language-context'
 
-const NAV = [
-  { label: 'Home', href: '/', icon: 'home' },
-  { label: 'Dashboard', href: '/admin/dashboard', icon: 'grid' },
-  { label: 'Verification Queue', href: '/admin/verification-queue', icon: 'check' },
-  { label: 'Landlord Verification', href: '/admin/verification-queue', icon: 'user' },
-  { label: 'Property Verification', href: '/admin/verification-queue', icon: 'house' },
-  { label: 'Fraud Reports', href: '/admin/fraud-reports', icon: 'flag' },
-  { label: 'Disputes', href: '/admin/disputes', icon: 'scale' },
-  { label: 'Risk Monitoring', href: '/admin/risk-monitoring', icon: 'chart' },
-  { label: 'Market Insights', href: '/admin/market-insights', icon: 'trend' },
-  { label: 'Audit Logs', href: '/admin/audit-logs', icon: 'log' },
-] as const
+export default function Sidebar() {
+  const pathname = usePathname()
+  const { sidebarOpen, setSidebarOpen } = useUIStore()
+  const { t } = useLanguage()
+
+  const NAV = [
+    { label: t.sidebar.home, href: '/', icon: 'home' },
+    { label: t.sidebar.dashboard, href: '/admin/dashboard', icon: 'grid' },
+    { label: t.sidebar.verificationQueue, href: '/admin/verification-queue', icon: 'check' },
+    { label: t.sidebar.landlordVerification, href: '/admin/verification-queue', icon: 'user' },
+    { label: t.sidebar.propertyVerification, href: '/admin/verification-queue', icon: 'house' },
+    { label: t.sidebar.fraudReports, href: '/admin/fraud-reports', icon: 'flag' },
+    { label: t.sidebar.disputes, href: '/admin/disputes', icon: 'scale' },
+    { label: t.sidebar.riskMonitoring, href: '/admin/risk-monitoring', icon: 'chart' },
+    { label: t.sidebar.marketInsights, href: '/admin/market-insights', icon: 'trend' },
+    { label: t.sidebar.auditLogs, href: '/admin/audit-logs', icon: 'log' },
+  ]
 
 const ICON_PATH: Record<string, string> = {
   home: 'M3 10l7-6 7 6M5 9v7h10V9',
@@ -50,10 +56,6 @@ function NavIcon({ name }: { name: string }) {
  * Mobile behavior: same off-canvas drawer pattern as the tenant
  * sidebar — see the comment there for details.
  */
-export default function Sidebar() {
-  const pathname = usePathname()
-  const { sidebarOpen, setSidebarOpen } = useUIStore()
-
   return (
     <>
       {sidebarOpen && (
@@ -114,11 +116,11 @@ export default function Sidebar() {
         <div className="border-t border-white/10 pt-3">
           <Link href="#" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="settings" />
-            Settings
+            {t.sidebar.settings}
           </Link>
           <Link href="/logout" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="logout" />
-            Logout
+            {t.sidebar.logout}
           </Link>
         </div>
       </aside>

@@ -7,6 +7,7 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import type { Property } from '@/lib/properties'
 import { formatEtb } from '@/lib/properties'
 import { useFavoritesStore } from '@/lib/store'
+import { useLanguage } from '@/lib/language-context'
 
 // motion() wraps Link itself (not a div around it) so the tilt/hover
 // transform and focus state live on the same element that navigates —
@@ -36,6 +37,7 @@ export default function PropertyCard({
 }: PropertyCardProps) {
   const cardRef = useRef<HTMLAnchorElement>(null)
   const saved = useFavoritesStore((s) => s.favorites.has(property.id))
+  const { locale } = useLanguage()
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
 
   const mouseX = useMotionValue(0)
@@ -100,7 +102,7 @@ export default function PropertyCard({
                 clipRule="evenodd"
               />
             </svg>
-            Verified
+            {locale === 'EN' ? 'Verified' : 'የተረጋገጠ'}
           </span>
         )}
 
@@ -137,16 +139,16 @@ export default function PropertyCard({
               clipRule="evenodd"
             />
           </svg>
-          {property.neighborhood}, Addis Ababa
+          {property.neighborhood}, {locale === 'EN' ? 'Addis Ababa' : 'አዲስ አበባ'}
         </p>
 
         <p className="mt-3 font-display text-base font-semibold text-charcoal">
-          {formatEtb(property.priceEtb)} <span className="font-sans text-sm font-normal text-charcoal/50">/ month</span>
+          {formatEtb(property.priceEtb)} <span className="font-sans text-sm font-normal text-charcoal/50">{locale === 'EN' ? '/ month' : '/ ወር'}</span>
         </p>
 
         <div className="mt-3 flex items-center gap-4 text-sm text-charcoal/70">
-          <span>{property.beds} Beds</span>
-          <span>{property.baths} Bath</span>
+          <span>{property.beds} {locale === 'EN' ? 'Beds' : 'መኝታ'}</span>
+          <span>{property.baths} {locale === 'EN' ? 'Bath' : 'መታጠቢያ'}</span>
           <span>{property.sizeSqm} m²</span>
         </div>
 

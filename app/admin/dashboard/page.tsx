@@ -13,6 +13,7 @@ export const metadata = {
 }
 
 export default function AdminDashboardPage() {
+  const { t } = useLanguage()
   return (
     <>
       <TopBar title="Trust & Verification Center" />

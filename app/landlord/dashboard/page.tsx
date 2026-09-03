@@ -1,5 +1,7 @@
 'use client'
 
+import { useLanguage } from '@/lib/language-context'
+
 import { useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -88,6 +90,7 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 
 /* ─── PAGE ───────────────────────────────────────────────────────────────── */
 export default function LandlordDashboardPage() {
+  const { t } = useLanguage()
   return (
     <>
       <TopBar

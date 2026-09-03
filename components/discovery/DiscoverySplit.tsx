@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { NEIGHBORHOOD_COLOR, PROPERTIES, formatEtb, type Property } from '@/lib/properties'
+import { fetchProperties } from '@/services/api'
 import { SearchFilters, filterProperties } from '@/lib/search'
 import { useLanguage } from '@/lib/language-context'
 
@@ -339,6 +340,18 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const [showAiPanel, setShowAiPanel] = useState(false)
   const itemsPerPage = 5
 
+  // Real API properties
+  const [apiProperties, setApiProperties] = useState<Property[]>([])
+  useEffect(() => {
+    let cancelled = false
+    fetchProperties({}).then((props) => {
+      if (!cancelled && props.length > 0) setApiProperties(props)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const PROPERTIES_DATA = apiProperties.length > 0 ? apiProperties : PROPERTIES
+
   // Filter state
   const [neighborhood, setNeighborhood] = useState('')
   const [propertyType, setPropertyType] = useState('')
@@ -368,7 +381,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
 
   // Apply filters
   const allFiltered = useMemo(() => {
-    let result = filterProperties(PROPERTIES, dynamicFilters)
+    let result = filterProperties(PROPERTIES_DATA, dynamicFilters)
     if (verifiedOnly) result = result.filter((p) => p.verified)
     return result
   }, [dynamicFilters, verifiedOnly])
@@ -376,7 +389,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   // AI matches for the top 3
   const aiMatches = useMemo(() => {
     const prefs = { budget: 20000, beds: 2, neighborhoods: ['Bole', 'Kazanchis'] }
-    return PROPERTIES
+    return PROPERTIES_DATA
       .map((p) => matchProperty(p, prefs))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
@@ -428,21 +441,34 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
             <div className="flex flex-wrap items-center gap-2">
               {/* Location Filter */}
               <FilterDropdown
-                label="Addis Ababa"
+                label="All Cities"
                 value={neighborhood}
                 active={!!neighborhood}
                 onChange={(v) => { setNeighborhood(v); setCurrentPage(1) }}
                 options={[
-                  { label: 'All Areas', value: '' },
+                  { label: 'All Cities', value: '' },
+                  // Addis Ababa
+                  { label: '─── Addis Ababa ───', value: '__header_aa' },
                   { label: 'Bole', value: 'Bole' },
                   { label: 'Kazanchis', value: 'Kazanchis' },
                   { label: 'CMC', value: 'CMC' },
-                  { label: 'Old Airport', value: 'Old Airport' },
-                  { label: 'Megenagna', value: 'Megenagna' },
                   { label: 'Saris', value: 'Saris' },
-                  { label: 'Gerji', value: 'Gerji' },
                   { label: 'Yeka', value: 'Yeka' },
-                  { label: '22 Mazoria', value: '22 Mazoria' },
+                  { label: 'Piassa', value: 'Piassa' },
+                  { label: 'Merkato', value: 'Merkato' },
+                  { label: 'Arat Kilo', value: 'Arat Kilo' },
+                  // Other Cities
+                  { label: '─── Other Cities ───', value: '__header_other' },
+                  { label: 'Hawassa', value: 'Hawassa' },
+                  { label: 'Bahir Dar', value: 'Bahir Dar' },
+                  { label: 'Dire Dawa', value: 'Dire Dawa' },
+                  { label: 'Mekelle', value: 'Mekelle' },
+                  { label: 'Adama', value: 'Adama' },
+                  { label: 'Jimma', value: 'Jimma' },
+                  { label: 'Gondar', value: 'Gondar' },
+                  { label: 'Dessie', value: 'Dessie' },
+                  { label: 'Harar', value: 'Harar' },
+                  { label: 'Axum', value: 'Axum' },
                 ]}
               />
 
@@ -676,7 +702,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                         {property.title}
                       </p>
                       <p className="mt-0.5 text-sm text-charcoal/60">
-                        {property.neighborhood}, Addis Ababa
+                        {property.neighborhood}
                       </p>
                     </div>
 

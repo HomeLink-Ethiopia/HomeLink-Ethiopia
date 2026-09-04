@@ -26,6 +26,7 @@ export interface Property {
   amenities?: string[]
   images?: string[] // Additional interior photos
   landlordId?: string
+  furnished?: boolean
   status?: 'active' | 'inactive' // For filtering from search results
   createdAt?: string
   updatedAt?: string
@@ -84,16 +85,16 @@ export const NEIGHBORHOOD_COLOR: Record<Neighborhood, string> = {
 }
 
 const RAW: Omit<Property, 'lat' | 'lng' | 'image'>[] = [
-  { id: 'p1', title: '2 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 18000, beds: 2, baths: 1, sizeSqm: 65, rating: 4.8, reviewCount: 34, verified: true },
-  { id: 'p2', title: '3 Bedroom Apartment', neighborhood: 'Kazanchis', priceEtb: 22000, beds: 3, baths: 2, sizeSqm: 100, rating: 4.7, reviewCount: 28, verified: true },
-  { id: 'p3', title: '2 Bedroom House', neighborhood: 'Saris', priceEtb: 16000, beds: 2, baths: 1, sizeSqm: 70, rating: 4.7, reviewCount: 19, verified: true },
-  { id: 'p4', title: '3 Bedroom Apartment', neighborhood: 'CMC', priceEtb: 22000, beds: 3, baths: 2, sizeSqm: 100, rating: 4.6, reviewCount: 18, verified: true },
-  { id: 'p5', title: '2 Bedroom Apartment', neighborhood: 'Yeka', priceEtb: 17500, beds: 2, baths: 1, sizeSqm: 60, rating: 4.5, reviewCount: 16, verified: true },
-  { id: 'p6', title: '2 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 18500, beds: 2, baths: 1, sizeSqm: 62, rating: 4.6, reviewCount: 21, verified: true },
-  { id: 'p7', title: '1 Bedroom Apartment', neighborhood: 'Kazanchis', priceEtb: 13000, beds: 1, baths: 1, sizeSqm: 45, rating: 4.4, reviewCount: 12, verified: true },
-  { id: 'p8', title: '3 Bedroom House', neighborhood: 'CMC', priceEtb: 20000, beds: 3, baths: 2, sizeSqm: 110, rating: 4.5, reviewCount: 15, verified: false },
-  { id: 'p9', title: '2 Bedroom Apartment', neighborhood: 'Saris', priceEtb: 13500, beds: 2, baths: 1, sizeSqm: 58, rating: 4.3, reviewCount: 9, verified: true },
-  { id: 'p10', title: '1 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 12000, beds: 1, baths: 1, sizeSqm: 40, rating: 4.4, reviewCount: 14, verified: true },
+  { id: 'p1', title: '2 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 18000, beds: 2, baths: 1, sizeSqm: 65, rating: 4.8, reviewCount: 34, verified: true, propertyType: 'apartment', furnished: false },
+  { id: 'p2', title: '3 Bedroom Apartment', neighborhood: 'Kazanchis', priceEtb: 22000, beds: 3, baths: 2, sizeSqm: 100, rating: 4.7, reviewCount: 28, verified: true, propertyType: 'apartment', furnished: true },
+  { id: 'p3', title: '2 Bedroom House', neighborhood: 'Saris', priceEtb: 16000, beds: 2, baths: 1, sizeSqm: 70, rating: 4.7, reviewCount: 19, verified: true, propertyType: 'house', furnished: false },
+  { id: 'p4', title: '3 Bedroom Apartment', neighborhood: 'CMC', priceEtb: 22000, beds: 3, baths: 2, sizeSqm: 100, rating: 4.6, reviewCount: 18, verified: true, propertyType: 'apartment', furnished: true },
+  { id: 'p5', title: '2 Bedroom Apartment', neighborhood: 'Yeka', priceEtb: 17500, beds: 2, baths: 1, sizeSqm: 60, rating: 4.5, reviewCount: 16, verified: true, propertyType: 'apartment', furnished: false },
+  { id: 'p6', title: '2 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 18500, beds: 2, baths: 1, sizeSqm: 62, rating: 4.6, reviewCount: 21, verified: true, propertyType: 'apartment', furnished: true },
+  { id: 'p7', title: '1 Bedroom Apartment', neighborhood: 'Kazanchis', priceEtb: 13000, beds: 1, baths: 1, sizeSqm: 45, rating: 4.4, reviewCount: 12, verified: true, propertyType: 'studio', furnished: true },
+  { id: 'p8', title: '3 Bedroom House', neighborhood: 'CMC', priceEtb: 20000, beds: 3, baths: 2, sizeSqm: 110, rating: 4.5, reviewCount: 15, verified: false, propertyType: 'house', furnished: false },
+  { id: 'p9', title: '2 Bedroom Apartment', neighborhood: 'Saris', priceEtb: 13500, beds: 2, baths: 1, sizeSqm: 58, rating: 4.3, reviewCount: 9, verified: true, propertyType: 'apartment', furnished: false },
+  { id: 'p10', title: '1 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 12000, beds: 1, baths: 1, sizeSqm: 40, rating: 4.4, reviewCount: 14, verified: true, propertyType: 'studio', furnished: true },
 ]
 
 export const PROPERTIES: Property[] = RAW.map((p, i) => {

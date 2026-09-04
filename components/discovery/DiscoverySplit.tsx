@@ -384,6 +384,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const allFiltered = useMemo(() => {
     let result = filterProperties(PROPERTIES_DATA, dynamicFilters)
     if (verifiedOnly) result = result.filter((p) => p.verified)
+    if (furnished) result = result.filter((p) => p.furnished)
 
     // Sort
     if (sortBy === 'price-asc') {
@@ -399,7 +400,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
     }
 
     return result
-  }, [dynamicFilters, verifiedOnly, sortBy])
+  }, [dynamicFilters, verifiedOnly, furnished, sortBy])
 
   // AI matches for the top 3
   const aiMatches = useMemo(() => {

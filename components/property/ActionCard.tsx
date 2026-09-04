@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { useUIStore } from '@/lib/store'
+import { useUIStore, useFavoritesStore } from '@/lib/store'
 
 interface ActionCardProps {
   propertyId: string
@@ -11,8 +10,9 @@ interface ActionCardProps {
 }
 
 export default function ActionCard({ propertyId, propertyTitle, priceEtb, depositEtb }: ActionCardProps) {
-  const [saved, setSaved] = useState(false)
   const openModal = useUIStore((s) => s.openModal)
+  const saved = useFavoritesStore((s) => s.favorites.has(propertyId))
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
 
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-sm">
@@ -45,7 +45,7 @@ export default function ActionCard({ propertyId, propertyTitle, priceEtb, deposi
 
         <button
           type="button"
-          onClick={() => setSaved((s) => !s)}
+          onClick={() => toggleFavorite(propertyId)}
           aria-pressed={saved}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-charcoal/15 px-5 py-3 text-sm font-semibold text-charcoal transition-all hover:border-rust hover:text-rust"
         >

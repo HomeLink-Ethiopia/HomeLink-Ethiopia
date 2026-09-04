@@ -118,10 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const data = await response.json()
           
           if (!response.ok) {
-            // Dev test accounts fall through to mock login
-            if (email.includes('test.com')) {
-              console.log('Dev test account - falling back to mock login')
-            } else if (data.requiresVerification) {
+            if (data.requiresVerification) {
               return { success: false, error: data.message, requiresVerification: true, email: data.email }
             } else {
               return { success: false, error: data.message || 'Login failed' }

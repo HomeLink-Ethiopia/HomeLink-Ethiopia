@@ -95,7 +95,7 @@ export default function AIMatchPage() {
             <div className="bg-white rounded-lg border border-sand p-6 space-y-8">
               {/* Budget */}
               <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">💰 Monthly Budget (ETB)</label>
+                <label className="block text-sm font-semibold text-charcoal mb-3">Monthly Budget (ETB)</label>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-charcoal/60 mb-1 block">Minimum</label>
@@ -135,7 +135,7 @@ export default function AIMatchPage() {
 
               {/* Location */}
               <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">📍 Preferred Neighborhoods</label>
+                <label className="block text-sm font-semibold text-charcoal mb-3">Preferred Neighborhoods</label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {NEIGHBORHOODS.map(loc => (
                     <button
@@ -158,7 +158,7 @@ export default function AIMatchPage() {
 
               {/* Property Type */}
               <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">🏠 Property Type</label>
+                <label className="block text-sm font-semibold text-charcoal mb-3">Property Type</label>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                   {PROPERTY_TYPES.map(type => (
                     <button
@@ -178,7 +178,7 @@ export default function AIMatchPage() {
 
               {/* Bedrooms */}
               <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">🛏️ Minimum Bedrooms</label>
+                <label className="block text-sm font-semibold text-charcoal mb-3">Minimum Bedrooms</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4].map(num => (
                     <button
@@ -198,7 +198,7 @@ export default function AIMatchPage() {
 
               {/* Amenities */}
               <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">✨ Desired Amenities</label>
+                <label className="block text-sm font-semibold text-charcoal mb-3">Desired Amenities</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {AMENITIES.map(amenity => (
                     <button
@@ -227,7 +227,7 @@ export default function AIMatchPage() {
 
               {/* Move-in Date */}
               <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">📅 Move-in Date</label>
+                <label className="block text-sm font-semibold text-charcoal mb-3">Move-in Date</label>
                 <input
                   type="date"
                   value={preferences.moveInDate}

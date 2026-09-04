@@ -16,7 +16,7 @@ export default function TopNav() {
   const PRIMARY_LINKS = [
     { label: t.common.explore, href: '/explore' },
     { label: t.common.howItWorks, href: '/how-it-works' },
-    { label: t.common.listProperty, href: '/list-property' },
+    { label: locale === 'AM' ? 'ለባለቤቶች' : 'For Landlords', href: '/signup' },
     { label: t.common.about, href: '/about' },
     { label: t.common.support, href: '/support' },
   ]

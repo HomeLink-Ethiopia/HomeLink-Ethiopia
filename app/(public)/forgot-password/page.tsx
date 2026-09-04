@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { requestPasswordReset } from '@/lib/auth-db'
 import Logo from '@/components/Logo'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
-  const [resetToken, setResetToken] = useState('')
   const [error, setError] = useState('')
+  const [resetCode, setResetCode] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,16 +18,25 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     try {
-      const result = requestPasswordReset(email)
-      
-      if (result.success && result.token) {
-        setResetToken(result.token)
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // If backend returns the code directly (dev mode), show it
+        if (data.resetCode) {
+          setResetCode(data.resetCode)
+        }
         setSent(true)
       } else {
-        setError('Failed to send reset link. Please try again.')
+        setError(data.message || 'Failed to send reset code. Please try again.')
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
+      setError('Could not connect to server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -54,19 +64,23 @@ export default function ForgotPasswordPage() {
             <p className="mt-1 font-semibold text-charcoal">{email}</p>
             
             <p className="mt-4 text-sm text-charcoal/60">
-              You will receive a password reset link. The link will expire in 1 hour.
+              We sent a password reset code to your email. Enter it on the next page.
             </p>
 
-            <p className="mt-4 text-xs text-charcoal/50">
-              Note: Email sending will be connected by backend team
-            </p>
+            {resetCode && (
+              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+                <strong>Your reset code: {resetCode}</strong>
+                <br />
+                <span className="text-xs text-blue-500">(Check your email too — this is shown for demo purposes)</span>
+              </div>
+            )}
 
             <div className="mt-6 space-y-3">
               <a
-                href={`/reset-password?token=${resetToken}`}
+                href={`/reset-password?email=${encodeURIComponent(email)}`}
                 className="block w-full rounded-lg bg-rust px-4 py-3 font-semibold text-white transition-colors hover:bg-rust-dark"
               >
-                Reset Password Now (Demo)
+                Enter Reset Code
               </a>
               
               <a
@@ -85,16 +99,14 @@ export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Logo className="mx-auto justify-center" />
         </div>
 
-        {/* Forgot Password Card */}
         <div className="rounded-xl border border-charcoal/10 bg-white p-8 shadow-sm">
           <h1 className="font-display text-2xl font-bold text-charcoal">Forgot Password?</h1>
           <p className="mt-2 text-sm text-charcoal/60">
-            No worries! Enter your email and we'll send you a reset link.
+            No worries! Enter your email and we'll send you a reset code.
           </p>
 
           {error && (
@@ -104,7 +116,6 @@ export default function ForgotPasswordPage() {
           )}
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-charcoal">
                 Email Address
@@ -120,17 +131,15 @@ export default function ForgotPasswordPage() {
               />
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
               className="w-full rounded-lg bg-rust px-4 py-3 font-semibold text-white transition-colors hover:bg-rust-dark disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending...' : 'Send Reset Link'}
+              {loading ? 'Sending...' : 'Send Reset Code'}
             </button>
           </form>
 
-          {/* Back to Login */}
           <div className="mt-6 text-center">
             <a
               href="/login"

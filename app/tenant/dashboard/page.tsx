@@ -1,3 +1,6 @@
+'use client'
+
+import { useLanguage } from '@/lib/language-context'
 import TopBar from '@/components/tenant/TopBar'
 import HomeJourneyTracker from '@/components/tenant/HomeJourneyTracker'
 import NextPaymentBox from '@/components/tenant/NextPaymentBox'
@@ -14,10 +17,6 @@ function greeting() {
   if (hour < 12) return 'Good morning'
   if (hour < 18) return 'Good afternoon'
   return 'Good evening'
-}
-
-export const metadata = {
-  title: 'My Home — HomeLink Ethiopia',
 }
 
 export default function TenantDashboardPage() {

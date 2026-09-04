@@ -1,3 +1,6 @@
+'use client'
+
+import { useLanguage } from '@/lib/language-context'
 import TopBar from '@/components/admin/TopBar'
 import KpiCard from '@/components/admin/KpiCard'
 import VerificationQueue from '@/components/admin/VerificationQueue'
@@ -7,10 +10,6 @@ import RiskLevelDistribution from '@/components/admin/RiskLevelDistribution'
 import { VERIFICATION_KPIS } from '@/lib/admin'
 
 const KPI_ICONS = ['queue', 'fraud', 'scale', 'verified'] as const
-
-export const metadata = {
-  title: 'Admin Dashboard — HomeLink Ethiopia',
-}
 
 export default function AdminDashboardPage() {
   const { t } = useLanguage()

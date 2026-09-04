@@ -80,6 +80,7 @@ export default function SignupPage() {
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
+          role: role,
         }),
       })
 

@@ -360,6 +360,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [furnished, setFurnished] = useState(false)
   const [verifiedOnly, setVerifiedOnly] = useState(false)
+  const [sortBy, setSortBy] = useState('best')
 
   const activeFilterCount = [neighborhood, propertyType, priceRange, bedsRange, furnished, verifiedOnly].filter(Boolean).length
 
@@ -383,8 +384,22 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const allFiltered = useMemo(() => {
     let result = filterProperties(PROPERTIES_DATA, dynamicFilters)
     if (verifiedOnly) result = result.filter((p) => p.verified)
+
+    // Sort
+    if (sortBy === 'price-asc') {
+      result = [...result].sort((a, b) => a.priceEtb - b.priceEtb)
+    } else if (sortBy === 'price-desc') {
+      result = [...result].sort((a, b) => b.priceEtb - a.priceEtb)
+    } else if (sortBy === 'newest') {
+      result = [...result].sort((a, b) => {
+        const dateA = (a as any).createdAt ? new Date((a as any).createdAt).getTime() : 0
+        const dateB = (b as any).createdAt ? new Date((b as any).createdAt).getTime() : 0
+        return dateB - dateA
+      })
+    }
+
     return result
-  }, [dynamicFilters, verifiedOnly])
+  }, [dynamicFilters, verifiedOnly, sortBy])
 
   // AI matches for the top 3
   const aiMatches = useMemo(() => {
@@ -592,6 +607,23 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                 </svg>
                 <span>Alerts</span>
               </button>
+
+              {/* Sort */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="appearance-none rounded-lg border border-charcoal/15 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-charcoal/60 hover:border-rust focus:border-rust focus:outline-none cursor-pointer"
+                >
+                  <option value="best">Best Match</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="newest">Newest First</option>
+                </select>
+                <svg viewBox="0 0 20 20" fill="currentColor" className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-charcoal/40">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
 
               {/* View Toggle */}
               <div className="flex items-center gap-0.5 rounded-lg border border-charcoal/15 bg-white p-1">

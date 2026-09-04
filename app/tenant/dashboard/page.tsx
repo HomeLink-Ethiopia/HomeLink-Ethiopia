@@ -29,7 +29,7 @@ export default function TenantDashboardPage() {
 
       <div className="flex-1 px-6 py-8 sm:px-8">
         <h1 className="font-display text-2xl font-semibold text-charcoal sm:text-3xl">
-          {greeting()}, {name} 👋
+          {greeting()}, {name}
         </h1>
         <p className="mt-1 text-charcoal/60">Welcome back to your home journey.</p>
 

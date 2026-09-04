@@ -3,14 +3,21 @@
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import TopBar from '@/components/tenant/TopBar'
+import EmptyState from '@/components/ui/EmptyState'
 import { TENANT_CONVERSATIONS, type Conversation, type ChatMessage } from '@/lib/tenantMessages'
 
 export default function MessagesPage() {
+  const [loading, setLoading] = useState(true)
   const [conversations] = useState<Conversation[]>(TENANT_CONVERSATIONS)
   const [activeId, setActiveId] = useState<string>(TENANT_CONVERSATIONS[0]?.id ?? '')
   const [draft, setDraft] = useState('')
   const [localMessages, setLocalMessages] = useState<Record<string, ChatMessage[]>>({})
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 500)
+    return () => clearTimeout(t)
+  }, [])
 
   const active = conversations.find((c) => c.id === activeId)
 

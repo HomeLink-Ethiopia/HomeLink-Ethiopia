@@ -1,6 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import TopBar from '@/components/landlord/TopBar'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/LoadingSkeleton'
 import { useLanguage } from '@/lib/language-context'
 
 const MOCK_TENANTS = [
@@ -28,6 +31,12 @@ const MOCK_TENANTS = [
 ]
 
 export default function TenantsPage() {
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(t)
+  }, [])
   const { t } = useLanguage()
 
   const currentTenants = MOCK_TENANTS.filter((t) => t.status === 'current')
@@ -40,6 +49,16 @@ export default function TenantsPage() {
         subtitle={t.dashboard.landlord.tenants.subtitle}
       />
       <main className="flex-1 space-y-8 px-6 py-8 sm:px-8">
+        {loading ? (
+          <SkeletonTable rows={3} cols={5} />
+        ) : MOCK_TENANTS.length === 0 ? (
+          <EmptyState
+            icon="user"
+            title="No tenants yet"
+            description="When tenants move into your properties, they will appear here."
+          />
+        ) : (
+        <>
         {/* Current Tenants */}
         <div>
           <h2 className="text-xl font-semibold text-charcoal mb-4">
@@ -126,6 +145,8 @@ export default function TenantsPage() {
             </div>
           )}
         </div>
+        </>
+        )}
       </main>
     </>
   )

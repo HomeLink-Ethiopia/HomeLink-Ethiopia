@@ -1,6 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import TopBar from '@/components/tenant/TopBar'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/LoadingSkeleton'
 import { useLanguage } from '@/lib/language-context'
 
 // Mock payments data
@@ -30,6 +33,12 @@ const MOCK_PAYMENTS = [
 
 export default function PaymentsPage() {
   const { t } = useLanguage()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(timer)
+  }, [])
 
   const getStatusColor = (status: string) => {
     return status === 'paid'
@@ -47,25 +56,14 @@ export default function PaymentsPage() {
     <>
       <TopBar tenantName={"Tenant"} />
       <main className="flex-1 space-y-8 px-6 py-8 sm:px-8">
-        {MOCK_PAYMENTS.length === 0 ? (
-          <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-charcoal/20"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            <h3 className="mt-4 text-lg font-semibold text-charcoal">
-              {t.dashboard.tenant.payments.noPayments}
-            </h3>
-          </div>
+        {loading ? (
+          <SkeletonTable rows={4} cols={4} />
+        ) : MOCK_PAYMENTS.length === 0 ? (
+          <EmptyState
+            icon="payment"
+            title="No payments yet"
+            description="Your rent payment history will appear here once you move in."
+          />
         ) : (
           <div className="bg-white rounded-lg border border-sand overflow-hidden">
             <table className="min-w-full divide-y divide-sand">

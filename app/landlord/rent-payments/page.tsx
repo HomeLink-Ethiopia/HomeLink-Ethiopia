@@ -1,6 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import TopBar from '@/components/landlord/TopBar'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/LoadingSkeleton'
 import { useLanguage } from '@/lib/language-context'
 
 const MOCK_PAYMENTS = [
@@ -34,6 +37,12 @@ const MOCK_PAYMENTS = [
 ]
 
 export default function RentPaymentsPage() {
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(t)
+  }, [])
   const { t } = useLanguage()
 
   const getStatusColor = (status: string) => {
@@ -82,6 +91,16 @@ export default function RentPaymentsPage() {
         subtitle={t.dashboard.landlord.rentPayments.subtitle}
       />
       <main className="flex-1 space-y-8 px-6 py-8 sm:px-8">
+        {loading ? (
+          <SkeletonTable rows={4} cols={5} />
+        ) : MOCK_PAYMENTS.length === 0 ? (
+          <EmptyState
+            icon="payment"
+            title="No rent payments"
+            description="Payment records for your properties will appear here."
+          />
+        ) : (
+        <>
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg border border-sand p-6">
@@ -168,6 +187,8 @@ export default function RentPaymentsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        </>
         )}
       </main>
     </>

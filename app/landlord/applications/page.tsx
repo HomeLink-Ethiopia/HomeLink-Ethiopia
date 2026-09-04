@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import TopBar from '@/components/landlord/TopBar'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonList } from '@/components/ui/LoadingSkeleton'
 import {
   LANDLORD_APPLICATIONS,
   KANBAN_STAGES,
@@ -19,7 +21,13 @@ const NEXT_STAGE: Partial<Record<KanbanStage, KanbanStage>> = {
 }
 
 export default function LandlordApplicationsPage() {
+  const [loading, setLoading] = useState(true)
   const [apps, setApps] = useState<LandlordApplication[]>(LANDLORD_APPLICATIONS)
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(t)
+  }, [])
 
   function advance(id: string) {
     setApps((prev) =>
@@ -36,6 +44,15 @@ export default function LandlordApplicationsPage() {
       <TopBar title="Applications" subtitle="Review incoming applications and move them through your pipeline." />
 
       <div className="flex-1 px-6 py-8 sm:px-8">
+        {loading ? (
+          <SkeletonList count={3} />
+        ) : apps.length === 0 ? (
+          <EmptyState
+            icon="document"
+            title="No applications yet"
+            description="When tenants apply for your properties, their applications will appear here."
+          />
+        ) : (
         <div className="grid grid-cols-1 gap-4 overflow-x-auto sm:grid-cols-2 lg:grid-cols-5">
           {KANBAN_STAGES.map((stage) => {
             const items = apps.filter((a) => a.stage === stage)
@@ -86,6 +103,7 @@ export default function LandlordApplicationsPage() {
             )
           })}
         </div>
+        )}
       </div>
     </>
   )

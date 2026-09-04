@@ -1,6 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import TopBar from '@/components/tenant/TopBar'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonList } from '@/components/ui/LoadingSkeleton'
 import { useLanguage } from '@/lib/language-context'
 
 // Mock applications data - in production this would come from a database
@@ -33,6 +36,12 @@ const MOCK_APPLICATIONS = [
 
 export default function ApplicationsPage() {
   const { t } = useLanguage()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(timer)
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -64,25 +73,16 @@ export default function ApplicationsPage() {
           <h1 className="font-display text-2xl font-semibold text-charcoal">{t.dashboard.tenant.applications.title}</h1>
           <p className="mt-1 text-sm text-charcoal/60">{t.dashboard.tenant.applications.subtitle}</p>
         </div>
-        {MOCK_APPLICATIONS.length === 0 ? (
-          <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-charcoal/20"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <h3 className="mt-4 text-lg font-semibold text-charcoal">
-              {t.dashboard.tenant.applications.noApplications}
-            </h3>
-          </div>
+        {loading ? (
+          <SkeletonList count={3} />
+        ) : MOCK_APPLICATIONS.length === 0 ? (
+          <EmptyState
+            icon="document"
+            title="No applications yet"
+            description="When you apply for a property, your application status will appear here."
+            actionLabel="Browse Properties"
+            actionHref="/explore"
+          />
         ) : (
           <div className="space-y-4">
             {MOCK_APPLICATIONS.map((application) => (

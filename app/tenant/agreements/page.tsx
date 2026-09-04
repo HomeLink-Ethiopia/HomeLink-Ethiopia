@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import TopBar from '@/components/tenant/TopBar'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonList } from '@/components/ui/LoadingSkeleton'
 import { MOCK_AGREEMENTS, type RentalAgreement } from '@/lib/agreements'
 import { personPhoto } from '@/lib/images'
 
@@ -35,9 +37,18 @@ function StatusBadge({ status }: { status: RentalAgreement['status'] }) {
 }
 
 export default function AgreementsPage() {
-  const [selected, setSelected] = useState<string | null>(MOCK_AGREEMENTS[0]?.id ?? null)
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<string | null>(null)
   const agreements = MOCK_AGREEMENTS
   const active = agreements.find((a) => a.id === selected)
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSelected(agreements[0]?.id ?? null)
+      setLoading(false)
+    }, 600)
+    return () => clearTimeout(t)
+  }, [])
 
   return (
     <>
@@ -48,6 +59,17 @@ export default function AgreementsPage() {
           <p className="mt-1 text-sm text-charcoal/60">View and manage your digital rental agreements.</p>
         </div>
 
+        {loading ? (
+          <SkeletonList count={3} />
+        ) : agreements.length === 0 ? (
+          <EmptyState
+            icon="document"
+            title="No agreements yet"
+            description="Once you apply for a property and the landlord accepts, your rental agreement will appear here."
+            actionLabel="Browse Properties"
+            actionHref="/explore"
+          />
+        ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
           {/* Agreement list */}
           <div className="divide-y divide-charcoal/10 rounded-xl border border-charcoal/10 bg-white">
@@ -195,6 +217,7 @@ export default function AgreementsPage() {
             </div>
           )}
         </div>
+        )}
       </main>
     </>
   )

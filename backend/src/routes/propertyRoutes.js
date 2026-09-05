@@ -12,10 +12,22 @@ const {
     deleteProperty,
     uploadPropertyImages,
     deletePropertyImage,
-    setPrimaryImage
+    setPrimaryImage,
+    searchProperties,
+    favouriteProperty,
+    unfavouriteProperty,
+    getMyFavourite
 } = require('../controller/propertyController');
 
 router.get('/my', authMiddleware, roleMiddleware('landlord'), getMyProperties);
+
+
+router.get('/search', searchProperties);
+
+router.post('/:id/favourite', authMiddleware, roleMiddleware('tenant'), favouriteProperty);
+router.delete('/:id/favourite', authMiddleware, roleMiddleware('tenant'), unfavouriteProperty);
+router.get('/favourites', authMiddleware, roleMiddleware('tenant'), getMyFavourite);
+
 
 router.post(
     '/:id/images',

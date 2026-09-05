@@ -1,5 +1,7 @@
 const Property = require('../models/Property');
 const LandlordProfile = require('../models/LandlordProfile');
+const Favourite = require('../models/Favourite');
+
 
 const createProperty = async (req, res) => {
     try {
@@ -154,12 +156,221 @@ const deleteProperty = async (req, res) => {
     }
 };
 
+const searchProperties = async (req, res) => {
+    try {
+        console.log('🔍 Search called with query:', req.query);
+        
+        const {
+            city,
+            subCity,
+            propertyType,
+            minPrice,
+            maxPrice,
+            bedrooms,
+            bathrooms,
+            amenities,
+            furnished,
+            verifiedOnly,
+            sort,
+            page,
+            limit
+        } = req.query;
+
+        // ─── FIX: Convert and validate pagination ───
+        const pageNum = parseInt(page) || 1;      // Default to 1
+        const limitNum = parseInt(limit) || 10;   // Default to 10
+        
+        // ─── FIX: Validate numbers ───
+        if (isNaN(pageNum) || pageNum < 1) {
+            return res.status(400).json({ message: 'Invalid page number' });
+        }
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+            return res.status(400).json({ message: 'Limit must be between 1 and 100' });
+        }
+
+        // ─── BUILD QUERY ───
+        const query = { listingStatus: 'active' };
+
+        if (city) {
+            query['location.city'] = { $regex: city, $options: 'i' };
+        }
+        if (subCity) {
+            query['location.subCity'] = { $regex: subCity, $options: 'i' };
+        }
+        if (propertyType) {
+            query.propertyType = propertyType;
+        }
+        if (minPrice || maxPrice) {
+            query.rentAmount = {};
+            if (minPrice) query.rentAmount.$gte = parseInt(minPrice);
+            if (maxPrice) query.rentAmount.$lte = parseInt(maxPrice);
+        }
+        if (bedrooms) {
+            query.bedrooms = parseInt(bedrooms);
+        }
+        if (bathrooms) {
+            query.bathrooms = parseInt(bathrooms);
+        }
+        if (furnished !== undefined) {
+            query.furnished = furnished === 'true';
+        }
+        if (verifiedOnly === 'true') {
+            query.verificationStatus = 'verified';
+        }
+
+        // ─── SORTING ───
+        let sortOption = { createdAt: -1 };
+        switch (sort) {
+            case 'price_low': sortOption = { rentAmount: 1 }; break;
+            case 'price_high': sortOption = { rentAmount: -1 }; break;
+            case 'newest': sortOption = { createdAt: -1 }; break;
+            case 'oldest': sortOption = { createdAt: 1 }; break;
+            default: sortOption = { createdAt: -1 };
+        }
+
+        // ─── PAGINATION ───
+        const skip = (pageNum - 1) * limitNum;
+
+        // ─── EXECUTE ───
+        console.log('📊 Pagination:', { page: pageNum, limit: limitNum, skip });
+
+        const properties = await Property.find(query)
+            .sort(sortOption)
+            .skip(skip)
+            .limit(limitNum)
+            .lean();
+
+        const total = await Property.countDocuments(query);
+
+        res.status(200).json({
+            data: properties,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasNext: skip + limitNum < total,
+                hasPrev: pageNum > 1
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Search error:', error);
+        console.error('❌ Stack:', error.stack);
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
+    }
+};
+
+const favouriteProperty = async (req, res) => {
+
+    try{
+        const {id }= req.params;
+        const tenantId = req.user.id;
+
+        //check if the property exists
+
+        const property = await Property.findById(id);
+        if(!property){
+            return res.status(404).json({
+                message: 'Property not found'
+            })
+        }
+
+        //check if already favourited
+
+        const existingFavourite = await Favourite.findOne({
+            tenantId,
+            propertyId:id
+        });
+
+        if(existingFavourite){
+            return res.status(400).json({
+                message: 'Property already exists in favorites'
+            });
+        }
+
+        await Favourite.create({
+            tenantId,
+            propertyId:id
+        });
+
+        await Property.findByIdAndUpdate(id, {
+            $inc: {favouriteCount:1}
+        });
+
+        res.status(201).json({
+            message: 'Property added to favorites',
+            data: { propertyId: id }
+        });
+    } catch(error){
+        console.error('Favourite property error:', error);
+        res.status(500).json({message:'Server error'});
+    }
+};
+
+const mongoose = require('mongoose');
+
+const unfavouriteProperty = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tenantId = req.user.id;
+
+        // ─── VALIDATE ID ───
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid property ID format' });
+        }
+
+        // Find and delete favourite
+        const result = await Favourite.findOneAndDelete({
+            tenantId: tenantId,
+            propertyId: id
+        });
+
+        if (!result) {
+            return res.status(404).json({ message: 'Favourite not found' });
+        }
+
+        // Decrement favourite count
+        await Property.findByIdAndUpdate(id, { $inc: { favouriteCount: -1 } });
+
+        res.status(200).json({
+            message: 'Property unfavourited successfully',
+            data: { propertyId: id }
+        });
+
+    } catch (error) {
+        console.error('Unfavourite error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+const getMyFavourite = async (req, res) => {
+    try{
+        const tenantId = req.user.id;
+
+        const favourites = await Favourite.find({tenantId})
+            .populate('propertyId')
+            .sort({ createdAt: -1 });
+            
+        const properties = favourites.map(f => f.propertyId);
+
+        res.status(200).json({
+            data: properties,
+            total: properties.length
+        });
+    } catch(error){
+        console.error('Get favourite properties error:', error);    
+        res.status(500).json({message:'Server error'});
+    }
+}
+
 const uploadPropertyImages = async (req, res) => {
     try {
         console.log('📸 Upload request received');
         console.log('📁 req.files:', req.files);
         console.log('📝 req.body:', req.body);
-        console.log('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
         const { id } = req.params;
         const userId = req.user.id;
 
@@ -305,5 +516,9 @@ module.exports = {
     deleteProperty,
     uploadPropertyImages,
     deletePropertyImage,
-    setPrimaryImage
+    setPrimaryImage,
+    searchProperties,
+    favouriteProperty,
+    unfavouriteProperty,
+    getMyFavourite
 };

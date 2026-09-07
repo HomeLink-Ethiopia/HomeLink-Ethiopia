@@ -1,0 +1,34 @@
+{
+  "source": "C:\\Users\\Ad\\home-link\\HomeLink-Ethiopia\\ai\\data\\processed\\cleaned_rentals.csv",
+  "rows": 1517,
+  "target_column": "price",
+  "categorical_column": "subcity",
+  "subcity_categories": [
+    "addis ketema",
+    "akaky kaliti",
+    "arada",
+    "bole",
+    "gulele",
+    "kirkos",
+    "kolfe",
+    "lidetta",
+    "nifas silk",
+    "yeka"
+  ],
+  "feature_columns": [
+    "price",
+    "bedrooms",
+    "bathrooms",
+    "area_sqm",
+    "subcity_addis ketema",
+    "subcity_akaky kaliti",
+    "subcity_arada",
+    "subcity_bole",
+    "subcity_gulele",
+    "subcity_kirkos",
+    "subcity_kolfe",
+    "subcity_lidetta",
+    "subcity_nifas silk",
+    "subcity_yeka"
+  ]
+}

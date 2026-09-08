@@ -1,6 +1,8 @@
 const Property = require('../models/Property');
 const LandlordProfile = require('../models/LandlordProfile');
 const Favourite = require('../models/Favourite');
+const TenantPreference = require('../models/TenantPreference');
+
 
 
 const createProperty = async (req, res) => {
@@ -508,6 +510,115 @@ const setPrimaryImage = async (req, res) => {
     }
 };
 
+
+
+const savePreference = async (req ,res) =>{
+    try{
+        const tenantId= req.user.id;
+        const {
+            budget,
+            location,
+            propertyType,
+            bedrooms,
+            bathrooms,
+            amenities,
+            furnished,
+            moveInDate
+        } = req.body;
+
+        if(!budget || !location || !propertyType){
+            return res.status(400).json({
+                message: 'Budget, location and property type are required'
+            });
+        }
+
+        const preferences = await TenantPreference.findByIdAndUpdate(
+            {tenantId},
+            {
+                tenantId,
+                budget,
+                location,
+                propertyType,
+                bedrooms: bedrooms || 0,
+                bathrooms: bathrooms || 0,
+                amenities: amenities || [],
+                furnished: furnished || false,
+                moveInDate: moveInDate || null,
+                updatedAt: new Date()
+            },
+
+            {upsert: true, new: true, runValidators: true}
+        );
+
+        res.status(200).json({
+            message: 'Preference saved successfully',
+            data: preferences
+        });
+    }  catch(error){
+        console.error('save preference error:', error);
+        res.status(500).json({message:'Server error' });
+    }
+}
+
+
+const getPreference = async (req, res) => {
+    try{
+        const tenantId = req.user.id;
+        const preferences = await TenantPreference.findOne({ tenantId });
+
+        if(!preferences){
+            return res.status(404).json({
+                message: 'No preferences found. Plese set your preferences'
+            });
+        }
+
+        res.status(200).json({
+            data: preferences
+        });
+    } catch(error){
+        console.error('Get Preference error:', error);
+        res.status(500).json({
+            message:'Server error'
+        });
+    }
+}
+
+
+const updatePreference = async (req,res) =>{
+    try{
+        const tenantId = req.user.id;
+        const updates = req.body;
+
+        //find existing preference
+
+        const existing =  await TenantPreference.findOne({ tenantId});
+
+        if(!existing){
+            return res.status(404).json({
+                message:'No preference found. Please save preference first.'
+            });
+ } 
+            //update only provided preference
+
+            const updated =  await TenantPreference.findByIdAndUpdate(
+                existing._id,
+                {...updates, updatedAt: new Date()},
+                {new: true, runValidators:true}
+            );
+
+            res.status(200).json({
+                message:'Preference update successfully',
+                date: updated
+            });
+       
+    } catch(error){
+        console.error('Update Preference error: ', error);
+        res.status(500).json({
+            message:'Seerver error'
+        });
+    }
+}
+
 module.exports = {
     createProperty,
     getMyProperties,
@@ -520,5 +631,8 @@ module.exports = {
     searchProperties,
     favouriteProperty,
     unfavouriteProperty,
-    getMyFavourite
+    getMyFavourite,
+    savePreference,
+    getPreference,
+    updatePreference
 };

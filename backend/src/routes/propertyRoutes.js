@@ -16,7 +16,10 @@ const {
     searchProperties,
     favouriteProperty,
     unfavouriteProperty,
-    getMyFavourite
+    getMyFavourite,
+    savePreference,
+    getPreference,
+    updatePreference
 } = require('../controller/propertyController');
 
 router.get('/my', authMiddleware, roleMiddleware('landlord'), getMyProperties);
@@ -69,4 +72,8 @@ router.get('/:id', authMiddleware, getPropertyById);
 router.put('/:id', authMiddleware, roleMiddleware('landlord'), updateProperty);
 router.delete('/:id', authMiddleware, roleMiddleware('landlord'), deleteProperty);
 
+
+router.post('/preference', authMiddleware, roleMiddleware('tenant'), savePreference);
+router.get('/preference', authMiddleware, roleMiddleware('tenant'), getPreference);
+router.put('/preference', authMiddleware, roleMiddleware('tenant'), updatePreference);
 module.exports = router;

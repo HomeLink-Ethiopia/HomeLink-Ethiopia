@@ -1,4 +1,4 @@
-# 🏠 HOMELINK — COMPLETE API DOCUMENTATION
+# 🏠 HOMELINK — API DOCUMENTATION
 
 ## 📚 TABLE OF CONTENTS
 - [Authentication Endpoints](#authentication-endpoints)

@@ -511,10 +511,13 @@ const setPrimaryImage = async (req, res) => {
 };
 
 
+// =========================
+// SAVE PREFERENCES
+// =========================
 
-const savePreference = async (req ,res) =>{
-    try{
-        const tenantId= req.user.id;
+const savePreferences = async (req, res) => {
+    try {
+        const tenantId = req.user.id;
         const {
             budget,
             location,
@@ -526,42 +529,70 @@ const savePreference = async (req ,res) =>{
             moveInDate
         } = req.body;
 
-        if(!budget || !location || !propertyType){
+        console.log('📝 Saving preferences for tenant:', tenantId);
+
+        // Validate required fields
+        if (!budget || !location || !propertyType) {
             return res.status(400).json({
-                message: 'Budget, location and property type are required'
+                message: 'Budget, location, and property type are required'
             });
         }
 
-        const preferences = await TenantPreference.findByIdAndUpdate(
-            {tenantId},
-            {
-                tenantId,
-                budget,
-                location,
-                propertyType,
-                bedrooms: bedrooms || 0,
-                bathrooms: bathrooms || 0,
-                amenities: amenities || [],
-                furnished: furnished || false,
-                moveInDate: moveInDate || null,
-                updatedAt: new Date()
-            },
+        // ─── CHECK IF PREFERENCES EXIST ───
+        let preferences = await TenantPreference.findOne({ tenantId });
 
-            {upsert: true, new: true, runValidators: true}
-        );
+        if (preferences) {
+            // ─── UPDATE EXISTING ───
+            preferences.budget = budget;
+            preferences.location = location;
+            preferences.propertyType = propertyType;
+            preferences.bedrooms = bedrooms || 0;
+            preferences.bathrooms = bathrooms || 0;
+            preferences.amenities = amenities || [];
+            preferences.furnished = furnished || false;
+            preferences.moveInDate = moveInDate || null;
+            preferences.updatedAt = new Date();
 
-        res.status(200).json({
-            message: 'Preference saved successfully',
+            await preferences.save();
+
+            console.log('✅ Preferences updated for tenant:', tenantId);
+
+            return res.status(200).json({
+                message: 'Preferences updated successfully',
+                data: preferences
+            });
+        }
+
+        // ─── CREATE NEW ───
+        preferences = await TenantPreference.create({
+            tenantId,
+            budget,
+            location,
+            propertyType,
+            bedrooms: bedrooms || 0,
+            bathrooms: bathrooms || 0,
+            amenities: amenities || [],
+            furnished: furnished || false,
+            moveInDate: moveInDate || null
+        });
+
+        console.log('✅ Preferences created for tenant:', tenantId);
+
+        res.status(201).json({
+            message: 'Preferences saved successfully',
             data: preferences
         });
-    }  catch(error){
-        console.error('save preference error:', error);
-        res.status(500).json({message:'Server error' });
+
+    } catch (error) {
+        console.error('❌ Save preferences error:', error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: error.message 
+        });
     }
-}
+};
 
-
-const getPreference = async (req, res) => {
+const getPreferences = async (req, res) => {
     try{
         const tenantId = req.user.id;
         const preferences = await TenantPreference.findOne({ tenantId });
@@ -584,7 +615,7 @@ const getPreference = async (req, res) => {
 }
 
 
-const updatePreference = async (req,res) =>{
+const updatePreferences = async (req,res) =>{
     try{
         const tenantId = req.user.id;
         const updates = req.body;
@@ -617,7 +648,143 @@ const updatePreference = async (req,res) =>{
             message:'Seerver error'
         });
     }
+
 }
+
+//get ai recommendation
+
+const getRecommendations = async (req, res) => {
+    try {
+        const tenantId = req.user.id;
+        const { page = 1, limit = 20 } = req.query;
+
+        // 1. Get tenant preferences
+        const preferences = await TenantPreference.findOne({ tenantId });
+
+        if (!preferences) {
+            return res.status(404).json({
+                message: 'Please set your preferences first'
+            });
+        }
+
+        // 2. Get all active, verified properties
+        const properties = await Property.find({
+            listingStatus: 'active',
+            verificationStatus: 'verified'
+        }).lean();
+
+        if (properties.length === 0) {
+            return res.status(200).json({
+                data: [],
+                total: 0,
+                message: 'No properties available'
+            });
+        }
+
+        // 3. Calculate match scores
+        const scoredProperties = properties.map(property => {
+            let score = 0;
+            const reasons = [];
+
+            // BUDGET MATCH (25%) ───
+            if (preferences.budget) {
+                const price = property.rentAmount;
+                const min = preferences.budget.min || 0;
+                const max = preferences.budget.max || 100000;
+
+                if (price >= min && price <= max) {
+                    score += 0.25;
+                    reasons.push('✅ Within budget');
+                } else if (price < min) {
+                    score += 0.10;
+                    reasons.push('💰 Below budget');
+                } else if (price > max) {
+                    score += 0.05;
+                    reasons.push('⚠️ Above budget');
+                }
+            }
+
+            // LOCATION MATCH (25%) ───
+            if (preferences.location && preferences.location.city) {
+                const prefCity = preferences.location.city.toLowerCase();
+                const propCity = property.location?.city?.toLowerCase() || '';
+
+                if (propCity === prefCity) {
+                    score += 0.25;
+                    reasons.push('📍 Preferred city');
+                } else if (propCity.includes(prefCity) || prefCity.includes(propCity)) {
+                    score += 0.15;
+                    reasons.push('📍 Nearby preferred city');
+                }
+            }
+
+            //PROPERTY TYPE MATCH (15%) ───
+            if (preferences.propertyType && property.propertyType === preferences.propertyType) {
+                score += 0.15;
+                reasons.push('🏠 Preferred property type');
+            }
+
+            // BEDROOMS MATCH (15%) ───
+            if (preferences.bedrooms && property.bedrooms === preferences.bedrooms) {
+                score += 0.15;
+                reasons.push('🛏️ Matches bedroom requirement');
+            } else if (preferences.bedrooms && property.bedrooms >= preferences.bedrooms) {
+                score += 0.08;
+                reasons.push(`🛏️ ${property.bedrooms} bedrooms (needed ${preferences.bedrooms})`);
+            }
+
+            // AMENITIES MATCH (10%) ───
+            if (preferences.amenities && preferences.amenities.length > 0) {
+                const matched = property.amenities.filter(a =>
+                    preferences.amenities.includes(a)
+                ).length;
+                const ratio = matched / preferences.amenities.length;
+                score += ratio * 0.10;
+                if (ratio > 0) {
+                    reasons.push(`🔧 ${Math.round(ratio * 100)}% of amenities matched`);
+                }
+            }
+
+            // FURNISHED MATCH (BONUS 5%) ───
+            if (preferences.furnished !== undefined && property.furnished === preferences.furnished) {
+                score += 0.05;
+                reasons.push(preferences.furnished ? '🛋️ Furnished' : '🪑 Unfurnished');
+            }
+
+            // Cap score at 1.0
+            score = Math.min(score, 1);
+
+            return {
+                ...property,
+                matchScore: Math.round(score * 100),
+                matchReasons: reasons.length > 0 ? reasons : ['Available now']
+            };
+        });
+
+        // 4. Sort by score (highest first)
+        scoredProperties.sort((a, b) => b.matchScore - a.matchScore);
+
+        // 5. Pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+        const paginated = scoredProperties.slice(skip, skip + limitNum);
+
+        res.status(200).json({
+            data: paginated,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: scoredProperties.length,
+                totalPages: Math.ceil(scoredProperties.length / limitNum)
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Recommendations error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 
 module.exports = {
     createProperty,
@@ -632,7 +799,9 @@ module.exports = {
     favouriteProperty,
     unfavouriteProperty,
     getMyFavourite,
-    savePreference,
-    getPreference,
-    updatePreference
+    savePreferences,
+    getPreferences,
+    updatePreferences,
+    getRecommendations,
+
 };

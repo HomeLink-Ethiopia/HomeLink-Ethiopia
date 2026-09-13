@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const LandlordProfile = require("../models/LandlordProfile");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { registerSchema } = require("../validators/authValidators");
@@ -13,6 +14,7 @@ const registerUser = async (req, res) => {
       email,
       phone,
       password,
+      role,
     } = req.body;
 
     const { error } = registerSchema.validate(req.body);
@@ -57,16 +59,29 @@ const registerUser = async (req, res) => {
       10
     );
 
+    const assignedRole = role === "landlord" ? "landlord" : "tenant";
+
     const user = await User.create({
       firstName,
       lastName,
       email,
       phone,
       password: hashedPassword,
-      role: "tenant",
+      role: assignedRole,
       emailVerificationCode: hashedVerificationCode,
       emailVerificationExpires: verificationExpires,
     });
+
+    if (assignedRole === "landlord") {
+      try {
+        await LandlordProfile.create({
+          accountId: user._id,
+          legalName: `${firstName} ${lastName}`.trim(),
+        });
+      } catch (profileErr) {
+        console.warn("LandlordProfile initial creation warning:", profileErr.message);
+      }
+    }
 
     const emailSent = await sendVerificationEmail(
       email,
@@ -83,6 +98,7 @@ const registerUser = async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully",
+      verificationCode: process.env.NODE_ENV === "production" ? undefined : verificationCode,
       user: {
         id: user._id,
         firstName: user.firstName,

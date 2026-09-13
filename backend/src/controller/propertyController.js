@@ -3,6 +3,7 @@ const LandlordProfile = require('../models/LandlordProfile');
 const Favourite = require('../models/Favourite');
 const TenantPreference = require('../models/TenantPreference');
 const aiService = require('../services/aiService');
+const { isMockMode, mockStore } = require('../config/db');
 
 const createProperty = async (req, res) => {
     try {
@@ -12,7 +13,22 @@ const createProperty = async (req, res) => {
         console.log('📝 req.body:', req.body);
         console.log('📋 req.headers.content-type:', req.headers['content-type']);
         
-        const landlordProfile = await LandlordProfile.findOne({ accountId: userId });
+        let landlordProfile = null;
+        try {
+            landlordProfile = await LandlordProfile.findOne({ accountId: userId });
+        } catch (lpErr) {
+            // DB offline fallback
+        }
+
+        if (!landlordProfile && isMockMode()) {
+            landlordProfile = mockStore.landlordProfiles.get(userId) || {
+                _id: "mock-landlord-1",
+                accountId: userId,
+                legalName: "HomeLink Landlord",
+                verificationStatus: "verified",
+                verifiedPropertiesCount: 0
+            };
+        }
 
         if (!landlordProfile) {
             return res.status(404).json({
@@ -54,18 +70,42 @@ const createProperty = async (req, res) => {
             console.warn('⚠️ AI Fraud Detection fallback (service offline or error):', aiErr.message);
         }
 
-        const property = await Property.create({
-            landlordId: landlordProfile._id,
-            ...req.body,
-            fraudRiskScore,
-            riskLevel,
-            redFlags
-        });
+        let property = null;
+        try {
+            property = await Property.create({
+                landlordId: landlordProfile._id,
+                ...req.body,
+                fraudRiskScore,
+                riskLevel,
+                redFlags
+            });
+        } catch (createErr) {
+            if (isMockMode()) {
+                property = {
+                    _id: "mock-prop-" + Date.now(),
+                    landlordId: landlordProfile._id,
+                    ...req.body,
+                    listingStatus: 'active',
+                    verificationStatus: 'verified',
+                    fraudRiskScore,
+                    riskLevel,
+                    redFlags,
+                    createdAt: new Date()
+                };
+                mockStore.properties.unshift(property);
+            } else {
+                throw createErr;
+            }
+        }
 
-        await LandlordProfile.findByIdAndUpdate(
-            landlordProfile._id,
-            { $inc: { verifiedPropertiesCount: 1 } }
-        );
+        try {
+            await LandlordProfile.findByIdAndUpdate(
+                landlordProfile._id,
+                { $inc: { verifiedPropertiesCount: 1 } }
+            );
+        } catch (incErr) {
+            // non-fatal in mock mode
+        }
 
         res.status(201).json({
             message: 'Property created successfully',
@@ -774,22 +814,41 @@ const estimateRent = async (req, res) => {
 const getRecommendations = async (req, res) => {
     try {
         const tenantId = req.user.id;
-        const { page = 1, limit = 20 } = req.query;
+        const { page = 1, limit = 20 } = req.query || {};
+        // 1. Get tenant preferences & properties (with offline mock fallback)
+        let preferences = null;
+        let properties = [];
 
-        // 1. Get tenant preferences
-        const preferences = await TenantPreference.findOne({ tenantId });
+        try {
+            preferences = await TenantPreference.findOne({ tenantId });
+            properties = await Property.find({
+                listingStatus: 'active',
+                verificationStatus: 'verified'
+            }).lean();
+        } catch (dbErr) {
+            // DB offline fallback
+        }
+
+        if (!preferences && isMockMode()) {
+            preferences = mockStore.tenantPreferences.get(tenantId) || {
+                tenantId,
+                budget: { min: 20000, max: 80000 },
+                location: ['Bole', 'Kazanchis', 'CMC'],
+                bedrooms: 2,
+                bathrooms: 1,
+                furnished: true
+            };
+        }
+
+        if ((!properties || properties.length === 0) && isMockMode()) {
+            properties = [...mockStore.properties];
+        }
 
         if (!preferences) {
             return res.status(404).json({
                 message: 'Please set your preferences first'
             });
         }
-
-        // 2. Get all active, verified properties
-        const properties = await Property.find({
-            listingStatus: 'active',
-            verificationStatus: 'verified'
-        }).lean();
 
         if (properties.length === 0) {
             return res.status(200).json({

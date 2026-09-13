@@ -21,12 +21,12 @@ const authMiddleware = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-console.log("TOKEN EXISTS:", !!token);
-console.log("JWT SECRET EXISTS:", !!process.env.JWT_SECRET);
+    console.log("TOKEN EXISTS:", !!token);
+    console.log("JWT SECRET EXISTS:", !!process.env.JWT_SECRET);
 
-const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-console.log("DECODED USER:", decoded);
+    console.log("DECODED USER:", decoded);
 
     req.user = decoded;
 

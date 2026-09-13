@@ -96,7 +96,7 @@ export default function SignupPage() {
       setVerificationCode(data.verificationCode || '')
       setStep('otp')
     } catch (err) {
-      setError('Registration failed. Please try again.')
+      setError('Unable to reach HomeLink server (http://localhost:5000). Please ensure the backend is running.')
     } finally {
       setLoading(false)
     }

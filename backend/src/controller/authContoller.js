@@ -3,11 +3,18 @@ const User = require("../models/User");
 const LandlordProfile = require("../models/LandlordProfile");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const { registerSchema } = require("../validators/authValidators");
 const { sendVerificationEmail } = require("../utils/emailService")
 
 const registerUser = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        message: "Database is not connected. Please ensure MongoDB is running or configure MONGO_URI in backend/.env",
+      });
+    }
+
     const {
       firstName,
       lastName,
@@ -444,6 +451,12 @@ const resetPassword = async (req,res)=>{
 
 const loginUser = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        message: "Database is not connected. Please ensure MongoDB is running or configure MONGO_URI in backend/.env",
+      });
+    }
+
     const { email, password } = req.body;
 
     if (!email || !password) {

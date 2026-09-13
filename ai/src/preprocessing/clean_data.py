@@ -45,6 +45,73 @@ VALID_SUBCITIES = {
     "gullele",
     "akaki kality",
     "kolfe keraniyo",
+    "lemi kura",
+}
+
+# Neighborhood mapping dictionary mapping local Ethiopian neighborhood keywords to official subcities
+NEIGHBORHOOD_MAP: Dict[str, List[str]] = {
+    "bole": [
+        "bole", "rwanda", "atlas", "edna mall", "bulbula", "gerji", "22",
+        "hayahulet", "imperial", "medhanialem", "chichinia", "micheal",
+        "ቦሌ", "ሩዋንዳ", "አትላስ", "ቡልቡላ", "ገርጂ", "ሀያሁለት", "መድሃኒአለም",
+    ],
+    "yeka": [
+        "megenagna", "cmc", "ayat", "summit", "kotebe", "ferensay", "gurard",
+        "salite mihret", "english oil", "መገናኛ", "ሲኤምሲ", "አያት", "ሰሚት", "ኮተቤ", "ፈረንሳይ",
+    ],
+    "kirkos": [
+        "kazanchis", "meskel square", "beklobet", "gotera", "olympia", "kirkos",
+        "cherkos", "urael", "meskel flower", "flamingo", "ካዛንቺስ", "መስቀል አደባባይ",
+        "ጎተራ", "ኦሊምፒያ", "ቂርቆስ", "ኡራኤል", "ፍላሚንጎ",
+    ],
+    "nifas silk-lafto": [
+        "sarbet", "bisrate gabriel", "jomo", "lebu", "lafto", "mekanisa",
+        "old airport", "hana mariam", "ሳርቤት", "ብስራተ ገብርኤል", "ጆሞ", "ለቡ", "ላፍቶ", "መካኒሳ",
+    ],
+    "arada": [
+        "piazza", "piassa", "4 kilo", "6 kilo", "arat kilo", "siddist kilo",
+        "afincho ber", "jan meda", "ፒያሳ", "አራት ኪሎ", "ስድስት ኪሎ",
+    ],
+    "lideta": [
+        "tor hailoch", "mexico", "lideta", "sengatera", "balcha", "abenet",
+        "ልደታ", "ሜክሲኮ", "ጦር ኃይሎች",
+    ],
+    "addis ketema": [
+        "mercato", "teklehaymanot", "auto bus tera", "sebategna",
+        "መርካቶ", "ተክለሃይማኖት",
+    ],
+    "gullele": [
+        "shiro meda", "addisu kaba", "kechene", "semien hotel", "pastor",
+        "ሽሮ ሜዳ", "ጉለሌ",
+    ],
+    "kolfe keranio": [
+        "ayer tena", "bethel", "zenebework", "keraniyo", "asko", "wingate",
+        "አየር ጤና", "ኮልፌ",
+    ],
+    "akaky kaliti": [
+        "kaliti", "akaki", "kality", "tulu dimtu",
+        "ቃሊቲ", "አቃቂ",
+    ],
+    "lemi kura": [
+        "cmc tsehay", "lemi kura", "summit safari", "fyel bet",
+        "ለሚ ኩራ", "ፍየል ቤት", "ሰሚት ሳፋሪ",
+    ],
+}
+
+CANONICAL_SUBCITIES: Dict[str, str] = {
+    "bole": "Bole",
+    "yeka": "Yeka",
+    "kirkos": "Kirkos",
+    "nifas silk-lafto": "Nifas-Silk-Lafto",
+    "arada": "Arada",
+    "lideta": "Lideta",
+    "addis ketema": "Addis-Ketema",
+    "gullele": "Gullele",
+    "kolfe keranio": "Kolfe-Keranio",
+    "kolfe keraniyo": "Kolfe-Keranio",
+    "akaky kaliti": "Akaky-Kaliti",
+    "akaki kality": "Akaky-Kaliti",
+    "lemi kura": "Lemi-Kura",
 }
 
 # USD to ETB conversion rate
@@ -115,46 +182,56 @@ def extract_value_from_attrs(attrs: List[Dict], attr_name: str) -> Optional[Any]
     return None
 
 
-def normalize_subcity(subcity_str: Optional[str]) -> str:
+# Flatten and sort all neighborhood keywords by length descending so specific/compound phrases match first
+SORTED_NEIGHBORHOOD_KEYWORDS: List[Tuple[str, str]] = sorted(
+    [
+        (kw, subcity_key)
+        for subcity_key, keywords in NEIGHBORHOOD_MAP.items()
+        for kw in keywords
+    ],
+    key=lambda item: len(item[0]),
+    reverse=True,
+)
+
+
+def normalize_subcity(subcity_str: Optional[str], text_fallback: Optional[str] = None) -> str:
     """
     Normalize subcity name to canonical Addis Ababa subcity or 'Other'.
 
-    Matches:
-    - Exact match: "Bole" → "Bole"
-    - With punctuation: "Bole, Addis Ababa" → "Bole"
-    - Case variations: "bole", "BOLE" → "Bole"
-
-    Does NOT match (returns "Other"):
-    - With extra unrelated words: "Bole XYZ" → "Other"
+    1. Checks direct match against known subcities.
+    2. Scans subcity string and optional fallback text against NEIGHBORHOOD_MAP
+       using word boundaries / regex matching.
+    3. Defaults to 'Other' if no match is found.
 
     Args:
         subcity_str: Raw subcity string.
+        text_fallback: Optional additional text (e.g. title, description) to scan if subcity_str doesn't match.
 
     Returns:
         Canonical subcity name or 'Other'.
     """
-    if not subcity_str or not isinstance(subcity_str, str):
-        return "Other"
+    s_clean = ""
+    if subcity_str and isinstance(subcity_str, str):
+        s_clean = subcity_str.strip().lower().replace("_", " ").replace("-", " ")
+        s_clean = " ".join(s_clean.split())
+        s_clean_suffix_stripped = re.sub(r",.*$", "", s_clean).strip()
+        # Direct exact match check
+        for valid in VALID_SUBCITIES:
+            if s_clean_suffix_stripped == valid.replace("-", " "):
+                return CANONICAL_SUBCITIES.get(valid, valid.title().replace(" ", "-"))
 
-    # Normalize: lowercase, strip, replace underscores/hyphens with space
-    normalized = (
-        subcity_str.strip()
-        .lower()
-        .replace("_", " ")
-        .replace("-", " ")
-    )
+    # Check candidates: subcity string first, then fallback text
+    candidates = []
+    if s_clean and s_clean != "other":
+        candidates.append(s_clean)
+    if text_fallback and isinstance(text_fallback, str) and text_fallback.strip():
+        candidates.append(text_fallback.strip().lower())
 
-    # Standardize multiple spaces to single space
-    normalized = " ".join(normalized.split())
-
-    # Remove common suffixes like ", Addis Ababa" or ", Ethiopia"
-    normalized = re.sub(r",.*$", "", normalized).strip()
-
-    # Check exact matches
-    for valid in VALID_SUBCITIES:
-        valid_normalized = valid.replace("-", " ")
-        if normalized == valid_normalized:
-            return valid.title().replace(" ", "-")
+    for text in candidates:
+        for kw, subcity_key in SORTED_NEIGHBORHOOD_KEYWORDS:
+            pattern = r"(?:^|[^\w])" + re.escape(kw.lower()) + r"(?:[^\w]|$)"
+            if re.search(pattern, text):
+                return CANONICAL_SUBCITIES.get(subcity_key, subcity_key.title().replace(" ", "-"))
 
     return "Other"
 
@@ -773,8 +850,14 @@ class RentalDataCleaner:
         df = df.dropna(subset=critical_fields, how="all")
         logger.info(f"After critical fields check: {len(df)} records ({before_critical - len(df)} removed)")
 
-        # Normalize subcity
-        df["subcity"] = df["subcity"].apply(normalize_subcity)
+        # Normalize subcity using neighborhood mapping and title/description fallback
+        df["subcity"] = df.apply(
+            lambda row: normalize_subcity(
+                row.get("subcity"),
+                text_fallback=f"{row.get('title', '')} {row.get('description', '')}"
+            ),
+            axis=1
+        )
 
         # Select final output columns
         output_cols = [col for col in OUTPUT_COLUMNS if col in df.columns]
@@ -803,21 +886,37 @@ class RentalDataCleaner:
         # Ensure output directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Discover platforms
-        platform_dirs = [d for d in RAW_DATA_DIR.iterdir() if d.is_dir()]
-        logger.info(f"Found {len(platform_dirs)} platform(s)")
+        # Discover platforms if raw data directory exists
+        if RAW_DATA_DIR.exists() and any(d.is_dir() for d in RAW_DATA_DIR.iterdir()):
+            platform_dirs = [d for d in RAW_DATA_DIR.iterdir() if d.is_dir()]
+            logger.info(f"Found {len(platform_dirs)} platform(s)")
 
-        all_records = []
+            all_records = []
 
-        for platform_dir in sorted(platform_dirs):
-            platform_name = platform_dir.name
-            records = self.load_platform_data(platform_dir, platform_name)
-            all_records.extend(records)
+            for platform_dir in sorted(platform_dirs):
+                platform_name = platform_dir.name
+                records = self.load_platform_data(platform_dir, platform_name)
+                all_records.extend(records)
 
-        logger.info(f"Total records extracted: {len(all_records)}")
+            logger.info(f"Total records extracted: {len(all_records)}")
 
-        # Clean and filter
-        df_clean = self.clean_and_filter(all_records)
+            # Clean and filter
+            df_clean = self.clean_and_filter(all_records)
+        elif output_path.exists():
+            logger.info(f"Raw directory not found or empty. Applying neighborhood normalization to existing {output_path}")
+            df_existing = pd.read_csv(output_path)
+            df_existing["subcity"] = df_existing.apply(
+                lambda row: normalize_subcity(
+                    row.get("subcity"),
+                    text_fallback=f"{row.get('title', '')} {row.get('description', '')}"
+                ),
+                axis=1
+            )
+            df_clean = df_existing
+        else:
+            raise FileNotFoundError(
+                f"Neither raw data directory '{RAW_DATA_DIR}' nor output file '{output_path}' exists."
+            )
 
         # Export
         df_clean.to_csv(output_path, index=False)
@@ -843,11 +942,9 @@ def clean_raw_datasets(output_path: Optional[Path] = None) -> pd.DataFrame:
 if __name__ == "__main__":
     # Run cleaning pipeline
     df = clean_raw_datasets()
-    print(f"\n✅ Cleaning complete!")
+    print(f"\n[OK] Cleaning complete!")
     print(f"Total records: {len(df)}")
-    print(f"\nSample data:")
-    print(df.head(10))
-    print(f"\nData types:")
-    print(df.dtypes)
-    print(f"\nMissing values:")
-    print(df.isnull().sum())
+    print(f"\nSubcity distribution:")
+    print(df['subcity'].value_counts())
+    print(f"\nSubcity percentages:")
+    print(df['subcity'].value_counts(normalize=True) * 100)

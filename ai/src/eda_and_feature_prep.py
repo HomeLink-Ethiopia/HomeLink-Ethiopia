@@ -31,14 +31,24 @@ logger = logging.getLogger(__name__)
 def load_cleaned_data(input_path: Path = INPUT_PATH) -> pd.DataFrame:
     """Load and validate the cleaned rental dataset."""
     data = pd.read_csv(input_path)
+
+    # Normalize price / rent_price_etb column naming
+    if "price" not in data.columns and "rent_price_etb" in data.columns:
+        data["price"] = data["rent_price_etb"]
+    if "rent_price_etb" not in data.columns and "price" in data.columns:
+        data["rent_price_etb"] = data["price"]
+
     missing = [column for column in REQUIRED_COLUMNS if column not in data.columns]
     if missing:
         raise ValueError(f"Dataset is missing required columns: {missing}")
 
-    data = data[REQUIRED_COLUMNS].copy()
+    columns_to_keep = REQUIRED_COLUMNS + (["rent_price_etb"] if "rent_price_etb" in data.columns else [])
+    data = data[columns_to_keep].copy()
     data["subcity"] = data["subcity"].astype(str).str.strip().str.lower()
     for column in NUMERIC_COLUMNS:
         data[column] = pd.to_numeric(data[column], errors="coerce")
+    if "rent_price_etb" in data.columns:
+        data["rent_price_etb"] = pd.to_numeric(data["rent_price_etb"], errors="coerce")
 
     if data.isna().any().any():
         raise ValueError("Cleaned dataset contains missing or non-numeric values")
@@ -65,6 +75,9 @@ def prepare_features(data: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, object
         prefix_sep="_",
         dtype=int,
     )
+    if "rent_price_etb" not in encoded.columns and "price" in encoded.columns:
+        encoded["rent_price_etb"] = encoded["price"]
+
     encoded = encoded.apply(pd.to_numeric, errors="raise")
     if encoded.isna().any().any():
         raise ValueError("Encoded dataset contains missing values")

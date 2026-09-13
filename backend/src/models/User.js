@@ -81,6 +81,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    
+  verificationStatus: {
+    type:String,
+    enum:['unverified', 'pending','under_review', 'verified', 'rejected'],
+    default:'unverified'
+  }
+
   },
   {
     timestamps: true,

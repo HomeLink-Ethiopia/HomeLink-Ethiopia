@@ -1,0 +1,49 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HomeLink-Ethiopia — Docker Compose
+# ─────────────────────────────────────────────────────────────────────────────
+# Services:
+#   ai-service  — FastAPI AI microservice (rent estimation, fraud detection,
+#                 property recommendations)
+#
+# Usage:
+#   docker compose build ai-service
+#   docker compose up ai-service
+#   docker compose up -d               # detached mode
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  ai-service:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+      target: runtime
+    image: homelink-ai:latest
+    container_name: homelink_ai_service
+    ports:
+      - "8000:8000"
+    environment:
+      # Python output is unbuffered so logs are visible immediately
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # Uvicorn log level: debug | info | warning | error | critical
+      - LOG_LEVEL=info
+    volumes:
+      # Mount models directory so updated .joblib artifacts are picked up
+      # without rebuilding the image (dev convenience; remove in prod)
+      - ./ai/models:/app/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - homelink-net
+
+networks:
+  homelink-net:
+    driver: bridge

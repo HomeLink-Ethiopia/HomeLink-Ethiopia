@@ -8,5 +8,15 @@ __pycache__/
 venv/
 *.pyc
 *.pyo
+
+# Exclude dev/test files — not needed in the production image
 notebooks/
 tests/
+docs/
+analyze_data.py
+*.md
+*.json.bak
+
+# Exclude raw data — only processed + models are needed at runtime
+data/raw/
+data/scraped/

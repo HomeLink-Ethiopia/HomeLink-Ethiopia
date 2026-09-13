@@ -1,0 +1,85 @@
+{
+  "summary_stats": {
+    "price_etb": {
+      "count": 2000,
+      "mean": 40723.5,
+      "std": 15126.86215741271,
+      "median": 39500.0,
+      "min": 11500.0,
+      "max": 90500.0,
+      "skewness": 0.43070923018285073
+    },
+    "size_sqm": {
+      "count": 2000,
+      "mean": 107.51939999999999,
+      "std": 33.390111611324514,
+      "median": 106.3,
+      "min": 30.0,
+      "max": 184.5,
+      "skewness": 0.04483594624928838
+    },
+    "bedrooms": {
+      "count": 2000,
+      "mean": 2.965,
+      "std": 1.41130113209149,
+      "median": 3.0,
+      "min": 1.0,
+      "max": 5.0,
+      "skewness": 0.049193229710444215
+    },
+    "bathrooms": {
+      "count": 2000,
+      "mean": 1.8475,
+      "std": 0.8040939208306194,
+      "median": 2.0,
+      "min": 1.0,
+      "max": 3.0,
+      "skewness": 0.282599018821614
+    }
+  },
+  "target_skewness": {
+    "raw": 0.43070923018285073,
+    "log1p": -0.3082443244507078
+  },
+  "correlations": {
+    "price_etb": {
+      "price_etb": 1.0,
+      "size_sqm": 0.879926809319655,
+      "bedrooms": 0.8594958622909418,
+      "bathrooms": 0.7585200905489968
+    },
+    "size_sqm": {
+      "price_etb": 0.879926809319655,
+      "size_sqm": 1.0,
+      "bedrooms": 0.9307395821029897,
+      "bathrooms": 0.8037700034254797
+    },
+    "bedrooms": {
+      "price_etb": 0.8594958622909418,
+      "size_sqm": 0.9307395821029897,
+      "bedrooms": 1.0,
+      "bathrooms": 0.859300352331696
+    },
+    "bathrooms": {
+      "price_etb": 0.7585200905489968,
+      "size_sqm": 0.8037700034254797,
+      "bedrooms": 0.859300352331696,
+      "bathrooms": 1.0
+    }
+  },
+  "subcity_counts": {
+    "Bole": 369,
+    "Yeka": 276,
+    "Kirkos": 252,
+    "Arada": 220,
+    "Nifas Silk": 200,
+    "Kolfe": 168,
+    "Gulele": 159,
+    "Lidetta": 127,
+    "Akaky Kaliti": 124,
+    "Addis Ketema": 105
+  },
+  "furnished_counts": {
+    "False": 2000
+  }
+}

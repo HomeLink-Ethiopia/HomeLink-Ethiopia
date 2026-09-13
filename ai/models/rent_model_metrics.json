@@ -1,0 +1,40 @@
+{
+  "final_model": {
+    "model_name": "XGBRegressor (Cleaned Market Data)",
+    "cv_r2_mean": 0.9476,
+    "cv_r2_std": 0.0048,
+    "train_r2": 0.9777,
+    "test_r2": 0.9477,
+    "train_mae": 1804.36,
+    "test_mae": 2722.59,
+    "train_rmse": 2262.88,
+    "test_rmse": 3412.84,
+    "hyperparameters": {
+      "n_estimators": 200,
+      "learning_rate": 0.05,
+      "max_depth": 6,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_alpha": 0.1,
+      "reg_lambda": 1.0,
+      "random_state": 42
+    }
+  },
+  "feature_columns": [
+    "bedrooms",
+    "bathrooms",
+    "area_sqm",
+    "subcity_addis ketema",
+    "subcity_akaky kaliti",
+    "subcity_arada",
+    "subcity_bole",
+    "subcity_gulele",
+    "subcity_kirkos",
+    "subcity_kolfe",
+    "subcity_lidetta",
+    "subcity_nifas silk",
+    "subcity_yeka"
+  ],
+  "n_samples": 1517,
+  "data_source": "C:\\Users\\ad\\Desktop\\home-link\\HomeLink-Ethiopia\\ai\\data\\processed\\encoded_rentals.csv"
+}

@@ -1,0 +1,11 @@
+.env 
+
+# Python virtual environment & caches
+ai/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+node_modules
+.next/
+*.tsbuildinfo

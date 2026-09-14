@@ -7,15 +7,36 @@ const {
     getDashboardOverview,
     resolveDispute,
     verifyLandlord,
-    suspendAccount
+    suspendAccount,
+    getAllUsers,
+    getAllProperties,
+    getAllFraudReports,
+    getAllDisputes,
+    getAllVerifications
 } = require('../../controller/admin/adminController');
+
+const {
+    getKPIs,
+    getChartData
+} = require('../../controller/admin/analyticsController');
 
 // All routes require authentication and strictly 'admin' role
 router.use(authMiddleware);
 router.use(roleMiddleware('admin'));
 
-// Admin Dashboard
+// Analytics (Sprint 12 - Phase 1)
+router.get('/analytics/kpis', getKPIs);
+router.get('/analytics/charts', getChartData);
+
+// Admin Dashboard (Sprint 11)
 router.get('/dashboard', getDashboardOverview);
+
+// Management Lists (Sprint 12 - Phase 2)
+router.get('/users', getAllUsers);
+router.get('/properties', getAllProperties);
+router.get('/fraud-reports', getAllFraudReports);
+router.get('/disputes', getAllDisputes);
+router.get('/verifications', getAllVerifications);
 
 // Moderation Actions
 router.put('/disputes/:id/resolve', resolveDispute);

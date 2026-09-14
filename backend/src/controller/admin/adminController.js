@@ -140,9 +140,67 @@ const suspendAccount = async (req, res) => {
     }
 };
 
+// --- Management Lists (Phase 2) ---
+
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().select('-password').sort({ createdAt: -1 });
+        res.status(200).json({ data: users });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getAllProperties = async (req, res) => {
+    try {
+        const properties = await Property.find().populate('landlordId', 'firstName lastName email').sort({ createdAt: -1 });
+        res.status(200).json({ data: properties });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getAllFraudReports = async (req, res) => {
+    try {
+        const reports = await FraudReport.find()
+            .populate('reportedBy reportedPropertyId reportedUserId')
+            .sort({ createdAt: -1 });
+        res.status(200).json({ data: reports });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getAllDisputes = async (req, res) => {
+    try {
+        const disputes = await Dispute.find()
+            .populate('raisedBy againstUserId handledBy', 'firstName lastName email')
+            .sort({ createdAt: -1 });
+        res.status(200).json({ data: disputes });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getAllVerifications = async (req, res) => {
+    try {
+        const profiles = await LandlordProfile.find()
+            .populate('accountId', 'firstName lastName email')
+            .sort({ createdAt: -1 });
+        res.status(200).json({ data: profiles });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 module.exports = {
     getDashboardOverview,
     resolveDispute,
     verifyLandlord,
-    suspendAccount
+    suspendAccount,
+    getAllUsers,
+    getAllProperties,
+    getAllFraudReports,
+    getAllDisputes,
+    getAllVerifications
 };

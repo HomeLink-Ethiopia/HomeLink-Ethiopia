@@ -46,15 +46,6 @@ const TYPE_ICONS: Record<string, string> = {
   compound: 'Compound',
   commercial: 'Commercial',
 }
-
-const MOCK_PROPERTIES: Property[] = [
-  { _id: 'mock-p1', title: '2 Bedroom Apartment, Bole', description: 'Modern apartment near Edna Mall with great views', propertyType: 'apartment', rentAmount: 22000, bedrooms: 2, bathrooms: 1, sizeM2: 65, location: { address: 'Bole Road', subCity: 'Bole', city: 'Addis Ababa' }, amenities: ['Parking', 'WiFi', 'Generator', 'Security Guard'], listingStatus: 'active', verificationStatus: 'verified', images: [{ url: '', isPrimary: true }], createdAt: '2026-03-15T10:00:00Z' },
-  { _id: 'mock-p2', title: 'Studio Apartment, Kazanchis', description: 'Cozy studio near UN Campus, fully furnished', propertyType: 'studio', rentAmount: 14500, bedrooms: 1, bathrooms: 1, sizeM2: 35, location: { address: 'Kazanchis', subCity: 'Kazanchis', city: 'Addis Ababa' }, amenities: ['WiFi', 'Furnished', 'Water Tank'], listingStatus: 'active', verificationStatus: 'verified', images: [{ url: '', isPrimary: true }], createdAt: '2026-04-01T08:00:00Z' },
-  { _id: 'mock-p3', title: '3 Bedroom House, CMC', description: 'Spacious family home with garden', propertyType: 'house', rentAmount: 32000, bedrooms: 3, bathrooms: 2, sizeM2: 120, location: { address: 'CMC Area', subCity: 'CMC', city: 'Addis Ababa' }, amenities: ['Parking', 'Garden', 'Security Guard', 'Water Tank'], listingStatus: 'rented', verificationStatus: 'verified', images: [{ url: '', isPrimary: true }], createdAt: '2026-02-20T14:00:00Z' },
-  { _id: 'mock-p4', title: 'Villa, Old Airport', description: 'Luxury villa with pool and compound', propertyType: 'villa', rentAmount: 45000, bedrooms: 4, bathrooms: 3, sizeM2: 200, location: { address: 'Old Airport', subCity: 'Old Airport', city: 'Addis Ababa' }, amenities: ['Swimming Pool', 'Garden', 'CCTV', 'Parking', 'Gym'], listingStatus: 'reserved', verificationStatus: 'pending', images: [{ url: '', isPrimary: true }], createdAt: '2026-05-01T09:00:00Z' },
-  { _id: 'mock-p5', title: 'Room Rental, Saris', description: 'Affordable room with shared kitchen', propertyType: 'room', rentAmount: 6500, bedrooms: 1, bathrooms: 1, sizeM2: 18, location: { address: 'Saris', subCity: 'Saris', city: 'Addis Ababa' }, amenities: ['WiFi', 'Water Tank'], listingStatus: 'inactive', verificationStatus: 'verified', images: [{ url: '', isPrimary: true }], createdAt: '2026-01-10T12:00:00Z' },
-]
-
 export default function PropertiesPage() {
   const { t } = useLanguage()
   const [properties, setProperties] = useState<Property[]>([])

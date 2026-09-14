@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/landlord/TopBar'
@@ -39,15 +39,6 @@ interface Property {
   createdAt: string
 }
 
-const MOCK_PROPERTY: Property = {
-  _id: 'mock-p1', title: '2 Bedroom Apartment, Bole', description: 'Modern 2-bedroom apartment located in the heart of Bole, near Edna Mall. Features a spacious living area, fitted kitchen, and great city views. The apartment is in a secure compound with 24/7 security guard, backup generator, and covered parking. Perfect for professionals or small families looking for a comfortable home in Addis Ababa\'s most vibrant neighborhood.',
-  propertyType: 'apartment', rentAmount: 22000, depositAmount: 44000, bedrooms: 2, bathrooms: 1, sizeM2: 65, floor: 3, furnished: false,
-  amenities: ['Parking', 'WiFi', 'Generator', 'Security Guard', 'Water Tank', 'Elevator'],
-  location: { address: 'Bole Road, Near Edna Mall', subCity: 'Bole', woreda: '03', city: 'Addis Ababa' },
-  listingStatus: 'active', verificationStatus: 'verified', images: [{ url: '', isPrimary: true }],
-  availableFrom: '2026-06-01', createdAt: '2026-03-15T10:00:00Z',
-}
-
 const TYPE_ICONS: Record<string, string> = {
   apartment: 'Apt', house: 'House', villa: 'Villa', studio: 'Studio', room: 'Room', compound: 'Compound', commercial: 'Commercial',
 }
@@ -67,8 +58,8 @@ const VERIFICATION_MAP: Record<string, { label: string; color: string; bg: strin
   rejected: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
 }
 
-export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const [property, setProperty] = useState<Property | null>(null)
   const [error, setError] = useState('')
@@ -171,6 +162,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </>
+    )
   }
 
   if (!property) {

@@ -35,6 +35,9 @@ const registerSchema = Joi.object({
         .pattern(/[0-9]/)
         .pattern(/[@$!%*?&]/)
         .required(),
+
+    role: Joi.string().valid('tenant', 'landlord').default('tenant'),  // 👈 ADD THIS
+
 });
 
 module.exports ={

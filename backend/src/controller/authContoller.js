@@ -13,6 +13,7 @@ const registerUser = async (req, res) => {
       email,
       phone,
       password,
+      role,
     } = req.body;
 
     const { error } = registerSchema.validate(req.body);
@@ -63,7 +64,7 @@ const registerUser = async (req, res) => {
       email,
       phone,
       password: hashedPassword,
-      role: "tenant",
+      role: role || "tenant", 
       emailVerificationCode: hashedVerificationCode,
       emailVerificationExpires: verificationExpires,
     });

@@ -128,6 +128,13 @@ const reviewApplication = async (req, res) => {
         if (status === 'approved' || status === 'rejected') {
             updateData.decidedAt = new Date();
         }
+        
+        // As discussed, if approved, set the ticking time bomb (48 hours)
+        if (status === 'approved') {
+            const expirationDate = new Date();
+            expirationDate.setHours(expirationDate.getHours() + 48);
+            updateData.expiresAt = expirationDate;
+        }
 
         const application = await Application.findOneAndUpdate(
             { _id: id, landlordId: req.user.id },
@@ -165,9 +172,49 @@ const reviewApplication = async (req, res) => {
     }
 };
 
+const withdrawApplication = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const application = await Application.findOneAndUpdate(
+            { _id: id, tenantId: req.user.id },
+            { 
+                status: 'withdrawn',
+                $push: {
+                    history: {
+                        status: 'withdrawn',
+                        changedBy: req.user.id,
+                        note: 'Application withdrawn by tenant'
+                    }
+                }
+            },
+            { new: true }
+        ).populate('propertyId', 'title');
+
+        if (!application) {
+            return res.status(404).json({ message: "Application not found or unauthorized" });
+        }
+
+        // Notify landlord
+        await createNotification(
+            application.landlordId,
+            'application_withdrawn',
+            'Application Withdrawn',
+            `The tenant has withdrawn their application for ${application.propertyId.title}.`,
+            'Application',
+            application._id
+        );
+
+        res.status(200).json({ message: "Application withdrawn", application });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 module.exports = {
     applyForProperty,
     getTenantApplications,
     getLandlordApplications,
-    reviewApplication
+    reviewApplication,
+    withdrawApplication
 };

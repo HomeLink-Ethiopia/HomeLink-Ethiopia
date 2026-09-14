@@ -9,13 +9,15 @@ const {
     applyForProperty,
     getTenantApplications,
     getLandlordApplications,
-    reviewApplication
+    reviewApplication,
+    withdrawApplication
 } = require('../controller/applicationController');
 
 // Tenant Routes
 // Use documentUpload.array('documents', 5) to allow up to 5 files to be uploaded
 router.post('/', authMiddleware, roleMiddleware('tenant'), documentUpload.array('documents', 5), applyForProperty);
 router.get('/my-applications', authMiddleware, roleMiddleware('tenant'), getTenantApplications);
+router.put('/:id/withdraw', authMiddleware, roleMiddleware('tenant'), withdrawApplication);
 
 // Landlord Routes
 router.get('/property/:propertyId', authMiddleware, roleMiddleware('landlord'), getLandlordApplications);

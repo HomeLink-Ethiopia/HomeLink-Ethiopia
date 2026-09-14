@@ -9,7 +9,9 @@ const {
     getLandlordViewings,
     acceptViewing,
     rejectViewing,
-    rescheduleViewing
+    rescheduleViewing,
+    completeViewing,
+    markNoShow
 } = require('../controller/viewingController');
 
 // Tenant Routes
@@ -21,5 +23,7 @@ router.get('/my-properties', authMiddleware, roleMiddleware('landlord'), getLand
 router.put('/:id/accept', authMiddleware, roleMiddleware('landlord'), acceptViewing);
 router.put('/:id/reject', authMiddleware, roleMiddleware('landlord'), rejectViewing);
 router.put('/:id/reschedule', authMiddleware, roleMiddleware('landlord'), rescheduleViewing);
+router.put('/:id/complete', authMiddleware, roleMiddleware('landlord'), completeViewing);
+router.put('/:id/no-show', authMiddleware, roleMiddleware('landlord'), markNoShow);
 
 module.exports = router;

@@ -5,9 +5,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useUIStore } from '@/lib/store'
-import { submitApplication } from '@/services/api'
+import { notify } from '@/lib/notifications'
 import ModalShell from './Modal'
 import { Field, inputClass, SubmitButton, SuccessState } from './FormFields'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 const schema = z.object({
   fullName: z.string().min(2, 'Enter your full name'),
@@ -33,6 +35,8 @@ export default function ApplicationModal() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
+  const [submitError, setSubmitError] = useState('')
+
   function handleClose() {
     closeModal()
     setTimeout(() => {
@@ -42,8 +46,40 @@ export default function ApplicationModal() {
   }
 
   async function onSubmit(values: FormValues) {
-    await submitApplication({ propertyId: modalContext.propertyId ?? '', ...values })
-    setSubmitted(true)
+    setSubmitError('')
+    try {
+      const token = localStorage.getItem('hl_token')
+      const res = await fetch(`${API_URL}/api/v1/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }),
+        },
+        body: JSON.stringify({
+          propertyId: modalContext.propertyId ?? '',
+          fullName: values.fullName,
+          phone: values.phone,
+          email: values.email,
+          employmentStatus: values.employmentStatus,
+          monthlyIncomeEtb: values.monthlyIncomeEtb,
+          moveInDate: values.moveInDate,
+          message: values.note || '',
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || `Could not submit application (${res.status})`)
+      }
+      notify(
+        'application_received',
+        'Application submitted',
+        `Your application for ${modalContext.propertyTitle || 'the property'} was sent to the landlord.`,
+        '/tenant/applications'
+      )
+      setSubmitted(true)
+    } catch (err: any) {
+      setSubmitError(err.message || 'Something went wrong. Please try again.')
+    }
   }
 
   return (
@@ -91,6 +127,9 @@ export default function ApplicationModal() {
           <Field label="Note to landlord (optional)" error={errors.note}>
             <textarea rows={3} className={inputClass} placeholder="Anything the landlord should know" {...register('note')} />
           </Field>
+          {submitError && (
+            <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
+          )}
           <SubmitButton pending={isSubmitting}>Submit application</SubmitButton>
         </form>
       )}

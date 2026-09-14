@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { LANDLORD_AVATAR, LANDLORD_NAME } from '@/lib/landlord'
 import { useUIStore } from '@/lib/store'
+import NotificationBell from '@/components/shared/NotificationBell'
 
 export default function TopBar({ title, subtitle }: { title: string; subtitle?: string }) {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
@@ -27,12 +28,7 @@ export default function TopBar({ title, subtitle }: { title: string; subtitle?: 
       </div>
 
       <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-        <button type="button" className="relative text-charcoal/70 hover:text-rust" aria-label="Notifications">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
-            <path d="M5 8a5 5 0 0110 0c0 3 1 4 1 4H4s1-1 1-4zM8 15a2 2 0 004 0" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rust" />
-        </button>
+        <NotificationBell />
 
         <div className="flex items-center gap-2">
           <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full">

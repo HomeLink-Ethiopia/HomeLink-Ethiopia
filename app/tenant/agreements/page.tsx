@@ -58,6 +58,8 @@ export default function AgreementsPage() {
   const [error, setError] = useState('')
   const [agreements, setAgreements] = useState<Agreement[]>([])
   const [selected, setSelected] = useState<string | null>(null)
+  const [signing, setSigning] = useState(false)
+  const [actionError, setActionError] = useState('')
   const active = agreements.find((a) => a._id === selected)
 
   const fetchAgreements = useCallback(async () => {
@@ -86,6 +88,42 @@ export default function AgreementsPage() {
   }, [])
 
   useEffect(() => { fetchAgreements() }, [fetchAgreements])
+
+  // Sprint 8 workflow: tenant confirms the agreement after the landlord
+  async function confirmAgreement(id: string) {
+    setSigning(true)
+    setActionError('')
+    try {
+      const token = localStorage.getItem('hl_token')
+      const res = await fetch(`${API_URL}/api/v1/agreements/${id}/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }),
+        },
+      })
+      if (res.ok) {
+        setAgreements((prev) =>
+          prev.map((a) =>
+            a._id === id
+              ? {
+                  ...a,
+                  tenantSigned: true,
+                  status: a.landlordSigned ? 'active' : a.status,
+                }
+              : a
+          )
+        )
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setActionError(data.message || `Could not confirm the agreement (${res.status}).`)
+      }
+    } catch {
+      setActionError('Cannot reach the server. Please try again.')
+    } finally {
+      setSigning(false)
+    }
+  }
 
   const propTitle = (a: Agreement) =>
     (typeof a.propertyId === 'object' ? a.propertyId?.title : null) || 'Rental Agreement'
@@ -217,6 +255,30 @@ export default function AgreementsPage() {
               </div>
 
               {/* Terms */}
+              {actionError && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm text-red-700">{actionError}</p>
+                </div>
+              )}
+
+              {/* Tenant confirm action — Sprint 8 workflow */}
+              {active.status === 'pending_tenant' && !active.tenantSigned && (
+                <div className="mt-5 rounded-lg border border-rust/30 bg-rust-tint/30 p-4">
+                  <p className="text-sm font-medium text-charcoal">The landlord has confirmed this agreement.</p>
+                  <p className="mt-0.5 text-xs text-charcoal/60">
+                    Review the terms above, then confirm to activate the lease.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => confirmAgreement(active._id)}
+                    disabled={signing}
+                    className="mt-3 rounded-lg bg-rust px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rust-dark disabled:opacity-50"
+                  >
+                    {signing ? 'Confirming…' : 'Confirm & Sign Agreement'}
+                  </button>
+                </div>
+              )}
+
               {active.terms && active.terms.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-display text-sm font-semibold text-charcoal">Terms &amp; Conditions</h3>

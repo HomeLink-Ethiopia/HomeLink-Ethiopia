@@ -5,9 +5,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useUIStore } from '@/lib/store'
-import { submitViewingRequest } from '@/services/api'
+import { notify } from '@/lib/notifications'
 import ModalShell from './Modal'
 import { Field, inputClass, SubmitButton, SuccessState } from './FormFields'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 const TIME_SLOTS = ['09:00', '10:30', '12:00', '14:00', '15:30', '17:00']
 
@@ -35,6 +37,7 @@ export default function ViewingModal() {
 
   const selectedTime = watch('preferredTime')
   const minDate = new Date().toISOString().slice(0, 10)
+  const [submitError, setSubmitError] = useState('')
 
   function handleClose() {
     closeModal()
@@ -45,8 +48,36 @@ export default function ViewingModal() {
   }
 
   async function onSubmit(values: FormValues) {
-    await submitViewingRequest({ propertyId: modalContext.propertyId ?? '', ...values })
+    setSubmitError('')
+    try {
+    const token = localStorage.getItem('hl_token')
+    const res = await fetch(`${API_URL}/api/v1/viewings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }),
+      },
+      body: JSON.stringify({
+        propertyId: modalContext.propertyId ?? '',
+        preferredDate: values.preferredDate,
+        preferredTime: values.preferredTime,
+        message: values.note || '',
+      }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.message || `Could not submit viewing request (${res.status})`)
+    }
+    notify(
+      'viewing_requested',
+      'Viewing requested',
+      `Your viewing request for ${modalContext.propertyTitle || 'the property'} was sent to the landlord.`,
+      '/tenant/applications'
+    )
     setSubmitted(true)
+    } catch (err: any) {
+      setSubmitError(err.message || 'Something went wrong. Please try again.')
+    }
   }
 
   return (
@@ -91,6 +122,9 @@ export default function ViewingModal() {
             <textarea rows={3} className={inputClass} placeholder="Anything to flag before the visit" {...register('note')} />
           </Field>
 
+          {submitError && (
+            <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
+          )}
           <SubmitButton pending={isSubmitting}>Request viewing</SubmitButton>
         </form>
       )}

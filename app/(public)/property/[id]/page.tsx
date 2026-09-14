@@ -6,6 +6,8 @@ import dynamic from 'next/dynamic'
 import { fetchProperty, mapApiProperty, type Property } from '@/services/api'
 import { useFavoritesStore } from '@/lib/store'
 import ReviewsSection from '@/components/property/ReviewsSection'
+import ActionCard from '@/components/property/ActionCard'
+import ReportButton from '@/components/property/ReportButton'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -325,40 +327,31 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
           {/* Sidebar */}
           <div className="space-y-5 lg:sticky lg:top-24 lg:h-fit">
+            <ActionCard
+              propertyId={id}
+              propertyTitle={property.title}
+              priceEtb={property.priceEtb}
+              depositEtb={deposit}
+            />
+
             <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-sm">
-              <div className="text-center">
-                <p className="font-display text-4xl font-bold text-rust">
-                  ETB {property.priceEtb.toLocaleString()}
-                </p>
-                <p className="mt-1 text-sm text-charcoal/60">/ {property.rentFrequency || 'month'}</p>
-                <p className="mt-2 text-sm text-charcoal/70">
-                  Deposit: <span className="font-semibold">ETB {deposit.toLocaleString()}</span>
-                </p>
-                {property.availableFrom && (
-                  <p className="mt-1 text-xs text-charcoal/50">
-                    Available from {new Date(property.availableFrom).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-6 space-y-3">
-                <Link
-                  href={`/explore?city=${encodeURIComponent(property.location?.subCity || '')}`}
-                  className="block w-full rounded-lg border-2 border-charcoal/15 px-5 py-3 text-center text-sm font-bold text-charcoal transition-all hover:border-rust hover:text-rust"
-                >
-                  Compare with similar homes
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={() => toggleFavorite(id)}
-                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-3 text-sm font-semibold transition-all ${saved ? 'border-rust bg-rust/5 text-rust' : 'border-charcoal/15 text-charcoal hover:border-rust hover:text-rust'}`}
-                >
-                  <svg viewBox="0 0 20 20" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className="h-4 w-4">
-                    <path d="M10 17.3s-6.5-3.9-8.5-8.1C.4 6.2 2 3.3 5 3c1.8-.2 3.6.7 5 2.4C11.4 3.7 13.2 2.8 15 3c3 .3 4.6 3.2 3.5 6.2-2 4.2-8.5 8.1-8.5 8.1z" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {saved ? 'Saved to favorites' : 'Save property'}
-                </button>
+              <p className="text-center text-sm text-charcoal/70">
+                Available from{' '}
+                <span className="font-semibold text-charcoal">
+                  {property.availableFrom
+                    ? new Date(property.availableFrom).toLocaleDateString()
+                    : 'now'}
+                </span>
+              </p>
+              <Link
+                href={`/explore?city=${encodeURIComponent(property.location?.subCity || '')}`}
+                className="mt-4 block w-full rounded-lg border-2 border-charcoal/15 px-5 py-3 text-center text-sm font-bold text-charcoal transition-all hover:border-rust hover:text-rust"
+              >
+                Compare with similar homes
+              </Link>
+              <div className="mt-4 flex items-center justify-center gap-1 text-xs text-charcoal/50">
+                <span>See something wrong?</span>
+                <ReportButton propertyId={id} propertyTitle={property.title} />
               </div>
             </div>
           </div>

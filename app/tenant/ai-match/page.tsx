@@ -78,7 +78,7 @@ export default function AIMatchPage() {
   if (step === 'preferences') {
     return (
       <>
-        <TopBar title="AI Property Match" subtitle="Tell us what you're looking for" />
+        <TopBar tenantName="Tenant" />
         <main className="flex-1 px-6 py-8 sm:px-8">
           <div className="max-w-2xl mx-auto">
             {/* Header */}
@@ -269,7 +269,7 @@ export default function AIMatchPage() {
   // Results Page
   return (
     <>
-      <TopBar title="AI Property Match" subtitle={`${results.length} properties matched your preferences`} />
+      <TopBar tenantName="Tenant" />
       <main className="flex-1 px-6 py-8 sm:px-8">
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}

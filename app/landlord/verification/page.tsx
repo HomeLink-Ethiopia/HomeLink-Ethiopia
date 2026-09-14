@@ -221,7 +221,7 @@ export default function LandlordVerificationPage() {
 
   const authHeaders = (): Record<string, string> => {
     const token = localStorage.getItem('hl_token')
-    return token ? { Authorization: `Bearer ${token}` } : {}
+    return token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }
   }
 
   /* ── fetch everything from the real API ── */

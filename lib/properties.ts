@@ -76,12 +76,16 @@ function coordsFor(neighborhood: Neighborhood, seed: number): [number, number] {
  * spot a cluster at a glance instead of reading every price bubble.
  * Kept to the existing token palette plus one added "gold" tier.
  */
-export const NEIGHBORHOOD_COLOR: Record<Neighborhood, string> = {
+export const NEIGHBORHOOD_COLOR: Partial<Record<Neighborhood, string>> = {
   Bole: '#B8451F', // rust
   Kazanchis: '#3D6B4F', // verified green
   CMC: '#B8862B', // gold
   Saris: '#2A2521', // charcoal
   Yeka: '#3D6B4F', // verified green
+}
+
+export function neighborhoodColor(n: Neighborhood): string {
+  return NEIGHBORHOOD_COLOR[n] || '#B8451F'
 }
 
 const RAW: Omit<Property, 'lat' | 'lng' | 'image'>[] = [

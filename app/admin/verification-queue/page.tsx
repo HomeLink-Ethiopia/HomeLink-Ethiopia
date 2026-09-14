@@ -289,7 +289,7 @@ export default function VerificationQueuePage() {
     setBackendError('')
     try {
       const token = localStorage.getItem('hl_token')
-      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const headers = token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }
 
       const res = await fetch(`${API_URL}/api/v1/verification/pending`, { headers })
       if (res.ok) {

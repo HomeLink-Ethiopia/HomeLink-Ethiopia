@@ -29,7 +29,7 @@ interface PropertyMapProps {
  * doesn't resolve Leaflet's internal image paths.
  */
 function priceBubbleIcon(property: Property, isHighlighted: boolean) {
-  const color = NEIGHBORHOOD_COLOR[property.neighborhood]
+  const color = NEIGHBORHOOD_COLOR[property.neighborhood] || '#B8451F'
   const scale = isHighlighted ? 1.15 : 1
   const html = `
     <div style="

@@ -11,3 +11,4 @@ backend/.env
 *.tmp
 homelink-backend-temp/
 backend/
+tsconfig.tsbuildinfo

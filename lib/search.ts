@@ -15,6 +15,7 @@ export interface SearchFilters {
   maxPrice?: number
   beds?: number // 1, 2, 3, 4+
   baths?: number
+  amenities?: string[] // e.g. ['WiFi', 'Parking'] — property must have ALL listed
   furnished?: boolean
   verifiedOnly?: boolean
   city?: string
@@ -116,6 +117,26 @@ export function parseSearchParams(searchParams: URLSearchParams): SearchFilters 
   const beds = searchParams.get('beds')
   if (beds) {
     filters.beds = parseInt(beds, 10)
+  }
+
+  const baths = searchParams.get('baths')
+  if (baths) {
+    filters.baths = parseInt(baths, 10)
+  }
+
+  const furnished = searchParams.get('furnished')
+  if (furnished === 'true') {
+    filters.furnished = true
+  }
+
+  const verifiedOnly = searchParams.get('verifiedOnly')
+  if (verifiedOnly === 'true') {
+    filters.verifiedOnly = true
+  }
+
+  const amenities = searchParams.get('amenities')
+  if (amenities) {
+    filters.amenities = amenities.split(',').filter(Boolean)
   }
 
   return filters

@@ -25,9 +25,12 @@ export interface PaginatedResult {
 export function mapApiProperty(raw: any): Property {
   const loc = raw.location || {}
   const subCity = loc.subCity || loc.city || 'Unknown'
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+  const abs = (u: string) => (u.startsWith('http') ? u : `${API_BASE}${u}`)
   const imgs: string[] = (raw.images || [])
     .map((img: any) => (typeof img === 'string' ? img : img?.url))
     .filter(Boolean)
+    .map(abs)
   const reviews = raw.ratingSummary || raw.reviews || null
   return {
     id: raw._id,
@@ -41,7 +44,7 @@ export function mapApiProperty(raw: any): Property {
     reviewCount: reviews?.count ?? raw.reviewCount ?? 0,
     verified: raw.verificationStatus === 'verified',
     verificationStatus: raw.verificationStatus,
-    image: imgs[0] || '/images/placeholder.jpg',
+    image: imgs[0] || '/images/placeholder.svg',
     furnished: !!raw.furnished,
     availability: raw.listingStatus,
     lat: raw.location?.coordinates?.coordinates?.[1] || 9.0084,
@@ -65,6 +68,7 @@ function buildPropertyQuery(filters: PropertyFilters & { page?: number; limit?: 
   if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
   if (filters.beds) params.append('beds', String(filters.beds))
   if ((filters as any).baths) params.append('baths', String((filters as any).baths))
+  if ((filters as any).amenities && (filters as any).amenities.length > 0) params.append('amenities', (filters as any).amenities.join(','))
   if ((filters as any).propertyType && (filters as any).propertyType !== 'any') params.append('propertyType', (filters as any).propertyType)
   if ((filters as any).furnished === true) params.append('furnished', 'true')
   if (filters.verifiedOnly) params.append('verifiedOnly', 'true')

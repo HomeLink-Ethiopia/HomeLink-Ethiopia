@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#F5F1EC"/>
+  <g fill="none" stroke="#C9C0B6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 160 L200 60 L340 160"/>
+    <path d="M100 140 L100 250 L300 250 L300 140"/>
+    <path d="M170 250 L170 190 L230 190 L230 250"/>
+  </g>
+  <text x="200" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#9A9188">No photo yet</text>
+</svg>

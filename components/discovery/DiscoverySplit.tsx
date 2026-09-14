@@ -164,6 +164,8 @@ function RangeFilter({
 
 /* ─── MORE FILTERS PANEL ──────────────────────────────────────────────── */
 
+const AMENITY_OPTIONS = ['WiFi', 'Parking', 'Water 24/7', 'Security', 'Balcony', 'Generator', 'Elevator', 'Furnished']
+
 function MoreFiltersPanel({
   open,
   onClose,
@@ -171,6 +173,8 @@ function MoreFiltersPanel({
   setFurnished,
   verifiedOnly,
   setVerifiedOnly,
+  amenities,
+  setAmenities,
 }: {
   open: boolean
   onClose: () => void
@@ -178,6 +182,8 @@ function MoreFiltersPanel({
   setFurnished: (v: boolean) => void
   verifiedOnly: boolean
   setVerifiedOnly: (v: boolean) => void
+  amenities: string[]
+  setAmenities: (v: string[]) => void
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -226,6 +232,31 @@ function MoreFiltersPanel({
             <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${verifiedOnly ? 'translate-x-5' : ''}`} />
           </button>
         </label>
+
+        {/* Amenities */}
+        <div>
+          <p className="mb-2 text-sm text-charcoal/70">Amenities</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {AMENITY_OPTIONS.map((a) => {
+              const checked = amenities.includes(a)
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setAmenities(checked ? amenities.filter((x) => x !== a) : [...amenities, a])}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    checked ? 'border-rust bg-rust/5 text-rust' : 'border-charcoal/15 text-charcoal/60 hover:border-rust'
+                  }`}
+                >
+                  <svg viewBox="0 0 20 20" fill={checked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className="h-3.5 w-3.5 shrink-0">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  {a}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       <button
@@ -352,12 +383,14 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const [propertyType, setPropertyType] = useState('')
   const [priceRange, setPriceRange] = useState('')
   const [bedsRange, setBedsRange] = useState('')
+  const [bathsRange, setBathsRange] = useState('')
+  const [amenitiesFilter, setAmenitiesFilter] = useState<string[]>([])
   const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [furnished, setFurnished] = useState(false)
   const [verifiedOnly, setVerifiedOnly] = useState(false)
   const [sortBy, setSortBy] = useState('best')
 
-  const activeFilterCount = [neighborhood, propertyType, priceRange, bedsRange, furnished, verifiedOnly].filter(Boolean).length
+  const activeFilterCount = [neighborhood, propertyType, priceRange, bedsRange, bathsRange, furnished, verifiedOnly].filter(Boolean).length + amenitiesFilter.length
 
   const priceBounds = useMemo(() => {
     if (!priceRange) return { min: undefined, max: undefined }
@@ -372,12 +405,15 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
     setSearchError('')
     const timer = setTimeout(() => {
       searchProperties({
+        query: (filters as any)?.query,
         city: (filters as any)?.city,
         neighborhood: (neighborhood || undefined) as any,
         propertyType: (propertyType || undefined) as any,
         minPrice: priceBounds.min,
         maxPrice: priceBounds.max,
         beds: bedsRange ? parseInt(bedsRange, 10) : undefined,
+        baths: bathsRange ? parseInt(bathsRange, 10) : undefined,
+        amenities: amenitiesFilter.length > 0 ? amenitiesFilter : undefined,
         furnished: furnished || undefined,
         verifiedOnly: verifiedOnly || undefined,
         sort: sortBy,
@@ -401,7 +437,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
         })
     }, 300)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [filters, neighborhood, propertyType, priceBounds, bedsRange, furnished, verifiedOnly, sortBy, currentPage])
+  }, [filters, neighborhood, propertyType, priceBounds, bedsRange, bathsRange, amenitiesFilter, furnished, verifiedOnly, sortBy, currentPage])
 
   // AI matches for the top 3 (computed from the current result page)
   const aiMatches = useMemo(() => {
@@ -439,6 +475,8 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
     setPropertyType('')
     setPriceRange('')
     setBedsRange('')
+    setBathsRange('')
+    setAmenitiesFilter([])
     setFurnished(false)
     setVerifiedOnly(false)
     setCurrentPage(1)
@@ -531,13 +569,27 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                 ]}
               />
 
+              {/* Bathrooms Filter */}
+              <RangeFilter
+                label="Bathrooms"
+                value={bathsRange}
+                active={!!bathsRange}
+                onChange={(v) => { setBathsRange(v); setCurrentPage(1) }}
+                ranges={[
+                  { label: 'Any', value: '' },
+                  { label: '1 Bathroom', value: '1' },
+                  { label: '2 Bathrooms', value: '2' },
+                  { label: '3+ Bathrooms', value: '3' },
+                ]}
+              />
+
               {/* More Filters */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowMoreFilters(!showMoreFilters)}
                   className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                    (furnished || verifiedOnly)
+                    (furnished || verifiedOnly || amenitiesFilter.length > 0)
                       ? 'border-rust bg-rust/5 text-rust'
                       : 'border-charcoal/15 bg-white text-charcoal/60 hover:border-rust'
                   }`}
@@ -546,9 +598,9 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                     <path d="M3 4h14M6 8h8M9 12h2" strokeLinecap="round" />
                   </svg>
                   <span>More Filters</span>
-                  {(furnished || verifiedOnly) && (
+                  {(furnished || verifiedOnly || amenitiesFilter.length > 0) && (
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rust text-[10px] font-bold text-white">
-                      {(furnished ? 1 : 0) + (verifiedOnly ? 1 : 0)}
+                      {(furnished ? 1 : 0) + (verifiedOnly ? 1 : 0) + amenitiesFilter.length}
                     </span>
                   )}
                 </button>
@@ -559,6 +611,8 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                   setFurnished={setFurnished}
                   verifiedOnly={verifiedOnly}
                   setVerifiedOnly={setVerifiedOnly}
+                  amenities={amenitiesFilter}
+                  setAmenities={setAmenitiesFilter}
                 />
               </div>
 
@@ -786,14 +840,16 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                         </span>
                       </div>
 
-                      {/* Rating */}
-                      <div className="mt-2 flex items-center gap-1">
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-rust">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="text-xs font-semibold text-charcoal">{property.rating}</span>
-                        <span className="text-xs text-charcoal/50">({property.reviewCount})</span>
-                      </div>
+                      {/* Rating (hidden until the property has reviews) */}
+                      {property.reviewCount > 0 && (
+                        <div className="mt-2 flex items-center gap-1">
+                          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-rust">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="text-xs font-semibold text-charcoal">{property.rating.toFixed(1)}</span>
+                          <span className="text-xs text-charcoal/50">({property.reviewCount})</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Link>

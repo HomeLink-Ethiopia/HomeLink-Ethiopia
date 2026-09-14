@@ -138,7 +138,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
   const galleryImages = (property.images && property.images.length > 0)
     ? property.images
-    : [property.image || '/images/placeholder.jpg']
+    : [property.image || '/images/placeholder.svg']
   const gallery = galleryImages.map((u) => (u.startsWith('http') ? u : `${API_URL}${u}`))
 
   const city = property.city || property.location?.city || 'Addis Ababa'

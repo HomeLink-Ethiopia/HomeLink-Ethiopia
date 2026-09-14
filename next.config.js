@@ -3,6 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: 'picsum.photos' },
       { protocol: 'https', hostname: 'i.pravatar.cc' },
       { protocol: 'https', hostname: 'images.unsplash.com' },

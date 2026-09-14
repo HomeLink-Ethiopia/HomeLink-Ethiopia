@@ -22,7 +22,7 @@ interface SavedProperty {
 
 function SavedCard({ p, onRemove }: { p: SavedProperty; onRemove: (id: string) => void }) {
   const img = p.images?.[0]?.url
-  const src = img ? (img.startsWith('http') ? img : `${API_URL}${img}`) : '/images/placeholder.jpg'
+  const src = img ? (img.startsWith('http') ? img : `${API_URL}${img}`) : '/images/placeholder.svg'
   const available = p.listingStatus === 'active'
 
   return (

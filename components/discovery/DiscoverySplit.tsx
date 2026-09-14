@@ -5,8 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { NEIGHBORHOOD_COLOR, PROPERTIES, formatEtb, type Property } from '@/lib/properties'
-import { fetchProperties } from '@/services/api'
-import { SearchFilters, filterProperties } from '@/lib/search'
+import { searchProperties } from '@/services/api'
+import { SearchFilters } from '@/lib/search'
 import { useLanguage } from '@/lib/language-context'
 
 const PropertyMap = dynamic(() => import('./PropertyMap'), {
@@ -334,25 +334,20 @@ function matchProperty(p: Property, prefs: { budget: number; beds: number; neigh
 
 export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const { t } = useLanguage()
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [view, setView] = useState<'list' | 'split' | 'map'>('split')
-  const [currentPage, setCurrentPage] = useState(1)
   const [showAiPanel, setShowAiPanel] = useState(false)
-  const itemsPerPage = 5
+  const itemsPerPage = 6
 
-  // Real API properties
+  // ─── Server-side search (Sprint 5): filters, sort and pagination run on
+  // the backend so we never load the whole collection into the browser.
   const [apiProperties, setApiProperties] = useState<Property[]>([])
-  useEffect(() => {
-    let cancelled = false
-    fetchProperties({}).then((props) => {
-      if (!cancelled && props.length > 0) setApiProperties(props)
-    }).catch(() => {})
-    return () => { cancelled = true }
-  }, [])
+  const [totalResults, setTotalResults] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [isSearching, setIsSearching] = useState(true)
+  const [searchError, setSearchError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [view, setView] = useState<'list' | 'split' | 'map'>('split')
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
-  const PROPERTIES_DATA = apiProperties.length > 0 ? apiProperties : PROPERTIES
-
-  // Filter state
   const [neighborhood, setNeighborhood] = useState('')
   const [propertyType, setPropertyType] = useState('')
   const [priceRange, setPriceRange] = useState('')
@@ -364,58 +359,60 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
 
   const activeFilterCount = [neighborhood, propertyType, priceRange, bedsRange, furnished, verifiedOnly].filter(Boolean).length
 
-  // Build filters object
-  const dynamicFilters: SearchFilters = useMemo(() => {
-    const f: SearchFilters = { ...filters }
-    if (neighborhood) f.neighborhood = neighborhood as any
-    if (propertyType) f.propertyType = propertyType as any
-    if (priceRange) {
-      const [min, max] = priceRange.split('-').map(Number)
-      if (min) f.minPrice = min
-      if (max) f.maxPrice = max
-    }
-    if (bedsRange) {
-      f.beds = parseInt(bedsRange, 10)
-    }
-    return f
-  }, [filters, neighborhood, propertyType, priceRange, bedsRange])
+  const priceBounds = useMemo(() => {
+    if (!priceRange) return { min: undefined, max: undefined }
+    const [min, max] = priceRange.split('-').map(Number)
+    return { min: min || undefined, max: max && max < 999999 ? max : undefined }
+  }, [priceRange])
 
-  // Apply filters
-  const allFiltered = useMemo(() => {
-    let result = filterProperties(PROPERTIES_DATA, dynamicFilters)
-    if (verifiedOnly) result = result.filter((p) => p.verified)
-    if (furnished) result = result.filter((p) => p.furnished)
-
-    // Sort
-    if (sortBy === 'price-asc') {
-      result = [...result].sort((a, b) => a.priceEtb - b.priceEtb)
-    } else if (sortBy === 'price-desc') {
-      result = [...result].sort((a, b) => b.priceEtb - a.priceEtb)
-    } else if (sortBy === 'newest') {
-      result = [...result].sort((a, b) => {
-        const dateA = (a as any).createdAt ? new Date((a as any).createdAt).getTime() : 0
-        const dateB = (b as any).createdAt ? new Date((b as any).createdAt).getTime() : 0
-        return dateB - dateA
+  // Debounced server query — re-runs whenever any filter/sort/page changes.
+  useEffect(() => {
+    let cancelled = false
+    setIsSearching(true)
+    setSearchError('')
+    const timer = setTimeout(() => {
+      searchProperties({
+        city: (filters as any)?.city,
+        neighborhood: (neighborhood || undefined) as any,
+        propertyType: (propertyType || undefined) as any,
+        minPrice: priceBounds.min,
+        maxPrice: priceBounds.max,
+        beds: bedsRange ? parseInt(bedsRange, 10) : undefined,
+        furnished: furnished || undefined,
+        verifiedOnly: verifiedOnly || undefined,
+        sort: sortBy,
+        page: currentPage,
+        limit: itemsPerPage,
       })
-    }
+        .then((result) => {
+          if (cancelled) return
+          setApiProperties(result.properties)
+          setTotalResults(result.total)
+          setTotalPages(Math.max(1, result.pages))
+          setIsSearching(false)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setApiProperties([])
+          setTotalResults(0)
+          setTotalPages(1)
+          setSearchError('Could not reach the server. Please check your connection and try again.')
+          setIsSearching(false)
+        })
+    }, 300)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [filters, neighborhood, propertyType, priceBounds, bedsRange, furnished, verifiedOnly, sortBy, currentPage])
 
-    return result
-  }, [dynamicFilters, verifiedOnly, furnished, sortBy])
-
-  // AI matches for the top 3
+  // AI matches for the top 3 (computed from the current result page)
   const aiMatches = useMemo(() => {
     const prefs = { budget: 20000, beds: 2, neighborhoods: ['Bole', 'Kazanchis'] }
-    return PROPERTIES_DATA
+    return apiProperties
       .map((p) => matchProperty(p, prefs))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
-  }, [])
+  }, [apiProperties])
 
-  // Pagination
-  const totalPages = Math.ceil(allFiltered.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentProperties = allFiltered.slice(startIndex, endIndex)
+  const currentProperties = apiProperties
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = []
@@ -649,7 +646,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
       <div className="border-b border-charcoal/10 bg-cream/50 px-4 py-2 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm text-charcoal/70">
-            <span className="font-semibold text-charcoal">{allFiltered.length} verified homes</span> found · Showing {allFiltered.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, allFiltered.length)}
+            <span className="font-semibold text-charcoal">{totalResults} verified homes</span> found · Showing {totalResults > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, totalResults)}
           </p>
         </div>
       </div>
@@ -690,8 +687,32 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                 </div>
               )}
 
+              {/* Loading state */}
+              {isSearching && (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex animate-pulse gap-4 rounded-xl border border-charcoal/10 bg-white p-3">
+                      <div className="h-32 w-40 shrink-0 rounded-lg bg-charcoal/5" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 w-3/4 rounded bg-charcoal/5" />
+                        <div className="h-3 w-1/2 rounded bg-charcoal/5" />
+                        <div className="h-3 w-1/3 rounded bg-charcoal/5" />
+                        <div className="h-5 w-1/4 rounded bg-charcoal/5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Server error */}
+              {!isSearching && searchError && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+                  <p className="text-sm font-medium text-amber-800">{searchError}</p>
+                </div>
+              )}
+
               {/* No results */}
-              {currentProperties.length === 0 && (
+              {!isSearching && !searchError && currentProperties.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="h-16 w-16 rounded-full bg-sand flex items-center justify-center mb-4">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8 text-charcoal/30">

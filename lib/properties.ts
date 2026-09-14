@@ -27,7 +27,9 @@ export interface Property {
   images?: string[] // Additional interior photos
   landlordId?: string
   furnished?: boolean
-  status?: 'active' | 'inactive' // For filtering from search results
+  status?: 'active' | 'inactive' | 'draft' | 'rented' | 'suspended' // Availability (from API listingStatus)
+  availability?: string // same as status — explicit Sprint 5 field name
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected' | 'suspended'
   createdAt?: string
   updatedAt?: string
 }

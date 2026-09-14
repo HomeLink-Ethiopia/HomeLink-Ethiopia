@@ -1,53 +1,34 @@
-import { PROPERTIES, type Property } from '@/lib/properties'
+import type { Property } from '@/lib/properties'
 export type { Property }
-import { post, get, patch } from '@/lib/http-client'
+import { post, get, patch, del } from '@/lib/http-client'
+import type { PropertyFilters } from '@/lib/search'
+export type { PropertyFilters }
 
 /**
- * API Layer with Mock & Real API Support
+ * API Layer — REAL backend only.
  *
- * Every function here has the exact shape (params in, typed Promise out)
- * that a real fetch() call against HomeLink's REST API would have.
- *
- * To switch between mock and real API:
- * 1. Set NEXT_PUBLIC_MOCK_MODE=false in .env.local to use real API
- * 2. Set NEXT_PUBLIC_MOCK_MODE=true to use mock/local data
- *
- * The HTTP client (lib/http-client.ts) handles:
- * - Error handling and retry logic
- * - Request/response logging
- * - Timeout management
- * - Automatic JSON serialization
+ * Every function calls HomeLink's Express API. There is no mock fallback:
+ * if the backend is down, callers get an error and show an honest empty/
+ * error state. (Sprint 5: search/filter/sort/pagination are executed
+ * server-side against MongoDB via /api/public/properties.)
  */
 
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE !== 'false'
-
-function delay<T>(value: T, ms = 500): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms))
-}
-
-let nextId = 1000
-function generateId(prefix: string) {
-  nextId += 1
-  return `${prefix}-${nextId}`
-}
-
-// ---------------------------------------------------------------------------
-// FR-03 — Property Listing & Discovery
-// ---------------------------------------------------------------------------
-
-export interface PropertyFilters {
-  neighborhood?: string
-  city?: string
-  minPrice?: number
-  maxPrice?: number
-  beds?: number
-  verifiedOnly?: boolean
+export interface PaginatedResult {
+  properties: Property[]
+  page: number
+  limit: number
+  total: number
+  pages: number
 }
 
 // Map API response (MongoDB) to frontend Property type
-function mapApiProperty(raw: any): Property {
+export function mapApiProperty(raw: any): Property {
   const loc = raw.location || {}
-  const subCity = loc.subCity || 'Unknown'
+  const subCity = loc.subCity || loc.city || 'Unknown'
+  const imgs: string[] = (raw.images || [])
+    .map((img: any) => (typeof img === 'string' ? img : img?.url))
+    .filter(Boolean)
+  const reviews = raw.ratingSummary || raw.reviews || null
   return {
     id: raw._id,
     title: raw.title,
@@ -56,84 +37,110 @@ function mapApiProperty(raw: any): Property {
     beds: raw.bedrooms || 0,
     baths: raw.bathrooms || 0,
     sizeSqm: raw.sizeM2 || 0,
-    rating: raw.fraudRiskScore ? 5.0 - raw.fraudRiskScore * 2 : 4.5,
-    reviewCount: Math.floor(Math.random() * 30) + 5,
+    rating: reviews?.average ?? raw.averageRating ?? 0,
+    reviewCount: reviews?.count ?? raw.reviewCount ?? 0,
     verified: raw.verificationStatus === 'verified',
-    image: raw.images?.[0]?.url || '/images/placeholder.jpg',
+    verificationStatus: raw.verificationStatus,
+    image: imgs[0] || '/images/placeholder.jpg',
+    furnished: !!raw.furnished,
+    availability: raw.listingStatus,
     lat: raw.location?.coordinates?.coordinates?.[1] || 9.0084,
     lng: raw.location?.coordinates?.coordinates?.[0] || 38.7913,
     description: raw.description,
     propertyType: raw.propertyType,
-    amenities: raw.amenities,
-    images: raw.images?.map((img: any) => img.url) || [],
+    amenities: raw.amenities || [],
+    images: imgs,
     landlordId: raw.landlordId,
-    status: raw.listingStatus,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   }
 }
 
-async function fetchPropertiesFromAPI(filters: PropertyFilters = {}): Promise<Property[]> {
-  try {
-    const params = new URLSearchParams()
-    if (filters.neighborhood) params.append('neighborhood', filters.neighborhood)
-    if (filters.city) params.append('city', filters.city)
-    if (filters.minPrice) params.append('minPrice', String(filters.minPrice))
-    if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
-    if (filters.beds) params.append('beds', String(filters.beds))
-    if (filters.verifiedOnly) params.append('verifiedOnly', 'true')
+function buildPropertyQuery(filters: PropertyFilters & { page?: number; limit?: number; sort?: string }): string {
+  const params = new URLSearchParams()
+  if (filters.query) params.append('q', filters.query)
+  if (filters.neighborhood) params.append('neighborhood', filters.neighborhood)
+  if (filters.city) params.append('city', filters.city)
+  if (filters.minPrice) params.append('minPrice', String(filters.minPrice))
+  if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
+  if (filters.beds) params.append('beds', String(filters.beds))
+  if ((filters as any).baths) params.append('baths', String((filters as any).baths))
+  if ((filters as any).propertyType && (filters as any).propertyType !== 'any') params.append('propertyType', (filters as any).propertyType)
+  if ((filters as any).furnished === true) params.append('furnished', 'true')
+  if (filters.verifiedOnly) params.append('verifiedOnly', 'true')
+  const sortMap: Record<string, string> = {
+    'price-asc': 'price_low',
+    'price-desc': 'price_high',
+    'newest': 'newest',
+    'best': 'popular',
+  }
+  const apiSort = (filters as any).sort ? sortMap[(filters as any).sort] || 'newest' : undefined
+  if (apiSort) params.append('sort', apiSort)
+  if (filters.page) params.append('page', String(filters.page))
+  if (filters.limit) params.append('limit', String(filters.limit))
+  return params.toString()
+}
 
-    const query = params.toString()
-    const endpoint = query ? `/api/public/properties?${query}` : '/api/public/properties'
-
-    const response = await get<{ data: any[] }>(endpoint)
-    const rawProperties = response.data.data || []
-    return rawProperties.map(mapApiProperty)
-  } catch (error) {
-    console.error('Failed to fetch properties from API:', error)
-    return fetchPropertiesMock(filters)
+/**
+ * Server-side search: filters, sorting AND pagination all run on the
+ * backend so we never load thousands of properties at once.
+ */
+export async function searchProperties(
+  filters: PropertyFilters & { page?: number; limit?: number; sort?: string } = {}
+): Promise<PaginatedResult> {
+  const query = buildPropertyQuery(filters)
+  const endpoint = query ? `/api/public/properties?${query}` : '/api/public/properties'
+  const response = await get<{ data: any[]; pagination?: { page: number; limit: number; total: number; pages: number } }>(endpoint)
+  const pagination = response.data.pagination || {
+    page: (filters as any).page || 1,
+    limit: (filters as any).limit || 20,
+    total: (response.data.data || []).length,
+    pages: 1,
+  }
+  return {
+    properties: (response.data.data || []).map(mapApiProperty),
+    page: pagination.page,
+    limit: pagination.limit,
+    total: pagination.total,
+    pages: pagination.pages,
   }
 }
 
-function fetchPropertiesMock(filters: PropertyFilters = {}): Property[] {
-  let results = PROPERTIES
-  if (filters.neighborhood) results = results.filter((p) => p.neighborhood === filters.neighborhood)
-  if (filters.city) results = results.filter((p) => p.neighborhood === filters.city)
-  if (filters.minPrice) results = results.filter((p) => p.priceEtb >= filters.minPrice!)
-  if (filters.maxPrice) results = results.filter((p) => p.priceEtb <= filters.maxPrice!)
-  if (filters.beds) results = results.filter((p) => p.beds >= filters.beds!)
-  if (filters.verifiedOnly) results = results.filter((p) => p.verified)
-  return results
-}
-
+/** Back-compat helper: fetch one page of properties without pagination metadata. */
 export async function fetchProperties(filters: PropertyFilters = {}): Promise<Property[]> {
-  if (!MOCK_MODE) {
-    return fetchPropertiesFromAPI(filters)
-  }
-  return delay(fetchPropertiesMock(filters), 400)
+  const result = await searchProperties({ ...filters, limit: (filters as any).limit ?? 100 })
+  return result.properties
 }
 
-async function fetchPropertyFromAPI(id: string): Promise<Property | null> {
+/** Fetch a single property with full detail by id. Throws if not found. */
+export async function fetchProperty(id: string): Promise<Property | null> {
   try {
     const response = await get<{ data: any }>(`/api/public/properties/${id}`)
     const raw = response.data.data
     return raw ? mapApiProperty(raw) : null
   } catch (error) {
-    console.error(`Failed to fetch property ${id} from API:`, error)
-    return PROPERTIES.find((p) => p.id === id) ?? null
+    console.error(`Failed to fetch property ${id}:`, error)
+    return null
   }
-}
-
-export async function fetchProperty(id: string): Promise<Property | null> {
-  if (!MOCK_MODE) {
-    return fetchPropertyFromAPI(id)
-  }
-  return delay(PROPERTIES.find((p) => p.id === id) ?? null, 300)
 }
 
 // ---------------------------------------------------------------------------
 // FR-02 — Landlord & Property Verification
 // ---------------------------------------------------------------------------
+
+// Legacy mock helpers — kept only because a few Sprint 7+ submission
+// functions below still reference them in their (unreachable) mock branches.
+let nextId = 1000
+function generateId(prefix: string) {
+  nextId += 1
+  return `${prefix}-${nextId}`
+}
+
+function delay<T>(value: T, ms = 500): Promise<T> {
+  return new Promise((resolve) => setTimeout(() => resolve(value), ms))
+}
+
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE !== 'false'
 
 export interface PropertyListingInput {
   title: string

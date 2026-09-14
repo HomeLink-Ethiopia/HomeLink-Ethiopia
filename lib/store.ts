@@ -44,22 +44,64 @@ export const useUIStore = create<UIState>((set) => ({
 // Favorites / Saved Properties
 // ---------------------------------------------------------------------------
 
+const FAVORITES_KEY = 'hl_favorites'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+function loadFavorites(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY)
+    if (raw) return new Set(JSON.parse(raw) as string[])
+  } catch { /* ignore */ }
+  return new Set()
+}
+
+function persistFavorites(favs: Set<string>) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favs]))
+  } catch { /* ignore */ }
+}
+
+/** Best-effort sync with the backend so favouriteCount stays accurate. */
+function syncFavoriteWithBackend(propertyId: string, saved: boolean) {
+  if (typeof window === 'undefined') return
+  const token = localStorage.getItem('hl_token')
+  if (!token) return
+  fetch(`${API_URL}/api/v1/favorites/${propertyId}`, {
+    method: saved ? 'POST' : 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => { /* endpoint may not exist yet — local persistence still works */ })
+}
+
 interface FavoritesState {
   favorites: Set<string>
+  hydrated: boolean
   toggleFavorite: (propertyId: string) => void
   isFavorite: (propertyId: string) => boolean
+  hydrate: () => void
 }
 
 export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   favorites: new Set<string>(),
+  hydrated: false,
+  hydrate: () => {
+    if (get().hydrated) return
+    set({ favorites: loadFavorites(), hydrated: true })
+  },
   toggleFavorite: (propertyId) =>
     set((s) => {
       const next = new Set(s.favorites)
+      let saved: boolean
       if (next.has(propertyId)) {
         next.delete(propertyId)
+        saved = false
       } else {
         next.add(propertyId)
+        saved = true
       }
+      persistFavorites(next)
+      syncFavoriteWithBackend(propertyId, saved)
       return { favorites: next }
     }),
   isFavorite: (propertyId) => get().favorites.has(propertyId),

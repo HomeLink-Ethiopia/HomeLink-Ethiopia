@@ -4,6 +4,9 @@
 
 import { Property, Neighborhood } from './properties'
 
+/** Filters accepted by the backend public property search API. */
+export interface PropertyFilters extends SearchFilters {}
+
 export interface SearchFilters {
   query?: string // Free text search (title, location, description)
   neighborhood?: Neighborhood // Bole, Kazanchis, CMC, etc.
@@ -11,6 +14,10 @@ export interface SearchFilters {
   minPrice?: number
   maxPrice?: number
   beds?: number // 1, 2, 3, 4+
+  baths?: number
+  furnished?: boolean
+  verifiedOnly?: boolean
+  city?: string
 }
 
 /**

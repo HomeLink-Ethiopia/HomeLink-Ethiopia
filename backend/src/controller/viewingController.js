@@ -179,11 +179,67 @@ const rescheduleViewing = async (req, res) => {
     }
 };
 
+const completeViewing = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { tenantInterested, tenantFeedback } = req.body;
+        
+        const viewing = await Viewing.findOneAndUpdate(
+            { _id: id, landlordId: req.user.id, status: 'confirmed' },
+            { 
+                status: 'completed',
+                outcome: { tenantInterested, tenantFeedback }
+            },
+            { new: true }
+        ).populate('propertyId', 'title');
+
+        if (!viewing) {
+            return res.status(404).json({ message: "Confirmed viewing not found or unauthorized" });
+        }
+
+        res.status(200).json({ message: "Viewing marked as completed", viewing });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const markNoShow = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const viewing = await Viewing.findOneAndUpdate(
+            { _id: id, landlordId: req.user.id, status: 'confirmed' },
+            { status: 'no_show' },
+            { new: true }
+        ).populate('propertyId', 'title');
+
+        if (!viewing) {
+            return res.status(404).json({ message: "Confirmed viewing not found or unauthorized" });
+        }
+
+        // Notify tenant they were marked as a no-show
+        await createNotification(
+            viewing.tenantId, 
+            'viewing_no_show', 
+            'Viewing Missed',
+            `You were marked as a no-show for the viewing at ${viewing.propertyId.title}.`,
+            'Viewing',
+            viewing._id
+        );
+
+        res.status(200).json({ message: "Viewing marked as no-show", viewing });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 module.exports = {
     requestViewing,
     getTenantViewings,
     getLandlordViewings,
     acceptViewing,
     rejectViewing,
-    rescheduleViewing
+    rescheduleViewing,
+    completeViewing,
+    markNoShow
 };

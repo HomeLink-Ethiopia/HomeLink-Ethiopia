@@ -8,7 +8,6 @@ const documentUpload = require('../middleware/documentUpload');
 const {
     createTicket,
     updateTicketStatus,
-    updateTicketStatus,
     addUpdateNote,
     getTickets,
     getTicketById,

@@ -17,6 +17,8 @@ const communicationRoutes = require('./src/routes/communicationRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const fraudRoutes = require('./src/routes/fraudRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const disputeRoutes = require('./src/routes/disputeRoutes');
+const adminRoutes = require('./src/routes/admin/adminRoutes');
 
 const app = express();
 
@@ -44,6 +46,8 @@ app.use('/api/v1/communication', communicationRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/fraud-reports', fraudRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/disputes', disputeRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // ─── ROOT ENDPOINT ───
 app.get('/', (req, res) => {

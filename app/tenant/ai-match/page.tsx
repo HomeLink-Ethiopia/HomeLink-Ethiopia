@@ -5,7 +5,7 @@ import Link from 'next/link'
 import TopBar from '@/components/tenant/TopBar'
 import { useLanguage } from '@/lib/language-context'
 import { fetchProperties, type Property } from '@/services/api'
-import { matchAllProperties, matchProperty, getGradeColor, type TenantPreferences, type MatchResult } from '@/lib/ai-matching'
+import { matchAllProperties, getGradeColor, savePreferences, loadPreferences, type TenantPreferences, type MatchResult } from '@/lib/ai-matching'
 
 const NEIGHBORHOODS = [
   // Addis Ababa
@@ -16,6 +16,16 @@ const NEIGHBORHOODS = [
 const AMENITIES = ['Parking', 'WiFi', 'Generator', 'Security Guard', 'CCTV', 'Water Tank', 'Elevator', 'Furnished', 'Air Conditioning', 'Balcony', 'Garden', 'Gym']
 const PROPERTY_TYPES = ['any', 'apartment', 'house', 'studio', 'villa', 'room']
 
+const DEFAULT_PREFERENCES: TenantPreferences = {
+  budget: { min: 5000, max: 25000 },
+  location: [],
+  propertyType: 'any',
+  bedrooms: 2,
+  amenities: [],
+  moveInDate: new Date().toISOString().split('T')[0],
+  furnished: false,
+}
+
 export default function AIMatchPage() {
   const { t } = useLanguage()
   const [step, setStep] = useState<'preferences' | 'results'>('preferences')
@@ -24,16 +34,15 @@ export default function AIMatchPage() {
   const [results, setResults] = useState<(MatchResult & { property: Property })[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  // Preferences state
-  const [preferences, setPreferences] = useState<TenantPreferences>({
-    budget: { min: 5000, max: 25000 },
-    location: [],
-    propertyType: 'any',
-    bedrooms: 2,
-    amenities: [],
-    moveInDate: new Date().toISOString().split('T')[0],
-    furnished: false,
-  })
+  // Preferences state — restored from the tenant's last saved preferences
+  const [preferences, setPreferences] = useState<TenantPreferences>(DEFAULT_PREFERENCES)
+  const [prefsLoaded, setPrefsLoaded] = useState(false)
+
+  useEffect(() => {
+    const saved = loadPreferences()
+    if (saved) setPreferences({ ...DEFAULT_PREFERENCES, ...saved })
+    setPrefsLoaded(true)
+  }, [])
 
   useEffect(() => {
     fetchProperties({}).then(props => setAllProperties(props)).catch(() => {})
@@ -41,19 +50,19 @@ export default function AIMatchPage() {
 
   const handleFindMatches = () => {
     setLoading(true)
-    setTimeout(() => {
-      const matched = matchAllProperties(allProperties, preferences)
-      const resultsWithProperties = matched
-        .map(m => {
-          const property = allProperties.find(p => (p.id || (p as any)._id) === m.propertyId)
-          if (!property) return null
-          return { ...m, property }
-        })
-        .filter(Boolean) as (MatchResult & { property: Property })[]
-      setResults(resultsWithProperties)
-      setStep('results')
-      setLoading(false)
-    }, 800) // Simulate AI processing
+    savePreferences(preferences)
+    // Real scoring over the live property set — no artificial delay.
+    const matched = matchAllProperties(allProperties, preferences)
+    const resultsWithProperties = matched
+      .map(m => {
+        const property = allProperties.find(p => (p.id || (p as any)._id) === m.propertyId)
+        if (!property) return null
+        return { ...m, property }
+      })
+      .filter(Boolean) as (MatchResult & { property: Property })[]
+    setResults(resultsWithProperties)
+    setStep('results')
+    setLoading(false)
   }
 
   const toggleLocation = (loc: string) => {
@@ -426,7 +435,7 @@ export default function AIMatchPage() {
                         {/* Action Buttons */}
                         <div className="flex gap-2 mt-4 pt-4 border-t border-sand">
                           <Link
-                            href={`/explore/${result.propertyId}`}
+                            href={`/property/${result.propertyId}`}
                             className="bg-rust text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-rust-dark transition-colors"
                           >
                             View Details

@@ -7,6 +7,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { NEIGHBORHOOD_COLOR, PROPERTIES, formatEtb, type Property } from '@/lib/properties'
 import { searchProperties } from '@/services/api'
 import { SearchFilters } from '@/lib/search'
+import { matchProperty as matchPropertyFull, loadPreferences, type TenantPreferences } from '@/lib/ai-matching'
 import { useLanguage } from '@/lib/language-context'
 
 const PropertyMap = dynamic(() => import('./PropertyMap'), {
@@ -338,27 +339,13 @@ function AiMatchCard({ property, score, reasons }: { property: Property; score: 
 
 /* ─── AI MATCHING ALGORITHM ─────────────────────────────────────────── */
 
-function matchProperty(p: Property, prefs: { budget: number; beds: number; neighborhoods: string[] }) {
-  let score = 0
-  const reasons: string[] = []
-
-  if (p.priceEtb <= prefs.budget) { score += 30; reasons.push('Within your budget') }
-  else if (p.priceEtb <= prefs.budget * 1.15) { score += 20; reasons.push('Slightly above budget') }
-  else { score += 8 }
-
-  if (p.beds === prefs.beds) { score += 20; reasons.push(`${p.beds} bedrooms — perfect match`) }
-  else if (Math.abs(p.beds - prefs.beds) === 1) { score += 12; reasons.push(`${p.beds} bedrooms — close`) }
-  else { score += 4 }
-
-  if (prefs.neighborhoods.includes(p.neighborhood)) { score += 25; reasons.push(`In ${p.neighborhood}`) }
-  else { score += 8 }
-
-  if (p.verified) { score += 15; reasons.push('Verified listing') } else { score += 5 }
-
-  if (p.rating >= 4.5) { score += 10; reasons.push(`Highly rated (${p.rating}★)`) }
-  else if (p.rating >= 4.0) { score += 7 } else { score += 3 }
-
-  return { property: p, score: Math.min(score, 99), reasons: reasons.slice(0, 3) }
+function matchProperty(p: Property, prefs: TenantPreferences) {
+  const result = matchPropertyFull(p, prefs)
+  return {
+    property: p,
+    score: result.score,
+    reasons: result.reasons.filter(r => r.icon !== 'close').slice(0, 3).map(r => r.text),
+  }
 }
 
 /* ─── MAIN COMPONENT ────────────────────────────────────────────────── */
@@ -439,9 +426,19 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
     return () => { cancelled = true; clearTimeout(timer) }
   }, [filters, neighborhood, propertyType, priceBounds, bedsRange, bathsRange, amenitiesFilter, furnished, verifiedOnly, sortBy, currentPage])
 
-  // AI matches for the top 3 (computed from the current result page)
+  // AI matches for the top 3 (computed from the current result page using
+  // the tenant's saved preferences when they exist)
   const aiMatches = useMemo(() => {
-    const prefs = { budget: 20000, beds: 2, neighborhoods: ['Bole', 'Kazanchis'] }
+    const saved = loadPreferences()
+    const prefs: TenantPreferences = saved || {
+      budget: { min: 5000, max: 25000 },
+      location: [],
+      propertyType: 'any',
+      bedrooms: 2,
+      amenities: [],
+      moveInDate: new Date().toISOString().split('T')[0],
+      furnished: false,
+    }
     return apiProperties
       .map((p) => matchProperty(p, prefs))
       .sort((a, b) => b.score - a.score)

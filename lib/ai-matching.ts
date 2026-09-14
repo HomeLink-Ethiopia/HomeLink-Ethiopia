@@ -8,7 +8,31 @@
  * - Bedrooms: 15%
  * - Amenities: 10%
  * - Availability: 10%
+ *
+ * Every score is explainable: each factor produces a human-readable reason
+ * shown to the tenant ("Within your budget", "Not in preferred area").
  */
+
+const PREFS_STORAGE_KEY = 'hl_ai_preferences'
+
+/** Persist tenant preferences so they survive page reloads (localStorage;
+ * the same shape is ready to be saved to the user's profile in MongoDB). */
+export function savePreferences(preferences: TenantPreferences): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(preferences))
+  } catch { /* ignore */ }
+}
+
+/** Load previously saved preferences, or null if the tenant has none yet. */
+export function loadPreferences(): TenantPreferences | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(PREFS_STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as TenantPreferences
+  } catch { /* ignore */ }
+  return null
+}
 
 export interface TenantPreferences {
   budget: { min: number; max: number }

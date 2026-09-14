@@ -62,6 +62,8 @@ const propertySchema = new Schema({
         default: "unverified"
     },
     fraudRiskScore: { type: Number, min: 0, max: 1 },
+    riskLevel: { type: String, enum: ["low", "medium", "high"], default: "low" },
+    redFlags: [String],
     recommendationFeatureVector: [Number],
     rentEstimateCache: {
         minETB: Number,

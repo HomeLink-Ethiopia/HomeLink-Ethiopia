@@ -1,5 +1,5 @@
 {
-  "source": "C:\\Users\\Ad\\home-link\\HomeLink-Ethiopia\\ai\\data\\processed\\cleaned_rentals.csv",
+  "source": "C:\\Users\\ad\\Desktop\\home-link\\HomeLink-Ethiopia\\ai\\data\\processed\\cleaned_rentals.csv",
   "rows": 1517,
   "target_column": "price",
   "categorical_column": "subcity",
@@ -20,6 +20,7 @@
     "bedrooms",
     "bathrooms",
     "area_sqm",
+    "rent_price_etb",
     "subcity_addis ketema",
     "subcity_akaky kaliti",
     "subcity_arada",

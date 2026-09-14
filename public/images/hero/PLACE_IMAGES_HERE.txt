@@ -1,0 +1,16 @@
+ADD 4 HERO IMAGES HERE:
+
+Required images (1920x1080px, JPG or WebP):
+- hero-1.jpg  → Bole area property (modern, upscale)
+- hero-2.jpg  → Kazanchis area property (urban, central)
+- hero-3.jpg  → CMC area property (residential, family-friendly)
+- hero-4.jpg  → General Ethiopian property showcase
+
+Tips:
+✓ Use high-quality exterior shots of buildings
+✓ Show variety: apartments, houses, villas
+✓ Capture Addis Ababa architecture style
+✓ Include context (streets, greenery, surrounding area)
+✓ Good lighting (preferably golden hour)
+
+These images will appear in the home page hero slideshow.

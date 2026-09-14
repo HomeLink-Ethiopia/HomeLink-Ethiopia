@@ -104,9 +104,18 @@ class TestSubcityCleaning:
         assert normalize_subcity("nifas silk-lafto") == "Nifas-Silk-Lafto"
 
     def test_normalize_unrecognized_subcity(self):
-        """Unrecognized subcities with extra words should map to 'Other'."""
+        """Unrecognized locations should map to 'Other'."""
         assert normalize_subcity("Unknown City") == "Other"
-        assert normalize_subcity("Bole XYZ") == "Other"  # Extra word XYZ
+        assert normalize_subcity("Random Nonexistent Place") == "Other"
+
+    def test_normalize_neighborhood_mapping(self):
+        """Neighborhoods should map to canonical subcities."""
+        assert normalize_subcity("Kazanchis") == "Kirkos"
+        assert normalize_subcity("Bole Atlas") == "Bole"
+        assert normalize_subcity("CMC") == "Yeka"
+        assert normalize_subcity("Sarbet") == "Nifas-Silk-Lafto"
+        assert normalize_subcity("Piazza") == "Arada"
+        assert normalize_subcity("Tor Hailoch") == "Lideta"
 
     def test_normalize_none(self):
         """None input should return 'Other'."""

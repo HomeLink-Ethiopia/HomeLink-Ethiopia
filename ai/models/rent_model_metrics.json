@@ -1,42 +1,40 @@
 {
-  "baseline_model": {
-    "model_name": "LinearRegression Baseline",
-    "cross_val_r2_mean": 0.979462495254803,
-    "cross_val_r2_std": 0.0012719346725446105,
-    "train_r2": 0.9799323055444421,
-    "test_r2": 0.9801564443962477,
-    "train_mae": 1619.3241978889769,
-    "test_mae": 1586.0599701854842,
-    "train_rmse": 2151.4635373455426,
-    "test_rmse": 2093.589313976327
-  },
   "final_model": {
-    "model_name": "RandomForestRegressor (Tuned)",
-    "cross_val_r2_mean": 0.9871152619863703,
-    "cross_val_r2_std": 0.0027239560256968392,
-    "train_r2": 0.998611504988161,
-    "test_r2": 0.9888410628133316,
-    "train_mae": 402.1068551587302,
-    "test_mae": 1148.6122222222223,
-    "train_rmse": 565.9230878040769,
-    "test_rmse": 1569.9765412311299
+    "model_name": "XGBRegressor (Cleaned Market Data)",
+    "cv_r2_mean": 0.9476,
+    "cv_r2_std": 0.0048,
+    "train_r2": 0.9777,
+    "test_r2": 0.9477,
+    "train_mae": 1804.36,
+    "test_mae": 2722.59,
+    "train_rmse": 2262.88,
+    "test_rmse": 3412.84,
+    "hyperparameters": {
+      "n_estimators": 200,
+      "learning_rate": 0.05,
+      "max_depth": 6,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_alpha": 0.1,
+      "reg_lambda": 1.0,
+      "random_state": 42
+    }
   },
-  "best_hyperparameters": {
-    "model__max_depth": 20,
-    "model__min_samples_leaf": 1,
-    "model__min_samples_split": 2,
-    "model__n_estimators": 300
-  },
-  "improvement_pct": 0.8860441072173342,
-  "median_baseline": {
-    "model_name": "MedianBaseline (subcity+bedrooms)",
-    "test_mae": 3977.5,
-    "test_rmse": 5015.008723820927,
-    "test_r2": 0.8861377157261505
-  },
-  "baseline_vs_ml_improvement": {
-    "mae_reduction_pct": 71.12,
-    "rmse_reduction_pct": 68.69,
-    "r2_delta": 0.1027
-  }
+  "feature_columns": [
+    "bedrooms",
+    "bathrooms",
+    "area_sqm",
+    "subcity_addis ketema",
+    "subcity_akaky kaliti",
+    "subcity_arada",
+    "subcity_bole",
+    "subcity_gulele",
+    "subcity_kirkos",
+    "subcity_kolfe",
+    "subcity_lidetta",
+    "subcity_nifas silk",
+    "subcity_yeka"
+  ],
+  "n_samples": 1517,
+  "data_source": "C:\\Users\\ad\\Desktop\\home-link\\HomeLink-Ethiopia\\ai\\data\\processed\\encoded_rentals.csv"
 }

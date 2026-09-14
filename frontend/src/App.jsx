@@ -1,122 +1,108 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import './index.css';
+import RentEstimator      from './components/RentEstimator';
+import FraudDetector      from './components/FraudDetector';
+import PropertyRecommender from './components/PropertyRecommender';
+import { checkAiHealth }  from './services/aiApi';
 
-function App() {
-  const [count, setCount] = useState(0)
+const TABS = [
+  { id: 'rent',    label: '🏠 Rent Estimator'   },
+  { id: 'fraud',   label: '🛡️ Fraud Detector'   },
+  { id: 'recommend', label: '🏘️ Recommender'    },
+];
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('rent');
+  const [aiOnline, setAiOnline]   = useState(null); // null = checking
+
+  useEffect(() => {
+    checkAiHealth().then(ok => setAiOnline(ok));
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* ── Header ─────────────────────────────────────────── */}
+      <header style={{
+        padding: '18px 32px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'var(--surface)',
+        position: 'sticky', top: 0, zIndex: 100,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, boxShadow: '0 0 16px var(--primary-glow)',
+          }}>🏡</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-heading)', lineHeight: 1.2 }}>
+              HomeLink Ethiopia
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>AI Intelligence Dashboard</div>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: aiOnline === null ? 'var(--warning)' : aiOnline ? 'var(--success)' : 'var(--danger)',
+            boxShadow: aiOnline ? '0 0 8px var(--success)' : 'none',
+          }} />
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {aiOnline === null ? 'Checking AI...' : aiOnline ? 'AI Online' : 'AI Offline'}
+          </span>
+        </div>
+      </header>
+
+      {/* ── AI offline warning ──────────────────────────────── */}
+      {aiOnline === false && (
+        <div className="alert alert-error" style={{ margin: '16px 32px', borderRadius: 'var(--radius)' }}>
+          ⚠️ AI microservice is unreachable. Start it with:{' '}
+          <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: 4 }}>
+            cd ai &amp;&amp; uvicorn main:app --reload
+          </code>
+        </div>
+      )}
+
+      {/* ── Main content ────────────────────────────────────── */}
+      <main style={{ maxWidth: 760, margin: '32px auto', padding: '0 20px 60px' }}>
+
+        {/* Hero */}
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <h1 style={{
+            fontSize: 40, fontWeight: 800, letterSpacing: -1.5,
+            color: 'var(--text-heading)', marginBottom: 10, lineHeight: 1.1,
+            background: 'linear-gradient(135deg, #f0f2ff 0%, var(--primary-light) 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
+            AI-Powered Housing Intelligence
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>
+            XGBoost rent predictions · IsolationForest fraud scoring · Weighted recommendations
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        {/* Tabs */}
+        <div className="tabs">
+          {TABS.map(t => (
+            <button key={t.id} className={`tab-btn${activeTab === t.id ? ' active' : ''}`}
+              onClick={() => setActiveTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {/* Active panel */}
+        {activeTab === 'rent'      && <RentEstimator />}
+        {activeTab === 'fraud'     && <FraudDetector />}
+        {activeTab === 'recommend' && <PropertyRecommender />}
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', marginTop: 48, fontSize: 12, color: 'var(--text-muted)' }}>
+          HomeLink Ethiopia · AI Engine v1.1.0 · XGBoost · IsolationForest · Scikit-learn
+        </div>
+      </main>
+    </div>
+  );
 }
-
-export default App

@@ -12,29 +12,43 @@ const {
     deleteProperty,
     uploadPropertyImages,
     deletePropertyImage,
-    setPrimaryImage
+    setPrimaryImage,
+    searchProperties,
+    favouriteProperty,
+    unfavouriteProperty,
+    getMyFavourite,        
+    savePreferences,        
+    getPreferences,         
+    updatePreferences,
+    getRecommendations,
+    estimateRent
 } = require('../controller/propertyController');
 
+console.log('✅ Property routes loaded');
+
+// ─── AI PROPERTY ESTIMATION ───
+router.post('/estimate-rent', estimateRent);
+
+router.get('/search', searchProperties);
+
 router.get('/my', authMiddleware, roleMiddleware('landlord'), getMyProperties);
+
+router.post('/preferences', authMiddleware, roleMiddleware('tenant'), savePreferences);
+router.get('/preferences', authMiddleware, roleMiddleware('tenant'), getPreferences);
+router.put('/preferences', authMiddleware, roleMiddleware('tenant'), updatePreferences);
+
+
+//recommendation
+router.get('/recommendations', authMiddleware, roleMiddleware('tenant'), getRecommendations);
+router.get('/favourites', authMiddleware, roleMiddleware('tenant'), getMyFavourite);
+
+
 
 router.post(
     '/:id/images',
     authMiddleware,
     roleMiddleware('landlord'),
-    (req, res, next) => {
-        console.log('--- UPLOAD DEBUG ---');
-        console.log('Content-Type:', req.headers['content-type']);
-        console.log('Content-Length:', req.headers['content-length']);
-        upload.array('images', 10)(req, res, (err) => {
-            if (err) {
-                console.log('Multer error:', err.message);
-                return res.status(400).json({ message: err.message || 'File upload failed' });
-            }
-            console.log('Files received:', req.files ? req.files.length : 0);
-            console.log('Body:', req.body);
-            next();
-        });
-    },
+    upload.array('images', 10),
     uploadPropertyImages
 );
 
@@ -51,6 +65,11 @@ router.put(
     roleMiddleware('landlord'),
     setPrimaryImage
 );
+
+
+router.post('/:id/favourite', authMiddleware, roleMiddleware('tenant'), favouriteProperty);
+router.delete('/:id/favourite', authMiddleware, roleMiddleware('tenant'), unfavouriteProperty);
+
 
 router.post('/', authMiddleware, roleMiddleware('landlord'), createProperty);
 router.get('/:id', authMiddleware, getPropertyById);

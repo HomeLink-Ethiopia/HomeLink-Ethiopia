@@ -22,10 +22,10 @@ const registerSchema = Joi.object({
 
     phone: Joi.string()
     .trim()
-    .pattern(/^09[0-9]{8}$/)
+    .pattern(/^(09|07)[0-9]{8}$/)
     .required()
     .messages({
-        "string.pattern.base": "Phone number must start with 09 and contain 10 digits",
+        "string.pattern.base": "Phone number must start with 09 or 07 and contain 10 digits",
     }),
 
     password: Joi.string()
@@ -33,8 +33,13 @@ const registerSchema = Joi.object({
         .pattern(/[A-Z]/)
         .pattern(/[a-z]/)
         .pattern(/[0-9]/)
-        .pattern(/[@$!%*?&]/)
+        .pattern(/[@$!%*?&#^()_+=-]/)
         .required(),
+
+    role: Joi.string()
+        .valid("tenant", "landlord")
+        .default("tenant")
+        .optional(),
 });
 
 module.exports ={

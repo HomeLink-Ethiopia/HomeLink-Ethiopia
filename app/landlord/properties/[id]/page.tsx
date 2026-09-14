@@ -71,6 +71,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   const { id } = use(params)
   const router = useRouter()
   const [property, setProperty] = useState<Property | null>(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -81,6 +82,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     const fetchProperty = async () => {
       try {
         setLoading(true)
+        setError('')
         const token = localStorage.getItem('hl_token')
         const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -88,11 +90,15 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
           const data = await res.json()
           setProperty(data.data || data)
+        } else if (res.status === 401) {
+          setError('Please log in as a landlord to view this property.')
+        } else if (res.status === 404) {
+          setError('Property not found. It may have been deleted.')
         } else {
-          setProperty(MOCK_PROPERTY)
+          setError(`Could not load this property (${res.status}).`)
         }
       } catch {
-        setProperty(MOCK_PROPERTY)
+        setError('Cannot reach the server. Make sure the backend is running on port 5000.')
       } finally {
         setLoading(false)
       }
@@ -105,14 +111,19 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     try {
       setActionLoading(true)
       const token = localStorage.getItem('hl_token')
-      await fetch(`${API_URL}/api/v1/properties/${id}`, {
+      const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ listingStatus: newStatus }),
       })
-      setProperty(prev => prev ? { ...prev, listingStatus: newStatus } : null)
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.message || `Status change failed (${res.status})`)
+      } else {
+        setProperty(prev => prev ? { ...prev, listingStatus: newStatus } : null)
+      }
     } catch {
-      setProperty(prev => prev ? { ...prev, listingStatus: newStatus } : null)
+      setError('Status change failed — network error')
     } finally {
       setActionLoading(false)
       setStatusMenu(false)
@@ -145,6 +156,21 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </>
     )
+  }
+
+  if (error && !property) {
+    return (
+      <>
+        <TopBar title="Property Details" />
+        <div className="flex-1 px-6 py-8">
+          <div className="mx-auto max-w-md rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm font-medium text-red-800">{error}</p>
+            <a href="/landlord/properties" className="mt-4 inline-block rounded-lg bg-rust px-5 py-2 text-sm font-medium text-white hover:bg-rust/90">
+              Back to My Properties
+            </a>
+          </div>
+        </div>
+      </>
   }
 
   if (!property) {

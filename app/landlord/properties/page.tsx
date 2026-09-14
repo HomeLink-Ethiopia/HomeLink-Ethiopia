@@ -67,24 +67,22 @@ export default function PropertiesPage() {
   const fetchProperties = async () => {
     try {
       setLoading(true)
+      setError('')
       const token = localStorage.getItem('hl_token')
       const res = await fetch(`${API_URL}/api/v1/properties/my`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json()
-        const props = data.data || []
-        if (props.length > 0) {
-          setProperties(props)
-        } else {
-          setProperties(MOCK_PROPERTIES)
-        }
+        setProperties(data.data || [])
+      } else if (res.status === 401) {
+        setError('Please log in as a landlord to view your properties.')
       } else {
-        setProperties(MOCK_PROPERTIES)
+        setError(`Could not load properties (${res.status}). Make sure the backend is running.`)
       }
     } catch (err) {
       console.error('Failed to fetch properties:', err)
-      setProperties(MOCK_PROPERTIES)
+      setError('Cannot reach the server. Make sure the backend is running on port 5000.')
     } finally {
       setLoading(false)
     }
@@ -109,14 +107,20 @@ export default function PropertiesPage() {
     try {
       setActionLoading(propertyId)
       const token = localStorage.getItem('hl_token')
-      await fetch(`${API_URL}/api/v1/properties/${propertyId}`, {
+      const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ listingStatus: newStatus }),
       })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.message || `Status change failed (${res.status})`)
+        return
+      }
       setProperties(prev => prev.map(p => p._id === propertyId ? { ...p, listingStatus: newStatus } : p))
     } catch (err) {
       console.error('Failed to update status:', err)
+      setError('Status change failed — network error')
     } finally {
       setActionLoading(null)
     }
@@ -126,14 +130,20 @@ export default function PropertiesPage() {
     try {
       setActionLoading(propertyId)
       const token = localStorage.getItem('hl_token')
-      await fetch(`${API_URL}/api/v1/properties/${propertyId}`, {
+      const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.message || `Delete failed (${res.status})`)
+        return
+      }
       setProperties(prev => prev.filter(p => p._id !== propertyId))
       setDeleteConfirm(null)
     } catch (err) {
       console.error('Failed to delete property:', err)
+      setError('Delete failed — network error')
     } finally {
       setActionLoading(null)
     }

@@ -196,27 +196,37 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
         body: JSON.stringify(payload),
       })
 
-      // Upload new images
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setMessage({ type: 'error', text: j.message || `Update failed (${res.status})` })
+        setSaving(false)
+        return
+      }
+
+      // Upload new images in one request (field name: images)
       const newImagesToUpload = images.filter(img => img.file)
-      for (let i = 0; i < newImagesToUpload.length; i++) {
+      if (newImagesToUpload.length > 0) {
         const formDataImg = new FormData()
-        formDataImg.append('image', newImagesToUpload[i].file!)
-        formDataImg.append('isPrimary', newImagesToUpload[i].isPrimary ? 'true' : 'false')
-        formDataImg.append('order', String(i))
-        try {
-          await fetch(`${API_URL}/api/v1/properties/${id}/images`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formDataImg,
-          })
-        } catch {}
+        newImagesToUpload.forEach(img => formDataImg.append('images', img.file!))
+        const imgRes = await fetch(`${API_URL}/api/v1/properties/${id}/images`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formDataImg,
+        })
+        if (!imgRes.ok) {
+          const j = await imgRes.json().catch(() => ({}))
+          setMessage({ type: 'error', text: j.message || `Image upload failed (${imgRes.status})` })
+          setSaving(false)
+          return
+        }
       }
 
       setMessage({ type: 'success', text: 'Property updated successfully!' })
       setTimeout(() => router.push('/landlord/properties'), 1500)
-    } catch {
-      setMessage({ type: 'success', text: 'Property updated! (Demo Mode)' })
-      setTimeout(() => router.push('/landlord/properties'), 1500)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error'
+      setMessage({ type: 'error', text: msg })
+      setSaving(false)
     } finally {
       setSaving(false)
     }

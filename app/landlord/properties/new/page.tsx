@@ -109,24 +109,19 @@ export default function NewPropertyPage() {
     if (images.length === 0) return true
 
     const token = localStorage.getItem('hl_token')
-    for (let i = 0; i < images.length; i++) {
-      const formDataImg = new FormData()
-      formDataImg.append('image', images[i].file)
-      formDataImg.append('isPrimary', images[i].isPrimary ? 'true' : 'false')
-      formDataImg.append('order', String(i))
+    const formDataImg = new FormData()
+    images.forEach(img => {
+      formDataImg.append('images', img.file)
+    })
 
-      try {
-        const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formDataImg,
-        })
-        if (!res.ok) {
-          console.error(`Failed to upload image ${i + 1}`)
-        }
-      } catch {
-        console.error(`Network error uploading image ${i + 1}`)
-      }
+    const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formDataImg,
+    })
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      throw new Error(j.message || `Image upload failed (${res.status})`)
     }
     return true
   }
@@ -182,32 +177,42 @@ export default function NewPropertyPage() {
       })
 
       let propertyId = ''
+      let apiError = ''
       try {
         if (res.headers.get('content-type')?.includes('application/json')) {
           const data = await res.json()
           propertyId = data.data?._id || data._id || ''
+          if (!res.ok) apiError = data.message || `Request failed (${res.status})`
+        } else if (!res.ok) {
+          apiError = `Server error (${res.status})`
         }
       } catch {}
 
       if (!res.ok) {
-        // Demo mode — show success anyway
-        setSuccess(true)
-        setTimeout(() => router.push('/landlord/properties'), 2000)
+        setErrors([apiError || 'Could not create the property. Please try again.'])
+        setSubmitting(false)
         return
       }
 
       // Upload images if we have a property ID
       if (propertyId) {
-        await uploadImages(propertyId)
+        try {
+          await uploadImages(propertyId)
+        } catch (uploadErr: unknown) {
+          const msg = uploadErr instanceof Error ? uploadErr.message : 'Image upload failed'
+          setErrors([`Property created, but images failed to upload: ${msg}`])
+          setSubmitting(false)
+          return
+        }
       }
 
       setSuccess(true)
-      setTimeout(() => router.push('/landlord/properties'), 2000)
-    } catch (err) {
+      setTimeout(() => router.push('/landlord/properties'), 1500)
+    } catch (err: unknown) {
       console.error('Create property error:', err)
-      // Demo mode — show success
-      setSuccess(true)
-      setTimeout(() => router.push('/landlord/properties'), 2000)
+      const msg = err instanceof Error ? err.message : 'Network error'
+      setErrors([msg])
+      setSubmitting(false)
     } finally {
       setSubmitting(false)
     }

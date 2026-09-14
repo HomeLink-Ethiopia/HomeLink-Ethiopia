@@ -5,7 +5,6 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { fetchProperty, mapApiProperty, type Property } from '@/services/api'
 import { useFavoritesStore } from '@/lib/store'
-import TopNav from '@/components/TopNav'
 import ReviewsSection from '@/components/property/ReviewsSection'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -101,38 +100,32 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
   if (loading) {
     return (
-      <>
-        <TopNav />
-        <div className="min-h-screen bg-white pt-16">
-          <div className="mx-auto max-w-5xl space-y-4 px-4 py-8">
-            <div className="h-72 animate-pulse rounded-xl bg-charcoal/5" />
-            <div className="h-8 w-2/3 animate-pulse rounded bg-charcoal/5" />
-            <div className="h-4 w-1/3 animate-pulse rounded bg-charcoal/5" />
-            <div className="h-40 animate-pulse rounded-xl bg-charcoal/5" />
-          </div>
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-5xl space-y-4 px-4 py-8">
+          <div className="h-72 animate-pulse rounded-xl bg-charcoal/5" />
+          <div className="h-8 w-2/3 animate-pulse rounded bg-charcoal/5" />
+          <div className="h-4 w-1/3 animate-pulse rounded bg-charcoal/5" />
+          <div className="h-40 animate-pulse rounded-xl bg-charcoal/5" />
         </div>
-      </>
+      </div>
     )
   }
 
   if (error || !property) {
     return (
-      <>
-        <TopNav />
-        <div className="flex min-h-screen items-center justify-center bg-white pt-16">
-          <div className="max-w-md px-4 text-center">
-            <h1 className="font-display text-xl font-semibold text-charcoal">
-              {error || 'Property not found'}
-            </h1>
-            <Link
-              href="/explore"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-rust px-5 py-2.5 text-sm font-semibold text-white shadow-stamp transition-colors hover:bg-rust-dark"
-            >
-              Browse properties
-            </Link>
-          </div>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="max-w-md px-4 text-center">
+          <h1 className="font-display text-xl font-semibold text-charcoal">
+            {error || 'Property not found'}
+          </h1>
+          <Link
+            href="/explore"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-rust px-5 py-2.5 text-sm font-semibold text-white shadow-stamp transition-colors hover:bg-rust-dark"
+          >
+            Browse properties
+          </Link>
         </div>
-      </>
+      </div>
     )
   }
 
@@ -152,9 +145,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
   return (
     <div className="min-h-screen bg-cream/40">
-      <TopNav />
 
-      <div className="border-b border-charcoal/10 bg-white pt-16">
+      <div className="border-b border-charcoal/10 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/explore"

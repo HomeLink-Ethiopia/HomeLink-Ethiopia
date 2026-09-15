@@ -13,242 +13,176 @@ HomeLink solves Ethiopia's fragmented rental market by providing verified proper
 - **Landlord Verification** — Document upload and admin approval workflow
 - **Property Management** — Full CRUD for landlords (create, edit, delete listings)
 - **Rental Applications** — Tenants apply, landlords review and approve
-- **Viewing Scheduling** — Request and confirm property viewings
-- **Maintenance Requests** — Tenants report issues, landlords track resolution
-- **Rent Management** — Payment tracking, due dates, receipts
-- **Fraud Reporting** — Report suspicious properties with AI risk scoring
-- **Bilingual UI** — Full Amharic/English translation toggle
-- **Responsive Design** — Mobile-first, works on all devices
+- **Viewing Appointments** — Schedule, confirm, reschedule, or cancel property viewings
+- **Rental Agreements & Rent Tracking** — Digital agreements with confirmation workflow and payment records
+- **Email Verification & Password Reset** — Secure OTP-based account flows
+- **Role-Based Dashboards** — Separate experiences for tenants, landlords, and admins
+- **Bilingual Interface** — Full English ⇄ Amharic translation
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 14 (App Router) |
-| Language | TypeScript |
-| UI | React 18 |
-| Styling | Tailwind CSS |
-| Animation | Framer Motion |
-| Maps | Leaflet + React-Leaflet (OpenStreetMap) |
-| Charts | Recharts |
-| Forms | React Hook Form + Zod |
-| State | Zustand |
-
----
-
-## Getting Started
-
-**Requirements:** Node.js 18.17+ and npm
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
-### Available Scripts
-
-```bash
-npm run dev      # Development server
-npm run build    # Production build
-npm run start    # Run production build
-npm run lint     # Lint codebase
-```
+|---|---|
+| Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Zustand |
+| Backend | Node.js, Express 5, Mongoose |
+| Database | MongoDB (Atlas) |
+| Auth | JWT + bcrypt, rate-limited OTP email verification (Resend) |
+| File uploads | Multer (property images, verification documents) |
 
 ---
 
 ## Project Structure
 
 ```
-app/
-  (public)/              Public pages (no auth required)
-    page.tsx               Homepage
-    explore/               Property discovery with map
-    property/[id]/         Property detail page
-    login/                 Login page
-    signup/                Registration page
-    verify-email/          Email verification
-    forgot-password/       Password reset
-  tenant/                Tenant dashboard
-    dashboard/             Overview and quick actions
-    applications/          My rental applications
-    payments/              Payment history
-    maintenance/           Maintenance requests
-    messages/              Landlord messaging
-    ai-match/              AI property matching
-    favorites/             Saved properties
-    agreements/            Rental agreements
-  landlord/              Landlord dashboard
-    dashboard/             Overview and analytics
-    properties/            Property management
-    properties/new/        Add new property
-    applications/          Review tenant applications
-    tenants/               Tenant management
-    rent-payments/         Rent collection tracking
-    maintenance/           Maintenance requests
-    verification/          Verification status
-  admin/                 Admin dashboard
-    dashboard/             System overview
-    verification-queue/    Landlord verification
-    fraud-reports/         Fraud investigation
-    disputes/              Dispute management
-    risk-monitoring/       Risk score dashboard
-    market-insights/       Housing analytics
-    audit-logs/            Audit trail
-
-components/              Reusable UI components
-  discovery/             Property cards, map, search
-  tenant/                Tenant sidebar, widgets
-  landlord/              Landlord sidebar, widgets
-  admin/                 Admin sidebar, widgets
-  modals/                Application, viewing, maintenance modals
-
-lib/                     Utilities and data
-  language-context.tsx   Amharic/English translation system
-  properties.ts          Property data and types
-  ai-matching.ts         AI matching algorithm
-  images.ts              Image management
-  store.ts               Zustand state management
-
-locales/
-  en.json                English translations (361+ keys)
-  am.json                Amharic translations (361+ keys)
-
-services/
-  api.ts                 API service layer
+HomeLink-Ethiopia/
+├── app/                    # Next.js App Router pages
+│   ├── (public)/           # Home, explore, property details, auth pages
+│   ├── tenant/             # Tenant dashboard (favorites, viewings, agreements…)
+│   ├── landlord/           # Landlord dashboard (properties, applications…)
+│   └── admin/              # Admin dashboard (verification queue, disputes…)
+├── components/             # Shared UI components
+├── services/               # API client layer (calls the Express backend)
+├── lib/                    # Stores, contexts, and helpers
+├── locales/                # English/Amharic translation files
+├── middleware.ts           # Route protection
+├── backend/
+│   ├── server.js           # Express entry point
+│   └── src/
+│       ├── config/         # DB connection
+│       ├── controller/     # Business logic
+│       ├── middleware/     # Auth, roles, rate limiting, uploads
+│       ├── models/         # Mongoose schemas (User, Property, …)
+│       ├── routes/         # API route definitions
+│       ├── utils/          # Email service, helpers
+│       ├── validators/     # Joi validation schemas
+│       └── uploads/        # Uploaded property images & documents
+└── scripts/                # (in backend/) DB seed scripts
 ```
 
 ---
 
-## API Endpoints
+## Getting Started
 
-The frontend expects the following REST API endpoints. The backend should implement these for full integration.
+### Prerequisites
 
-### Authentication
+- **Node.js 18+**
+- **npm 9+**
+- A MongoDB database (local or [Atlas](https://www.mongodb.com/atlas))
+- A [Resend](https://resend.com) API key (for verification emails — optional in development)
 
-| Method | Endpoint | Description | Body |
-|--------|----------|-------------|------|
-| POST | `/api/auth/register` | Register new user | `{ firstName, lastName, email, phone, password, role }` |
-| POST | `/api/auth/login` | Login | `{ email, password }` |
-| POST | `/api/auth/verify-email` | Verify email code | `{ email, code }` |
-| POST | `/api/auth/forgot-password` | Request reset code | `{ email }` |
-| POST | `/api/auth/reset-password` | Reset password | `{ email, code, newPassword }` |
+### 1. Install dependencies
 
-### Properties (Public)
+```bash
+# Frontend
+npm install
 
-| Method | Endpoint | Description | Query Params |
-|--------|----------|-------------|--------------|
-| GET | `/api/public/properties` | Search properties | `neighborhood, city, minPrice, maxPrice, beds, baths, type, furnished, page, limit` |
-| GET | `/api/public/properties/:id` | Get property detail | — |
-
-### Properties (Authenticated)
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/properties/my` | Get landlord's properties | Landlord |
-| POST | `/api/v1/properties` | Create property | Landlord |
-| PUT | `/api/v1/properties/:id` | Update property | Landlord (owner) |
-| DELETE | `/api/v1/properties/:id` | Delete property | Landlord (owner) |
-
-### Verification
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/verification/pending` | Get pending verifications | Admin |
-| POST | `/api/v1/verification/submit` | Submit verification docs | Landlord |
-| PUT | `/api/v1/verification/:id/approve` | Approve verification | Admin |
-| PUT | `/api/v1/verification/:id/reject` | Reject verification | Admin |
-
-### Applications
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/applications` | Submit application | Tenant |
-| GET | `/api/v1/applications/my` | Get my applications | Tenant |
-| GET | `/api/v1/applications/property/:id` | Get applications for property | Landlord |
-| PUT | `/api/v1/applications/:id/approve` | Approve application | Landlord |
-| PUT | `/api/v1/applications/:id/reject` | Reject application | Landlord |
-
-### Viewings
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/viewings` | Request viewing | Tenant |
-| GET | `/api/v1/viewings/my` | Get my viewings | Tenant/Landlord |
-| PUT | `/api/v1/viewings/:id/confirm` | Confirm viewing | Landlord |
-| PUT | `/api/v1/viewings/:id/cancel` | Cancel viewing | Either |
-
-### Maintenance
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/maintenance` | Submit maintenance request | Tenant |
-| GET | `/api/v1/maintenance/my` | Get my requests | Tenant |
-| GET | `/api/v1/maintenance/property/:id` | Get requests for property | Landlord |
-| PUT | `/api/v1/maintenance/:id/status` | Update status | Landlord |
-
-### Response Format
-
-All API responses should follow this format:
-
-```json
-{
-  "success": true,
-  "data": { ... },
-  "message": "Operation completed"
-}
+# Backend
+cd backend
+npm install
+cd ..
 ```
 
-Error response:
+### 2. Configure environment variables
 
-```json
-{
-  "success": false,
-  "error": "Error message",
-  "code": "ERROR_CODE"
-}
-```
-
----
-
-## User Roles
-
-| Role | Dashboard | Can Do |
-|------|-----------|--------|
-| **Tenant** | `/tenant/dashboard` | Search properties, apply, schedule viewings, pay rent, report maintenance |
-| **Landlord** | `/landlord/dashboard` | List properties, verify identity, manage applications, track rent |
-| **Admin** | `/admin/dashboard` | Verify landlords, investigate fraud, resolve disputes, view analytics |
-
----
-
-## Environment Variables
-
-Create a `.env.local` file:
+**Backend** — create `backend/.env` (copy `backend/.env.example`):
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+PORT=5000
+MONGO_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/homelink
+JWT_SECRET=your-secret-key
+RESEND_API_KEY=re_xxxxxxxx
 ```
 
+**Frontend** — create `.env.local` in the project root (copy `.env.example`):
+
+```env
+NEXT_PUBLIC_MOCK_MODE=false
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+> `NEXT_PUBLIC_MOCK_MODE=false` is **required** — without it the frontend uses an in-browser mock instead of the real API.
+
+### 3. Seed the database (optional but recommended)
+
+Creates three verified development accounts used by the on-screen Dev role switcher:
+
+```bash
+cd backend
+node scripts/seed-dev-accounts.js
+```
+
+| Role | Email | Password |
+|---|---|---|
+| Tenant | dev.tenant@homelink.test | Password123! |
+| Landlord | dev.landlord@homelink.test | Password123! |
+| Admin | dev.admin@homelink.test | Password123! |
+
+### 4. Run the app
+
+```bash
+# Terminal 1 — backend (from backend/)
+npm start            # or: node server.js
+
+# Terminal 2 — frontend (from project root)
+npm run dev
+```
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
+
 ---
 
-## Testing the App
+## User Flows
 
-1. **Homepage** — Browse featured properties, search by city
-2. **Explore** — Filter properties with map view
-3. **Signup** — Register as tenant or landlord
-4. **Login** — Access dashboard
-5. **Tenant Dashboard** — View applications, payments, maintenance
-6. **Landlord Dashboard** — Manage properties, review applications
-7. **Admin Dashboard** — Verification queue, fraud reports, analytics
+**Tenant:** Register → verify email (6-digit code) → search/filter properties → save favorites → request viewing → apply → sign agreement → track rent.
+
+**Landlord:** Register → verify email → upload identity/ownership documents → admin approval → create property listings with photos → manage viewings, applications, agreements, and rent.
+
+**Admin:** Log in → review verification queue (identity documents, property ownership) → approve/reject with recorded reason → monitor fraud reports and disputes.
 
 ---
 
-## License
+## API Overview
 
-Proprietary — HomeLink Ethiopia Team
+Base URL: `http://localhost:5000`
+
+| Area | Endpoints |
+|---|---|
+| Auth | `POST /api/auth/register`, `/login`, `/verify-email`, `/resend-email-code`, `/forgot-password`, `/reset-password` |
+| Properties | `GET /api/v1/properties/search` (public), `POST /api/v1/properties` (landlord), `GET/PUT/DELETE /api/v1/properties/:id` |
+| Verification | `POST /api/v1/verification/submit-identity`, `GET /api/v1/verification/pending`, `PATCH /api/v1/verification/:id/review` (admin) |
+| Favorites | `POST/DELETE /api/v1/properties/:id/favourite`, `GET /api/v1/properties/favourites` |
+| Preferences | `GET/POST/PUT /api/v1/properties/preferences` (tenant) |
+
+Responses use `{ data: ... }` for success and `{ message: ... }` for errors. Protected routes require `Authorization: Bearer <token>`.
+
+---
+
+## Email Delivery Note
+
+The development Resend account only delivers to `@resend.dev` addresses on the free tier. Registration still succeeds for any address (the user is saved and can verify with the on-screen development code). To deliver to real inboxes, verify a sending domain in the Resend dashboard and update the "from" address in `backend/src/utils/emailService.js`.
+
+---
+
+## Scripts
+
+| Location | Command | Description |
+|---|---|---|
+| root | `npm run dev` | Start Next.js dev server |
+| root | `npm run build` | Production build |
+| root | `npm run lint` | ESLint |
+| backend | `npm start` | Start API server |
+| backend | `node scripts/seed-dev-accounts.js` | Seed dev accounts |
+
+---
+
+## Team Roles
+
+| Member | Role |
+|---|---|
+| Kidist | Backend Lead — API, auth, business logic, security |
+| Tsedenia | Frontend Lead — dashboards, components, forms, API integration |
+| Yirgalem | Database & Verification — models, verification workflow, fraud detection |
+| Addisu | Testing, DevOps & AI — API testing, deployment, CI/CD, AI service |

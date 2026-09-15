@@ -4,12 +4,16 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Role } from '@/types/roles'
 import Logo from '@/components/Logo'
+import { useAuth } from '@/lib/auth-context'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function SignupPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [step, setStep] = useState<'form' | 'otp'>('form')
+  const [emailNotDelivered, setEmailNotDelivered] = useState(false)
+  const [resendNotice, setResendNotice] = useState('')
   const [role, setRole] = useState<Role>('tenant')
   const [formData, setFormData] = useState({
     firstName: '',
@@ -87,25 +91,18 @@ export default function SignupPage() {
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        // 500 + "Failed to send verification email" means the account WAS created
-        // (backend saves the user first, then sends mail) but Resend refused the
-        // address. Free-tier Resend only delivers to @resend.dev addresses.
-        if (response.status === 500 && /verification email/i.test(data.message || '')) {
-          setError(
-            'Your account was created, but the verification email could not be delivered to this address. ' +
-            'Email delivery currently only works for @resend.dev test addresses — please register with an address ending in @resend.dev, ' +
-            'or ask the team to verify a sending domain in Resend.'
-          )
-          setLoading(false)
-          return
-        }
         setError(data.message || 'Registration failed')
         setLoading(false)
         return
       }
 
-      // Show OTP screen with verification code from backend
-      setVerificationCode(data.verificationCode || '')
+      // The account is saved in MongoDB at this point. When Resend could not
+      // deliver (free tier only reaches @resend.dev), the backend still
+      // returns the code for development — show it instead of a scary error.
+      if (data.emailSent === false) {
+        setEmailNotDelivered(true)
+      }
+      setVerificationCode(data.devVerificationCode || '')
       setStep('otp')
     } catch (err) {
       setError('Registration failed. Please try again.')
@@ -142,7 +139,7 @@ export default function SignupPage() {
         body: JSON.stringify({ email: formData.email, code: otpCode }),
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
         setError(data.message || 'Invalid verification code')
@@ -150,8 +147,12 @@ export default function SignupPage() {
         return
       }
 
-      // Success! Redirect to login
-      router.push('/login?verified=true')
+      // Verified! Log the user straight into their dashboard.
+      const loginResult = await login(formData.email, formData.password)
+      if (!loginResult.success) {
+        // Auto-login failed (rare) — fall back to the login page as before.
+        router.push('/login?verified=true')
+      }
     } catch (err) {
       setError('Verification failed. Please try again.')
     } finally {
@@ -167,11 +168,15 @@ export default function SignupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email }),
       })
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
       if (!response.ok) {
         setError(data.message || 'Failed to resend code')
       } else {
-        alert('New verification code sent to your email!')
+        if (data.devVerificationCode) {
+          setVerificationCode(data.devVerificationCode)
+          setOtp(data.devVerificationCode.split(''))
+        }
+        setResendNotice(data.message || 'New verification code sent!')
       }
     } catch {
       setError('Failed to resend code')
@@ -200,13 +205,26 @@ export default function SignupPage() {
             </p>
             <p className="mt-1 text-center font-semibold text-charcoal">{formData.email}</p>
             
-            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
-              <p className="text-center text-sm text-green-700">
-                A verification code has been sent to your email.
-              </p>
-              <p className="mt-1 text-center text-xs text-green-600">
-                Check your inbox and spam folder for the 6-digit code.
-              </p>
+            <div className={`mt-4 rounded-lg border p-3 ${emailNotDelivered ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+              {emailNotDelivered ? (
+                <>
+                  <p className="text-center text-sm text-amber-700">
+                    Your account has been created, but email delivery is temporarily unavailable.
+                  </p>
+                  <p className="mt-1 text-center text-xs text-amber-600">
+                    Use the code below to finish verification. You can request a new code anytime.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-center text-sm text-green-700">
+                    A verification code has been sent to your email.
+                  </p>
+                  <p className="mt-1 text-center text-xs text-green-600">
+                    Check your inbox and spam folder for the 6-digit code.
+                  </p>
+                </>
+              )}
             </div>
             {verificationCode && (
               <div 
@@ -218,9 +236,13 @@ export default function SignupPage() {
                   lastInput?.focus()
                 }}
               >
-                <p className="text-center text-xs text-blue-500 mb-1">Your verification code (click to auto-fill):</p>
+                <p className="text-center text-xs text-blue-500 mb-1">Development code (click to auto-fill):</p>
                 <p className="text-center text-2xl font-bold tracking-[8px] text-blue-700 font-mono">{verificationCode}</p>
               </div>
+            )}
+
+            {resendNotice && (
+              <p className="mt-3 text-center text-xs text-green-700">{resendNotice}</p>
             )}
 
             {error && (

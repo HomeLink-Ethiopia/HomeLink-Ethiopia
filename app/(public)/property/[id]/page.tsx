@@ -77,15 +77,41 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     let cancelled = false
     setLoading(true)
     setError('')
-    fetch(`${API_URL}/api/public/properties/${id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(res.status === 404 ? 'This property no longer exists or has been removed.' : `Server error (${res.status})`)
-        return res.json()
-      })
-      .then((json) => {
+    // Real backend: GET /api/v1/properties/:id (auth attached automatically when
+    // logged in). Anonymous visitors fall back to the public search endpoint.
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
+          headers: (() => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('hl_token') : null
+            const h: Record<string, string> = {}
+            if (token) h.Authorization = `Bearer ${token}`
+            return h
+          })(),
+        })
+        if (!res.ok) {
+          // 401 (anonymous) → try the public search index
+          if (res.status === 401) {
+            const searchRes = await fetch(`${API_URL}/api/v1/properties/search?limit=500`)
+            if (!searchRes.ok) throw new Error(`Server error (${searchRes.status})`)
+            const searchJson = await searchRes.json()
+            const raw = (searchJson?.data || []).find((p: any) => p._id === id)
+            if (!raw) throw new Error('This property no longer exists or has been removed.')
+            return raw
+          }
+          throw new Error(res.status === 404 ? 'This property no longer exists or has been removed.' : `Server error (${res.status})`)
+        }
+        const json = await res.json()
+        if (!json?.data) throw new Error('This property no longer exists or has been removed.')
+        return json.data as any
+      } catch (e: any) {
+        if (e?.message?.includes('Failed to fetch')) throw new Error('Could not reach the server. Please check your connection and try again.')
+        throw e
+      }
+    }
+    load()
+      .then((raw) => {
         if (cancelled) return
-        const raw = json?.data
-        if (!raw) throw new Error('This property no longer exists or has been removed.')
         // Keep the full raw record (landlord, deposit, availability) and merge
         // the mapped fields so the rest of the UI keeps working.
         const mapped = mapApiProperty(raw)

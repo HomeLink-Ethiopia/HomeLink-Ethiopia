@@ -84,9 +84,21 @@ export default function SignupPage() {
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
+        // 500 + "Failed to send verification email" means the account WAS created
+        // (backend saves the user first, then sends mail) but Resend refused the
+        // address. Free-tier Resend only delivers to @resend.dev addresses.
+        if (response.status === 500 && /verification email/i.test(data.message || '')) {
+          setError(
+            'Your account was created, but the verification email could not be delivered to this address. ' +
+            'Email delivery currently only works for @resend.dev test addresses — please register with an address ending in @resend.dev, ' +
+            'or ask the team to verify a sending domain in Resend.'
+          )
+          setLoading(false)
+          return
+        }
         setError(data.message || 'Registration failed')
         setLoading(false)
         return
@@ -190,7 +202,7 @@ export default function SignupPage() {
             
             <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
               <p className="text-center text-sm text-green-700">
-                📧 A verification code has been sent to your email.
+                A verification code has been sent to your email.
               </p>
               <p className="mt-1 text-center text-xs text-green-600">
                 Check your inbox and spam folder for the 6-digit code.
@@ -300,7 +312,9 @@ export default function SignupPage() {
                       : 'border-charcoal/20 bg-white text-charcoal hover:border-rust'
                   }`}
                 >
-                  🏠 Tenant
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="inline-block h-4 w-4 align-[-2px]">
+                    <path d="M3 10.5 12 4l9 6.5M5 9.5V20h14V9.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg> Tenant
                 </button>
                 <button
                   type="button"
@@ -311,7 +325,9 @@ export default function SignupPage() {
                       : 'border-charcoal/20 bg-white text-charcoal hover:border-rust'
                   }`}
                 >
-                  🏢 Landlord
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="inline-block h-4 w-4 align-[-2px]">
+                    <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg> Landlord
                 </button>
               </div>
             </div>

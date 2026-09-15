@@ -19,7 +19,7 @@ const ROLES: { role: Role; label: string; email: string; password: string }[] = 
  */
 export default function RoleSwitcher() {
   const { user, login } = useAuth()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
 
   return (
     <div className="fixed bottom-4 left-1/2 z-[90] -translate-x-1/2">

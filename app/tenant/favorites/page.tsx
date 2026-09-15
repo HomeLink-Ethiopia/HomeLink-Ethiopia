@@ -91,15 +91,12 @@ export default function FavoritesPage() {
     setLoading(true)
     setError('')
     try {
-      const results = await Promise.all(
-        ids.map((id) =>
-          fetch(`${API_URL}/api/public/properties/${id}`)
-            .then((r) => (r.ok ? r.json() : null))
-            .then((j) => j?.data || null)
-            .catch(() => null)
-        )
-      )
-      const found = results.filter(Boolean) as SavedProperty[]
+      // Real backend: public search index (single request), then keep the saved ids.
+      const res = await fetch(`${API_URL}/api/v1/properties/search?limit=500`)
+      if (!res.ok) throw new Error(`Server error (${res.status})`)
+      const json = await res.json()
+      const all = (json?.data || []) as SavedProperty[]
+      const found = all.filter((p) => ids.includes(p._id))
       setProperties(found)
       if (found.length === 0 && ids.length > 0) {
         setError('Saved properties could not be loaded right now. They may have been removed by their landlords.')

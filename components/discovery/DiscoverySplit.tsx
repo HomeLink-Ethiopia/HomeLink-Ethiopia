@@ -69,7 +69,7 @@ function FilterDropdown<T extends string>({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
+        <div className="absolute left-0 top-full z-[1100] mt-1 w-56 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
           {options.map((opt) => (
             <button
               key={opt.value || '__all__'}
@@ -139,7 +139,7 @@ function RangeFilter({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
+        <div className="absolute left-0 top-full z-[1100] mt-1 w-52 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
           {ranges.map((r) => (
             <button
               key={r.value || '__all__'}
@@ -199,7 +199,7 @@ function MoreFiltersPanel({
   if (!open) return null
 
   return (
-    <div ref={panelRef} className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-charcoal/10 bg-white p-5 shadow-lg">
+    <div ref={panelRef} className="absolute left-0 top-full z-[1100] mt-1 w-72 rounded-xl border border-charcoal/10 bg-white p-5 shadow-lg">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold text-charcoal">More Filters</h3>
         <button onClick={onClose} className="text-charcoal/40 hover:text-charcoal">

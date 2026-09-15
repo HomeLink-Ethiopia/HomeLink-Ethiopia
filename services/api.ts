@@ -59,15 +59,21 @@ export function mapApiProperty(raw: any): Property {
   }
 }
 
+/**
+ * Map frontend filter state to the backend's query params.
+ * Backend contract (GET /api/v1/properties/search):
+ *   city, subCity, propertyType, minPrice, maxPrice, bedrooms,
+ *   bathrooms, amenities, furnished, verifiedOnly,
+ *   sort (price_low | price_high | newest | oldest), page, limit
+ */
 function buildPropertyQuery(filters: PropertyFilters & { page?: number; limit?: number; sort?: string }): string {
   const params = new URLSearchParams()
-  if (filters.query) params.append('q', filters.query)
-  if (filters.neighborhood) params.append('neighborhood', filters.neighborhood)
+  if (filters.neighborhood) params.append('subCity', filters.neighborhood)
   if (filters.city) params.append('city', filters.city)
   if (filters.minPrice) params.append('minPrice', String(filters.minPrice))
   if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
-  if (filters.beds) params.append('beds', String(filters.beds))
-  if ((filters as any).baths) params.append('baths', String((filters as any).baths))
+  if (filters.beds) params.append('bedrooms', String(filters.beds))
+  if ((filters as any).baths) params.append('bathrooms', String((filters as any).baths))
   if ((filters as any).amenities && (filters as any).amenities.length > 0) params.append('amenities', (filters as any).amenities.join(','))
   if ((filters as any).propertyType && (filters as any).propertyType !== 'any') params.append('propertyType', (filters as any).propertyType)
   if ((filters as any).furnished === true) params.append('furnished', 'true')
@@ -76,7 +82,7 @@ function buildPropertyQuery(filters: PropertyFilters & { page?: number; limit?: 
     'price-asc': 'price_low',
     'price-desc': 'price_high',
     'newest': 'newest',
-    'best': 'popular',
+    'best': 'newest',
   }
   const apiSort = (filters as any).sort ? sortMap[(filters as any).sort] || 'newest' : undefined
   if (apiSort) params.append('sort', apiSort)
@@ -93,20 +99,20 @@ export async function searchProperties(
   filters: PropertyFilters & { page?: number; limit?: number; sort?: string } = {}
 ): Promise<PaginatedResult> {
   const query = buildPropertyQuery(filters)
-  const endpoint = query ? `/api/public/properties?${query}` : '/api/public/properties'
-  const response = await get<{ data: any[]; pagination?: { page: number; limit: number; total: number; pages: number } }>(endpoint)
+  const endpoint = query ? `/api/v1/properties/search?${query}` : '/api/v1/properties/search'
+  const response = await get<{ data: any[]; pagination?: { page: number; limit: number; total: number; totalPages: number } }>(endpoint)
   const pagination = response.data.pagination || {
     page: (filters as any).page || 1,
     limit: (filters as any).limit || 20,
     total: (response.data.data || []).length,
-    pages: 1,
+    totalPages: 1,
   }
   return {
     properties: (response.data.data || []).map(mapApiProperty),
     page: pagination.page,
     limit: pagination.limit,
     total: pagination.total,
-    pages: pagination.pages,
+    pages: pagination.totalPages,
   }
 }
 
@@ -119,7 +125,7 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
 /** Fetch a single property with full detail by id. Throws if not found. */
 export async function fetchProperty(id: string): Promise<Property | null> {
   try {
-    const response = await get<{ data: any }>(`/api/public/properties/${id}`)
+    const response = await get<{ data: any }>(`/api/v1/properties/${id}`)
     const raw = response.data.data
     return raw ? mapApiProperty(raw) : null
   } catch (error) {

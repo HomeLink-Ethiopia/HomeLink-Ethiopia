@@ -1,0 +1,19 @@
+ADD 8 NEIGHBORHOOD IMAGES HERE:
+
+Required images (800x600px, JPG or WebP):
+- bole.jpg         → Bole neighborhood
+- kazanchis.jpg    → Kazanchis area
+- cmc.jpg          → CMC residential area
+- old-airport.jpg  → Old Airport neighborhood
+- megenagna.jpg    → Megenagna area
+- sarbet.jpg       → Sarbet neighborhood
+- gerji.jpg        → Gerji area
+- 22-mazoria.jpg   → 22 Mazoria neighborhood
+
+Tips:
+✓ Show the character of each neighborhood
+✓ Include buildings, streets, local landmarks
+✓ Capture the atmosphere (busy vs quiet, modern vs traditional)
+✓ Representative of typical housing in that area
+
+These images appear on the home page neighborhood cards.

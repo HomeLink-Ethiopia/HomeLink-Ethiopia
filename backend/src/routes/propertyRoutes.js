@@ -20,11 +20,14 @@ const {
     savePreferences,        
     getPreferences,         
     updatePreferences,
-    getRecommendations     
+    getRecommendations,
+    estimateRent
 } = require('../controller/propertyController');
 
 console.log('✅ Property routes loaded');
 
+// ─── AI PROPERTY ESTIMATION ───
+router.post('/estimate-rent', estimateRent);
 
 router.get('/search', searchProperties);
 

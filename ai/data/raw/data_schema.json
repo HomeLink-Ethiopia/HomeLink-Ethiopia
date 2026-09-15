@@ -1,0 +1,32 @@
+{
+  "name": "home_link_rent_listing_raw_schema",
+  "description": "Expected raw schema for future Ethiopian rental listings imported into the AI pipeline.",
+  "required_fields": [
+    "title",
+    "location",
+    "subcity",
+    "bedrooms",
+    "bathrooms",
+    "size_sqm",
+    "furnished",
+    "price_etb",
+    "description"
+  ],
+  "field_types": {
+    "title": ["object", "string"],
+    "location": ["object", "string"],
+    "subcity": ["object", "string"],
+    "bedrooms": ["int64", "float64", "object"],
+    "bathrooms": ["int64", "float64", "object"],
+    "size_sqm": ["int64", "float64", "object"],
+    "furnished": ["bool", "boolean", "object"],
+    "price_etb": ["int64", "float64", "object"],
+    "description": ["object", "string"]
+  },
+  "notes": [
+    "Price must be positive ETB per month.",
+    "Bedrooms and bathrooms should be non-negative integers.",
+    "size_sqm should be greater than zero.",
+    "Location names should be normalized to common Addis Ababa neighborhoods or subcities."
+  ]
+}

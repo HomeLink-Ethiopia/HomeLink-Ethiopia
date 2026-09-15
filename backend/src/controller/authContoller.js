@@ -1,7 +1,10 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const LandlordProfile = require("../models/LandlordProfile");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
+const { isMockMode, mockStore } = require("../config/db");
 const { registerSchema } = require("../validators/authValidators");
 const { sendVerificationEmail } = require("../utils/emailService")
 
@@ -24,6 +27,63 @@ const registerUser = async (req, res) => {
       });
     }
 
+    const assignedRole = role === "landlord" ? "landlord" : "tenant";
+    const verificationCode = crypto.randomInt(100000, 1000000).toString();
+    const hashedVerificationCode = await bcrypt.hash(verificationCode, 10);
+    const verificationExpires = new Date(Date.now() + 10 * 60 * 1000);
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ─── IN-MEMORY MOCK FALLBACK (OFFLINE DATABASE) ───
+    if (isMockMode()) {
+      if (mockStore.users.has(email)) {
+        return res.status(400).json({ message: "Email is already registered" });
+      }
+
+      const mockUser = {
+        _id: "mock-user-" + Date.now(),
+        firstName,
+        lastName,
+        email,
+        phone,
+        password: hashedPassword,
+        role: assignedRole,
+        emailVerificationCode: hashedVerificationCode,
+        emailVerificationExpires: verificationExpires,
+        identityStatus: "verified",
+        emailVerified: true
+      };
+
+      mockStore.users.set(email, mockUser);
+
+      if (assignedRole === "landlord") {
+        mockStore.landlordProfiles.set(mockUser._id, {
+          _id: mockUser._id,
+          accountId: mockUser._id,
+          legalName: `${firstName} ${lastName}`.trim(),
+          verificationStatus: "verified",
+          verifiedPropertiesCount: 0
+        });
+      }
+
+      console.log(`⚡ [MOCK DB] User registered: ${email} (${assignedRole}) | Verification Code: ${verificationCode}`);
+
+      return res.status(201).json({
+        message: "User registered successfully",
+        verificationCode: verificationCode,
+        user: {
+          id: mockUser._id,
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
+          email: mockUser.email,
+          phone: mockUser.phone,
+          role: mockUser.role,
+          identityStatus: mockUser.identityStatus,
+          emailVerified: mockUser.emailVerified,
+        }
+      });
+    }
+
+    // ─── MONGOOSE DATABASE MODE ───
     const existingEmail = await User.findOne({ email });
 
     if (existingEmail) {
@@ -40,34 +100,27 @@ const registerUser = async (req, res) => {
       });
     }
 
-    const verificationCode = crypto
-      .randomInt(100000, 1000000)
-      .toString();
-
-    const hashedVerificationCode = await bcrypt.hash(
-      verificationCode,
-      10
-    );
-
-    const verificationExpires = new Date(
-      Date.now() + 10 * 60 * 1000
-    );
-
-    const hashedPassword = await bcrypt.hash(
-      password,
-      10
-    );
-
     const user = await User.create({
       firstName,
       lastName,
       email,
       phone,
       password: hashedPassword,
-      role: role || "tenant", 
+      role: assignedRole,
       emailVerificationCode: hashedVerificationCode,
       emailVerificationExpires: verificationExpires,
     });
+
+    if (assignedRole === "landlord") {
+      try {
+        await LandlordProfile.create({
+          accountId: user._id,
+          legalName: `${firstName} ${lastName}`.trim(),
+        });
+      } catch (profileErr) {
+        console.warn("LandlordProfile initial creation warning:", profileErr.message);
+      }
+    }
 
     const emailSent = await sendVerificationEmail(
       email,
@@ -84,6 +137,7 @@ const registerUser = async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully",
+      verificationCode: process.env.NODE_ENV === "production" ? undefined : verificationCode,
       user: {
         id: user._id,
         firstName: user.firstName,
@@ -111,6 +165,16 @@ const verifyEmail = async (req, res) => {
     if (!email || !code) {
       return res.status(400).json({
         message: "Email and verification code are required",
+      });
+    }
+
+    if (isMockMode()) {
+      const mockUser = mockStore.users.get(email);
+      if (mockUser) {
+        mockUser.emailVerified = true;
+      }
+      return res.status(200).json({
+        message: "Email verified successfully",
       });
     }
 
@@ -434,6 +498,51 @@ const loginUser = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and Password are required",
+      });
+    }
+
+    if (isMockMode()) {
+      let mockUser = mockStore.users.get(email);
+      if (!mockUser) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        mockUser = {
+          _id: "mock-user-" + Date.now(),
+          firstName: "Demo",
+          lastName: "User",
+          email,
+          phone: "0911223344",
+          password: hashedPassword,
+          role: email.toLowerCase().includes("landlord") ? "landlord" : "tenant",
+          emailVerified: true,
+          identityStatus: "verified"
+        };
+        mockStore.users.set(email, mockUser);
+      }
+
+      const isPasswordCorrect = await bcrypt.compare(password, mockUser.password);
+      if (!isPasswordCorrect) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      const token = jwt.sign(
+        { id: mockUser._id, role: mockUser.role },
+        process.env.JWT_SECRET || "homelink_dev_secret_key_2026",
+        { expiresIn: "1d" }
+      );
+
+      return res.status(200).json({
+        message: "Login successful",
+        token: token,
+        user: {
+          id: mockUser._id,
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
+          email: mockUser.email,
+          phone: mockUser.phone,
+          role: mockUser.role,
+          identityStatus: mockUser.identityStatus,
+          emailVerified: mockUser.emailVerified,
+        }
       });
     }
 

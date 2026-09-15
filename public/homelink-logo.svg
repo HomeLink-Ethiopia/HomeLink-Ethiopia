@@ -1,0 +1,10 @@
+<svg width="200" height="50" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- House icon -->
+  <circle cx="25" cy="25" r="22" fill="#B8451F"/>
+  <path d="M25 12L15 20V35H20V27H30V35H35V20L25 12Z" fill="#FFF5E6" stroke="#FFF5E6" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="22" y="29" width="6" height="6" fill="#B8451F"/>
+  
+  <!-- Text -->
+  <text x="52" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#2A2521">HomeLink</text>
+  <text x="140" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#B8451F">Ethiopia</text>
+</svg>

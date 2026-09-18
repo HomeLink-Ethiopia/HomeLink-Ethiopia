@@ -20,17 +20,19 @@ export default function Sidebar() {
     { label: t.sidebar.agreements, href: '/tenant/agreements', icon: 'book' },
     { label: t.sidebar.messages, href: '/tenant/messages', icon: 'mail' },
     { label: t.sidebar.maintenance, href: '/tenant/maintenance', icon: 'wrench' },
+    { label: t.sidebar.reviews, href: '/tenant/reviews', icon: 'star' },
+    { label: t.sidebar.disputes, href: '/tenant/disputes', icon: 'scale' },
     { label: t.sidebar.aiMatch, href: '/tenant/ai-match', icon: 'match' },
   ]
 
   const SECONDARY_NAV = [
     { label: t.sidebar.favorites, href: '/tenant/favorites', icon: 'heart' },
-    { label: t.sidebar.savedSearches, href: '#', icon: 'bookmark' },
+    { label: t.sidebar.savedSearches, href: '/tenant/saved-searches', icon: 'bookmark' },
   ]
 
   const FOOTER_NAV = [
-    { label: t.sidebar.profile, href: '#', icon: 'user' },
-    { label: t.sidebar.settings, href: '#', icon: 'settings' },
+    { label: t.sidebar.profile, href: '/tenant/profile', icon: 'user' },
+    { label: t.sidebar.settings, href: '/tenant/settings', icon: 'settings' },
     { label: t.sidebar.logout, href: '/logout', icon: 'logout' },
   ]
 
@@ -51,6 +53,8 @@ const ICON_PATH: Record<string, string> = {
   book: 'M4 3h9a2 2 0 012 2v11a1.5 1.5 0 00-1.5-1.5H4V3zM4 14.5V3',
   logout: 'M11 16l4-4m0 0l-4-4m4 4H5m0-8v16',
   match: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+  star: 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.51.91-5.33-3.87-3.77 5.34-.78L10 1z',
+  scale: 'M10 2v16M4 6l-3 6a3 3 0 006 0l-3-6zM16 6l-3 6a3 3 0 006 0l-3-6zM4 6h12',
 }
 
 function NavIcon({ name }: { name: string }) {

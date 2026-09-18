@@ -203,7 +203,7 @@
         "collected": "Collected",
         "pending": "Pending",
         "overdue": "Overdue"
-      },
+      },"reports":{"title":"Reports","subtitle":"Income and portfolio performance"},
       "maintenance": {
         "title": "Maintenance Requests",
         "subtitle": "Handle property maintenance",
@@ -366,7 +366,9 @@
     "helpCenter": "Help Center",
     "contactSupport": "Contact Support",
     "landlordVerification": "Landlord Verification",
-    "propertyVerification": "Property Verification"
+    "propertyVerification": "Property Verification",
+    "reviews": "Reviews",
+    "analytics": "Analytics"
   },
   "tenantDashboard": {
     "title": "Tenant Dashboard",

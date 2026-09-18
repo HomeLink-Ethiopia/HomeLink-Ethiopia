@@ -17,6 +17,8 @@ export default function Hero() {
   const [currentBgIndex, setCurrentBgIndex] = useState(0)
   const [neighborhood, setNeighborhood] = useState('Addis Ababa')
   const [propertyType, setPropertyType] = useState('Any Type')
+  const [budget, setBudget] = useState('Any Budget')
+  const [bedrooms, setBedrooms] = useState('Any Beds')
 
   // Smooth background slideshow every 5 seconds
   useEffect(() => {
@@ -40,6 +42,13 @@ export default function Hero() {
     const query = new URLSearchParams()
     if (neighborhood && neighborhood !== 'Addis Ababa') query.set('neighborhood', neighborhood)
     if (propertyType && propertyType !== 'Any Type') query.set('type', propertyType)
+    if (budget === 'Under ETB 15,000') query.set('maxPrice', '15000')
+    else if (budget === 'ETB 15,000–25,000') { query.set('minPrice', '15000'); query.set('maxPrice', '25000') }
+    else if (budget === 'Over ETB 25,000') query.set('minPrice', '25001')
+    if (bedrooms === '1+') query.set('beds', '1')
+    else if (bedrooms === '2+') query.set('beds', '2')
+    else if (bedrooms === '3+') query.set('beds', '3')
+    else if (bedrooms === '4+') query.set('beds', '4')
     router.push(`/explore?${query.toString()}`)
   }
 
@@ -168,7 +177,11 @@ export default function Hero() {
               <p className="font-mono text-[10px] uppercase tracking-widest text-charcoal/50 font-semibold">
                 Budget (ETB)
               </p>
-              <select className="mt-1.5 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
+              <select
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                className="mt-1.5 w-full bg-transparent text-sm font-medium text-charcoal outline-none"
+              >
                 {BUDGETS.map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>
@@ -178,7 +191,11 @@ export default function Hero() {
               <p className="font-mono text-[10px] uppercase tracking-widest text-charcoal/50 font-semibold">
                 Bedrooms
               </p>
-              <select className="mt-1.5 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
+              <select
+                value={bedrooms}
+                onChange={(e) => setBedrooms(e.target.value)}
+                className="mt-1.5 w-full bg-transparent text-sm font-medium text-charcoal outline-none"
+              >
                 {BEDROOMS.map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>

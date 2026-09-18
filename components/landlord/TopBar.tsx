@@ -1,9 +1,8 @@
 'use client'
 
-import Image from 'next/image'
-import { LANDLORD_AVATAR, LANDLORD_NAME } from '@/lib/landlord'
 import { useUIStore } from '@/lib/store'
 import NotificationBell from '@/components/shared/NotificationBell'
+import UserChip from '@/components/shared/UserChip'
 
 export default function TopBar({ title, subtitle }: { title: string; subtitle?: string }) {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
@@ -30,12 +29,7 @@ export default function TopBar({ title, subtitle }: { title: string; subtitle?: 
       <div className="flex shrink-0 items-center gap-3 sm:gap-5">
         <NotificationBell />
 
-        <div className="flex items-center gap-2">
-          <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full">
-            <Image src={LANDLORD_AVATAR} alt={LANDLORD_NAME} fill sizes="32px" className="object-cover" />
-          </span>
-          <span className="hidden text-sm font-medium text-charcoal sm:inline">{LANDLORD_NAME}</span>
-        </div>
+        <UserChip />
       </div>
     </div>
   )

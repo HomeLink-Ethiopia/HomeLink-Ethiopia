@@ -92,7 +92,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         if (!res.ok) {
           // 401 (anonymous) → try the public search index
           if (res.status === 401) {
-            const searchRes = await fetch(`${API_URL}/api/v1/properties/search?limit=500`)
+            const searchRes = await fetch(`${API_URL}/api/v1/properties/search?limit=100`)
             if (!searchRes.ok) throw new Error(`Server error (${searchRes.status})`)
             const searchJson = await searchRes.json()
             const raw = (searchJson?.data || []).find((p: any) => p._id === id)
@@ -113,9 +113,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       .then((raw) => {
         if (cancelled) return
         // Keep the full raw record (landlord, deposit, availability) and merge
-        // the mapped fields so the rest of the UI keeps working.
+        // the mapped fields so the rest of the UI keeps working. The backend
+        // populates the landlord profile under `landlordId` — expose it as
+        // `landlord` for the "Listed by / Identity Verified" card.
         const mapped = mapApiProperty(raw)
-        setProperty({ ...mapped, ...raw, id: raw._id, images: mapped.images, image: mapped.image } as RawProperty)
+        const landlord = (typeof raw.landlordId === 'object' && raw.landlordId) || raw.landlord || null
+        setProperty({ ...mapped, ...raw, landlord, id: raw._id, images: mapped.images, image: mapped.image } as RawProperty)
         setLoading(false)
       })
       .catch((e) => {

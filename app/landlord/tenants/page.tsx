@@ -37,7 +37,29 @@ export default function TenantsPage() {
       })
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json()
-        setTenants(data.data || data.tenants || [])
+        const raw = data.data || data.tenants || []
+        // Backend returns one tenant per agreement-group with properties[];
+        // flatten into one row per (tenant, property) so filtering works.
+        const rows: Tenant[] = []
+        for (const tn of raw) {
+          const props = Array.isArray(tn.properties) ? tn.properties : []
+          if (props.length === 0) {
+            rows.push({ ...tn, status: 'current' })
+            continue
+          }
+          for (const pr of props) {
+            const active = pr.agreementStatus === 'active'
+            rows.push({
+              ...tn,
+              _id: `${tn._id}_${pr._id}`,
+              status: active ? 'current' : 'past',
+              rent: pr.rentAmount,
+              propertyId: { title: pr.title },
+              moveInDate: pr.startDate,
+            })
+          }
+        }
+        setTenants(rows)
       } else if (res.status === 401) {
         setError('Please log in as a landlord to see your tenants.')
       } else {

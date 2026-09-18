@@ -144,12 +144,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { success: true }
           }
         } catch (error) {
-          console.error('Real API login failed, falling back to mock:', error)
-          // Fall through to mock login
+          // Backend unreachable — fail honestly. Never fake a login: an
+          // unreachable API must NOT let arbitrary credentials in.
+          console.error('Real API login failed:', error)
+          return { success: false, error: 'Cannot reach the server. Please try again in a moment.' }
         }
       }
       
-      // Mock login (MOCK_MODE or API failed)
+      // Mock login (only when NEXT_PUBLIC_MOCK_MODE is explicitly not 'false')
       const result = authenticateUser(email, password)
       
       if (result.success && result.user) {

@@ -8,6 +8,7 @@ import { NEIGHBORHOOD_COLOR, PROPERTIES, formatEtb, type Property } from '@/lib/
 import { searchProperties } from '@/services/api'
 import { SearchFilters } from '@/lib/search'
 import { matchProperty as matchPropertyFull, loadPreferences, type TenantPreferences } from '@/lib/ai-matching'
+import { saveSearch, type SavedSearch } from '@/lib/saved-searches'
 import { useLanguage } from '@/lib/language-context'
 
 const PropertyMap = dynamic(() => import('./PropertyMap'), {
@@ -366,15 +367,20 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const [view, setView] = useState<'list' | 'split' | 'map'>('split')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
-  const [neighborhood, setNeighborhood] = useState('')
-  const [propertyType, setPropertyType] = useState('')
-  const [priceRange, setPriceRange] = useState('')
-  const [bedsRange, setBedsRange] = useState('')
-  const [bathsRange, setBathsRange] = useState('')
-  const [amenitiesFilter, setAmenitiesFilter] = useState<string[]>([])
+  // Initialize toolbar state from URL-level filters so deep links like
+  // /explore?neighborhood=Bole&type=apartment actually filter the results
+  // (and are captured by Save Search).
+  const f0 = (filters || {}) as Record<string, unknown>
+  const initPrice = f0.minPrice || f0.maxPrice ? `${f0.minPrice || 0}-${f0.maxPrice || 999999}` : ''
+  const [neighborhood, setNeighborhood] = useState((f0.neighborhood as string) || '')
+  const [propertyType, setPropertyType] = useState((f0.propertyType as string) || '')
+  const [priceRange, setPriceRange] = useState(initPrice)
+  const [bedsRange, setBedsRange] = useState(f0.beds ? String(f0.beds) : '')
+  const [bathsRange, setBathsRange] = useState(f0.baths ? String(f0.baths) : '')
+  const [amenitiesFilter, setAmenitiesFilter] = useState<string[]>((f0.amenities as string[]) || [])
   const [showMoreFilters, setShowMoreFilters] = useState(false)
-  const [furnished, setFurnished] = useState(false)
-  const [verifiedOnly, setVerifiedOnly] = useState(false)
+  const [furnished, setFurnished] = useState(!!f0.furnished)
+  const [verifiedOnly, setVerifiedOnly] = useState(!!f0.verifiedOnly)
   const [sortBy, setSortBy] = useState('best')
 
   const activeFilterCount = [neighborhood, propertyType, priceRange, bedsRange, bathsRange, furnished, verifiedOnly].filter(Boolean).length + amenitiesFilter.length
@@ -479,8 +485,76 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
     setCurrentPage(1)
   }, [])
 
+  // ─── Saved searches: serialize current filters into a named preset ───
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [saveToast, setSaveToast] = useState('')
+
+  const currentSearchParams = useCallback((): string => {
+    // Start from URL-level filters (deep links like /explore?neighborhood=Bole),
+    // then let the live toolbar state override them.
+    const f = (filters || {}) as Record<string, unknown>
+    const p = new URLSearchParams()
+    const nb = neighborhood || (f.neighborhood as string) || ''
+    const pt = propertyType || (f.propertyType as string) || ''
+    const price = priceRange || (f.minPrice || f.maxPrice ? `${f.minPrice || 0}-${f.maxPrice || 999999}` : '')
+    const beds = bedsRange || (f.beds ? String(f.beds) : '')
+    const baths = bathsRange || (f.baths ? String(f.baths) : '')
+    const city = (f.city as string) || ''
+    if (city) p.set('city', city)
+    if (nb) p.set('neighborhood', nb)
+    if (pt) p.set('type', pt)
+    if (price) {
+      p.set('minPrice', price.split('-')[0])
+      p.set('maxPrice', price.split('-')[1] || '')
+    }
+    if (beds) p.set('beds', beds)
+    if (baths) p.set('baths', baths)
+    if (furnished) p.set('furnished', 'true')
+    if (verifiedOnly) p.set('verifiedOnly', 'true')
+    const ams = amenitiesFilter.length > 0 ? amenitiesFilter : ((f.amenities as string[]) || [])
+    ams.forEach((a) => p.append('amenities', a))
+    return p.toString()
+  }, [filters, neighborhood, propertyType, priceRange, bedsRange, bathsRange, amenitiesFilter, furnished, verifiedOnly])
+
+  const autoSearchName = useCallback((): string => {
+    const f = (filters || {}) as Record<string, unknown>
+    const parts: string[] = []
+    const nb = neighborhood || (f.neighborhood as string) || ''
+    const pt = propertyType || (f.propertyType as string) || ''
+    const beds = bedsRange || (f.beds ? String(f.beds) : '')
+    if (nb) parts.push(nb)
+    if (pt) parts.push(pt.charAt(0).toUpperCase() + pt.slice(1))
+    if (beds) parts.push(`${beds}+ bed`)
+    const price = priceRange || (f.minPrice || f.maxPrice ? `${f.minPrice || 0}-${f.maxPrice || 999999}` : '')
+    if (price) {
+      const [min, max] = price.split('-').map(Number)
+      if (max && max < 999999) parts.push(`≤ ${Number(max).toLocaleString()} ETB`)
+      else if (min) parts.push(`≥ ${Number(min).toLocaleString()} ETB`)
+    }
+    if (furnished) parts.push('furnished')
+    if (verifiedOnly) parts.push('verified')
+    return parts.length ? parts.join(' · ') : 'All properties'
+  }, [filters, neighborhood, propertyType, bedsRange, priceRange, furnished, verifiedOnly])
+
+  const handleSaveSearch = useCallback(() => {
+    const name = saveName.trim() || autoSearchName()
+    const entry: SavedSearch = saveSearch(name, currentSearchParams())
+    setShowSaveDialog(false)
+    setSaveName('')
+    setSaveToast(`Saved "${entry.name}" — find it under Saved Searches`)
+    setTimeout(() => setSaveToast(''), 4000)
+  }, [saveName, autoSearchName, currentSearchParams])
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="relative flex flex-col h-[calc(100vh-4rem)]">
+      {/* Saved-search toast */}
+      {saveToast && (
+        <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full bg-charcoal px-5 py-2.5 text-sm font-medium text-cream shadow-lg">
+          {saveToast}
+        </div>
+      )}
+
       {/* Filter Bar */}
       <div className="border-b border-charcoal/10 bg-white px-4 py-3 sm:px-6">
         <div className="mx-auto max-w-7xl">
@@ -623,6 +697,55 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                   Clear all ({activeFilterCount})
                 </button>
               )}
+
+              {/* Save this search */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveDialog(!showSaveDialog)}
+                  className="flex items-center gap-1 rounded-lg border border-charcoal/15 px-3 py-2 text-xs font-medium text-charcoal/70 transition-colors hover:border-rust hover:text-rust"
+                >
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3.5 w-3.5">
+                    <path d="M5 3h8l3 3v11H5V3z" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M7 3v4h6V3M7 13h6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Save search
+                </button>
+                {showSaveDialog && (
+                  <div className="absolute left-0 top-full z-30 mt-1 w-72 rounded-lg border border-charcoal/10 bg-white p-3 shadow-lg">
+                    <label className="mb-2 block text-xs font-medium text-charcoal/70">
+                      Name this search (optional)
+                    </label>
+                    <input
+                      autoFocus
+                      value={saveName}
+                      onChange={(e) => setSaveName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveSearch() }}
+                      placeholder={autoSearchName()}
+                      className="mb-2 w-full rounded-md border border-charcoal/15 px-2.5 py-1.5 text-sm outline-none focus:border-rust"
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[11px] text-charcoal/40">{autoSearchName()}</span>
+                      <div className="flex shrink-0 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => { setShowSaveDialog(false); setSaveName('') }}
+                          className="rounded-md px-2.5 py-1 text-xs text-charcoal/60 hover:bg-sand"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveSearch}
+                          className="rounded-md bg-rust px-3 py-1 text-xs font-medium text-white hover:bg-rust/90"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right: Actions */}
@@ -705,9 +828,10 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
         <div className="mx-auto h-full max-w-7xl px-4 sm:px-6">
-          <div className="grid h-full grid-cols-1 gap-0 lg:grid-cols-2">
-            {/* Property List */}
-            <div className="flex flex-col gap-3 overflow-y-auto py-4 pr-3" data-property-list>
+          <div className={`grid h-full grid-cols-1 gap-0 ${view === 'split' ? 'lg:grid-cols-2' : ''}`}>
+            {/* Property List (hidden in Map view, full-width in List view) */}
+            {view !== 'map' && (
+            <div className={`flex flex-col gap-3 overflow-y-auto py-4 ${view === 'split' ? 'pr-3' : 'pr-1'}`} data-property-list>
 
               {/* AI Match Panel (collapsible) */}
               {showAiPanel && (
@@ -897,11 +1021,14 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Map */}
-            <div className="relative h-full overflow-hidden border-l border-charcoal/10">
-              <PropertyMap properties={currentProperties} hoveredId={hoveredId} onHoverChange={setHoveredId} />
-            </div>
+            {/* Map (hidden in List view, full-width in Map view) */}
+            {view !== 'list' && (
+              <div className={`relative h-full overflow-hidden ${view === 'split' ? 'border-l border-charcoal/10' : ''}`}>
+                <PropertyMap properties={currentProperties} hoveredId={hoveredId} onHoverChange={setHoveredId} />
+              </div>
+            )}
           </div>
         </div>
       </div>

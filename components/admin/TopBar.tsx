@@ -1,9 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import { useState } from 'react'
-import { ADMIN_AVATAR, ADMIN_NAME } from '@/lib/admin'
 import { useUIStore } from '@/lib/store'
+import NotificationBell from '@/components/shared/NotificationBell'
+import UserChip from '@/components/shared/UserChip'
 
 const PERIODS = ['Today', 'This Week', 'This Month', 'Last 6 Months'] as const
 
@@ -59,16 +59,9 @@ export default function TopBar({ title, defaultPeriod = 'This Month' }: { title:
           )}
         </div>
 
-        <button type="button" className="relative text-charcoal/70 hover:text-rust" aria-label="Notifications">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
-            <path d="M5 8a5 5 0 0110 0c0 3 1 4 1 4H4s1-1 1-4zM8 15a2 2 0 004 0" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rust" />
-        </button>
+        <NotificationBell />
 
-        <span className="relative h-8 w-8 overflow-hidden rounded-full">
-          <Image src={ADMIN_AVATAR} alt={ADMIN_NAME} fill sizes="32px" className="object-cover" />
-        </span>
+        <UserChip />
       </div>
     </div>
   )

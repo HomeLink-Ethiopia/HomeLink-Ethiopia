@@ -92,7 +92,7 @@ export default function FavoritesPage() {
     setError('')
     try {
       // Real backend: public search index (single request), then keep the saved ids.
-      const res = await fetch(`${API_URL}/api/v1/properties/search?limit=500`)
+      const res = await fetch(`${API_URL}/api/v1/properties/search?limit=100`)
       if (!res.ok) throw new Error(`Server error (${res.status})`)
       const json = await res.json()
       const all = (json?.data || []) as SavedProperty[]

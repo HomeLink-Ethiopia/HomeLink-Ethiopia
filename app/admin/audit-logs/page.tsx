@@ -1,118 +1,181 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
+import { useState, useEffect, useCallback } from 'react'
 import TopBar from '@/components/admin/TopBar'
-import { AUDIT_LOGS, getTargetTypeBadge, type AuditLog } from '@/lib/adminAudit'
+import { SkeletonList } from '@/components/ui/LoadingSkeleton'
 
-const ACTION_FILTERS = ['All', 'Verification', 'Fraud', 'Disputes', 'System'] as const
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-function filterLogs(logs: AuditLog[], filter: string): AuditLog[] {
-  if (filter === 'All') return logs
-  if (filter === 'Verification') return logs.filter((l) => l.targetType === 'landlord' || l.targetType === 'property')
-  if (filter === 'Fraud') return logs.filter((l) => l.targetType === 'fraud_report')
-  if (filter === 'Disputes') return logs.filter((l) => l.targetType === 'dispute')
-  if (filter === 'System') return logs.filter((l) => l.targetType === 'system')
-  return logs
+interface AuditChange {
+  field: string
+  from: string
+  to: string
 }
 
-function formatTimestamp(ts: string) {
-  const d = new Date(ts)
-  const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  return { date, time }
+interface AuditLog {
+  _id: string
+  actorName: string
+  actorRole: string
+  action: string
+  targetType: string
+  targetLabel: string
+  changes: AuditChange[]
+  decision: string
+  reason: string
+  ip: string
+  createdAt: string
+}
+
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'landlord', label: 'Verification' },
+  { key: 'property', label: 'Properties' },
+  { key: 'dispute', label: 'Disputes' },
+  { key: 'fraud_report', label: 'Fraud' },
+  { key: 'user', label: 'Users' },
+] as const
+
+const TARGET_BADGES: Record<string, string> = {
+  landlord: 'bg-blue-100 text-blue-700',
+  property: 'bg-emerald-100 text-emerald-700',
+  dispute: 'bg-amber-100 text-amber-700',
+  fraud_report: 'bg-red-100 text-red-700',
+  user: 'bg-violet-100 text-violet-700',
+  system: 'bg-stone-200 text-stone-600',
 }
 
 export default function AuditLogsPage() {
-  const [filter, setFilter] = useState<typeof ACTION_FILTERS[number]>('All')
+  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [filter, setFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
-  const logs = AUDIT_LOGS
 
-  const filtered = filterLogs(logs, filter).filter(
-    (l) =>
-      l.action.toLowerCase().includes(search.toLowerCase()) ||
-      l.target.toLowerCase().includes(search.toLowerCase()) ||
-      l.adminName.toLowerCase().includes(search.toLowerCase())
-  )
+  const getToken = () => localStorage.getItem('hl_token') || ''
+
+  const load = useCallback(async () => {
+    try {
+      setError('')
+      const res = await fetch(`${API_URL}/api/v1/audit-logs`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error()
+      const json = await res.json()
+      setLogs(json.data || [])
+    } catch {
+      setError('Could not load audit logs. Is the backend running?')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const filtered = logs
+    .filter((l) => filter === 'all' || l.targetType === filter)
+    .filter(
+      (l) =>
+        !search ||
+        l.action.toLowerCase().includes(search.toLowerCase()) ||
+        l.targetLabel.toLowerCase().includes(search.toLowerCase()) ||
+        l.actorName.toLowerCase().includes(search.toLowerCase()) ||
+        l.reason.toLowerCase().includes(search.toLowerCase())
+    )
 
   return (
     <>
       <TopBar title="Audit Logs" />
-
       <main className="flex-1 space-y-6 px-6 py-8 sm:px-8">
-        {/* Controls */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            {ACTION_FILTERS.map((f) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {FILTERS.map((f) => (
               <button
-                key={f}
+                key={f.key}
                 type="button"
-                onClick={() => setFilter(f)}
+                onClick={() => setFilter(f.key)}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  filter === f ? 'bg-rust text-white' : 'bg-white text-charcoal/60 border border-charcoal/10 hover:bg-sand'
+                  filter === f.key
+                    ? 'bg-rust text-white'
+                    : 'border border-charcoal/10 bg-white text-charcoal/60 hover:bg-sand'
                 }`}
               >
-                {f}
+                {f.label}
               </button>
             ))}
           </div>
-          <div className="relative">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-charcoal/40">
-              <path d="M9 3a6 6 0 100 12 6 6 0 000-12zM17 17l-3.5-3.5" strokeLinecap="round" />
-            </svg>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search logs…"
-              className="w-full rounded-lg border border-charcoal/10 bg-white py-2 pl-9 pr-3 text-sm text-charcoal placeholder:text-charcoal/40 focus:border-rust focus:outline-none sm:w-64"
-            />
-          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search action, target, admin, reason…"
+            className="w-full rounded-lg border border-charcoal/10 bg-white py-2 px-3 text-sm text-charcoal placeholder:text-charcoal/40 focus:border-rust focus:outline-none sm:w-72"
+          />
         </div>
 
-        {/* Log entries */}
-        <div className="rounded-xl border border-charcoal/10 bg-white shadow-sm overflow-hidden">
-          <div className="divide-y divide-charcoal/8">
-            {filtered.map((log) => {
-              const { date, time } = formatTimestamp(log.timestamp)
-              return (
-                <div key={log.id} className="flex items-start gap-4 px-5 py-4 transition-colors hover:bg-sand/20">
-                  <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-sand">
-                    <Image src={log.adminAvatar} alt={log.adminName} fill sizes="36px" className="object-cover" />
+        {error && <p className="rounded bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+
+        {loading ? (
+          <SkeletonList count={4} />
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-charcoal/10 bg-white shadow-sm">
+            <div className="divide-y divide-charcoal/10">
+              {filtered.map((log) => (
+                <div key={log._id} className="flex items-start gap-4 px-5 py-4 transition-colors hover:bg-sand/20">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-xs font-bold text-charcoal/60">
+                    {log.actorName
+                      .split(' ')
+                      .map((p) => p[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium text-charcoal">{log.action}</p>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${getTargetTypeBadge(log.targetType)}`}>
-                        {log.targetType.replace('_', ' ')}
+                      <p className="text-sm font-medium capitalize text-charcoal">
+                        {log.action.replace(/_/g, ' ')}
+                      </p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TARGET_BADGES[log.targetType] || TARGET_BADGES.system}`}>
+                        {log.targetType.replace(/_/g, ' ')}
                       </span>
+                      {log.decision && (
+                        <span className="rounded-full bg-charcoal/5 px-2 py-0.5 text-[10px] font-medium capitalize text-charcoal/60">
+                          {log.decision}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-sm text-charcoal/60">
-                      Target: <span className="font-medium text-charcoal">{log.target}</span>
+                      Target: <span className="font-medium text-charcoal">{log.targetLabel || '—'}</span>
                     </p>
-                    <p className="mt-1 text-xs text-charcoal/50 leading-relaxed">{log.details}</p>
-                    <div className="mt-2 flex items-center gap-3 text-[11px] text-charcoal/40">
-                      <span>by {log.adminName}</span>
-                      <span>·</span>
-                      <span>{date} at {time}</span>
-                      <span>·</span>
-                      <span className="font-mono">{log.ip}</span>
-                    </div>
+                    {log.reason && <p className="mt-1 text-xs text-charcoal/60">Reason: {log.reason}</p>}
+                    {log.changes.length > 0 && (
+                      <p className="mt-1 font-mono text-[11px] text-charcoal/50">
+                        {log.changes.map((c) => `${c.field}: ${c.from} → ${c.to}`).join(' · ')}
+                      </p>
+                    )}
+                    <p className="mt-2 text-[11px] text-charcoal/40">
+                      by {log.actorName} · {new Date(log.createdAt).toLocaleString()}
+                      {log.ip ? ` · ${log.ip}` : ''}
+                    </p>
                   </div>
                 </div>
-              )
-            })}
+              ))}
 
-            {filtered.length === 0 && (
-              <div className="px-5 py-12 text-center text-sm text-charcoal/40">
-                No audit logs match your filters.
-              </div>
-            )}
+              {filtered.length === 0 && (
+                <div className="px-5 py-12 text-center text-sm text-charcoal/40">
+                  {logs.length === 0
+                    ? 'No admin actions recorded yet. Actions appear here as admins review verifications, disputes, and fraud reports.'
+                    : 'No audit logs match your filters.'}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <p className="text-xs text-charcoal/40">
-          Showing {filtered.length} of {logs.length} audit entries. All admin actions are recorded for compliance and security review.
+          Showing {filtered.length} of {logs.length} audit entries. Every admin action is recorded: who
+          reviewed, what changed, when, the decision, and the reason.
         </p>
       </main>
     </>

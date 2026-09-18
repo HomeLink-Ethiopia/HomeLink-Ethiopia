@@ -5,7 +5,8 @@ import Link from 'next/link'
 import TopBar from '@/components/tenant/TopBar'
 import { useLanguage } from '@/lib/language-context'
 import { fetchProperties, type Property } from '@/services/api'
-import { matchAllProperties, getGradeColor, savePreferences, loadPreferences, type TenantPreferences, type MatchResult } from '@/lib/ai-matching'
+import { getGradeColor, savePreferences, loadPreferences, type TenantPreferences } from '@/lib/ai-matching'
+import { fetchAiMatches, type AiMatch, type AiMatchResponse } from '@/services/api'
 
 const NEIGHBORHOODS = [
   // Addis Ababa
@@ -31,7 +32,9 @@ export default function AIMatchPage() {
   const [step, setStep] = useState<'preferences' | 'results'>('preferences')
   const [loading, setLoading] = useState(false)
   const [allProperties, setAllProperties] = useState<Property[]>([])
-  const [results, setResults] = useState<(MatchResult & { property: Property })[]>([])
+  const [results, setResults] = useState<(AiMatch & { property: Property })[]>([])
+  const [meta, setMeta] = useState<AiMatchResponse['meta'] | null>(null)
+  const [matchError, setMatchError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Preferences state — restored from the tenant's last saved preferences
@@ -48,21 +51,47 @@ export default function AIMatchPage() {
     fetchProperties({}).then(props => setAllProperties(props)).catch(() => {})
   }, [])
 
-  const handleFindMatches = () => {
+  const handleFindMatches = async () => {
     setLoading(true)
+    setMatchError('')
     savePreferences(preferences)
-    // Real scoring over the live property set — no artificial delay.
-    const matched = matchAllProperties(allProperties, preferences)
-    const resultsWithProperties = matched
-      .map(m => {
-        const property = allProperties.find(p => (p.id || (p as any)._id) === m.propertyId)
-        if (!property) return null
-        return { ...m, property }
+    // Sprint 13: scoring runs on the backend against live MongoDB listings —
+    // same weights, but server-side so every client sees consistent results.
+    try {
+      const response = await fetchAiMatches({
+        budget: { min: preferences.budget.min, max: preferences.budget.max },
+        location: { city: preferences.location[0] || '' },
+        propertyType: preferences.propertyType === 'any' ? '' : preferences.propertyType,
+        bedrooms: preferences.bedrooms,
+        amenities: preferences.amenities,
       })
-      .filter(Boolean) as (MatchResult & { property: Property })[]
-    setResults(resultsWithProperties)
-    setStep('results')
-    setLoading(false)
+      const resultsWithProperties = response.matches
+        .map(m => {
+          const property = allProperties.find(p => (p.id || (p as any)._id) === m.propertyId)
+          return { ...m, property: property || ({
+            id: m.propertyId,
+            title: m.title,
+            neighborhood: (m.location?.subCity || m.location?.city || 'Unknown') as any,
+            priceEtb: m.rentAmount,
+            beds: m.bedrooms,
+            baths: m.bathrooms,
+            verified: m.verificationStatus === 'verified',
+            image: m.images?.[0]?.url || '/images/placeholder.svg',
+          } as any) }
+        })
+      // Grade mirrors the score band (same scale as the pre-Sprint-13 UI)
+      const withGrade = resultsWithProperties.map(m => ({
+        ...m,
+        grade: (m.score >= 90 ? 'A+' : m.score >= 80 ? 'A' : m.score >= 70 ? 'B+' : m.score >= 60 ? 'B' : m.score >= 45 ? 'C' : 'D') as AiMatch['grade'],
+      }))
+      setResults(withGrade as (AiMatch & { property: Property })[])
+      setMeta(response.meta)
+    } catch {
+      setMatchError('Could not reach the matching service. Is the backend running?')
+    } finally {
+      setLoading(false)
+      setStep('results')
+    }
   }
 
   const toggleLocation = (loc: string) => {
@@ -303,8 +332,13 @@ export default function AIMatchPage() {
               <div>
                 <h2 className="font-semibold text-charcoal">AI Analysis Complete</h2>
                 <p className="text-sm text-charcoal/60">
-                  Matched {results.length} of {allProperties.length} properties • Budget: ETB {preferences.budget.min.toLocaleString()} – {preferences.budget.max.toLocaleString()}
+                  Top {results.length} matches from {meta?.candidatesConsidered ?? allProperties.length} live listings • Budget: ETB {preferences.budget.min.toLocaleString()} – {preferences.budget.max.toLocaleString()}
                 </p>
+                {meta && (
+                  <p className="mt-0.5 text-xs text-charcoal/40">
+                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${Math.round(w * 100)}%`).join(', ')}
+                  </p>
+                )}
               </div>
             </div>
             <button
@@ -316,7 +350,14 @@ export default function AIMatchPage() {
           </div>
 
           {/* Results */}
-          {results.length === 0 ? (
+          {matchError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+              <p className="text-sm text-red-700">{matchError}</p>
+              <button onClick={() => setStep('preferences')} className="mt-3 text-rust hover:text-rust-dark font-medium text-sm">
+                Try again
+              </button>
+            </div>
+          ) : results.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-lg border border-sand">
               <svg className="w-16 h-16 text-charcoal/20 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

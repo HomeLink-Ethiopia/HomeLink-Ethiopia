@@ -1,11 +1,10 @@
 'use client'
 
-import Image from 'next/image'
-import { personPhoto } from '@/lib/images'
 import { useUIStore } from '@/lib/store'
 import NotificationBell from '@/components/shared/NotificationBell'
+import UserChip from '@/components/shared/UserChip'
 
-export default function TopBar({ tenantName }: { tenantName: string }) {
+export default function TopBar({ /* tenantName kept for compat, unused */ }: { tenantName?: string }) {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
 
   return (
@@ -31,15 +30,7 @@ export default function TopBar({ tenantName }: { tenantName: string }) {
 
       <NotificationBell />
 
-      <button type="button" className="flex items-center gap-2 text-sm font-medium text-charcoal">
-        <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full">
-          <Image src={personPhoto('tenant-tsedi')} alt={tenantName} fill sizes="32px" className="object-cover" />
-        </span>
-        <span className="hidden sm:inline">{tenantName}</span>
-        <svg viewBox="0 0 20 20" fill="currentColor" className="hidden h-3.5 w-3.5 text-charcoal/50 sm:block">
-          <path d="M5.5 7.5l4.5 4.5 4.5-4.5" />
-        </svg>
-      </button>
+      <UserChip />
       </div>
     </div>
   )

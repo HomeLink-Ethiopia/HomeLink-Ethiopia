@@ -1,6 +1,7 @@
 'use client'
 
 import { useLanguage } from '@/lib/language-context'
+import { useAuth } from '@/lib/auth-context'
 
 import { useRef } from 'react'
 import Link from 'next/link'
@@ -91,11 +92,13 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 /* ─── PAGE ───────────────────────────────────────────────────────────────── */
 export default function LandlordDashboardPage() {
   const { t } = useLanguage()
+  const { user } = useAuth()
+  const firstName = user?.name?.trim().split(' ')[0] || 'there'
   return (
     <>
       <TopBar
         title="Dashboard"
-        subtitle="Good morning, Abebe. Here's your portfolio at a glance."
+        subtitle={`Welcome back, ${firstName}. Here's your portfolio at a glance.`}
       />
 
       <main className="flex-1 space-y-8 px-6 py-8 sm:px-8">

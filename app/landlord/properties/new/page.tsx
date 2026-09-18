@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/landlord/TopBar'
+import { fetchRentEstimate, type AiRentEstimate } from '@/services/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -34,6 +35,39 @@ export default function NewPropertyPage() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [images, setImages] = useState<ImagePreview[]>([])
+  // Sprint 13 — AI rent estimate
+  const [estimating, setEstimating] = useState(false)
+  const [estimate, setEstimate] = useState<AiRentEstimate | null>(null)
+
+  async function estimateRent() {
+    setEstimating(true)
+    setEstimate(null)
+    try {
+      const result = await fetchRentEstimate({
+        city: formData.city || 'Addis Ababa',
+        subCity: formData.subCity || undefined,
+        propertyType: formData.propertyType,
+        sizeM2: formData.sizeM2 ? Number(formData.sizeM2) : undefined,
+        bedrooms: formData.bedrooms ? Number(formData.bedrooms) : undefined,
+        amenities: formData.amenities,
+      })
+      setEstimate(result)
+    } catch (e) {
+      // Surface the real failure (network vs validation) instead of a generic message
+      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : ''
+      setEstimate({
+        min: null,
+        max: null,
+        point: null,
+        currency: 'ETB',
+        confidence: 'none',
+        sampleSize: 0,
+        message: msg || 'Could not reach the estimation service. Make sure the backend is running on port 5000.',
+      })
+    } finally {
+      setEstimating(false)
+    }
+  }
 
   const [formData, setFormData] = useState({
     title: '',
@@ -526,6 +560,41 @@ export default function NewPropertyPage() {
                       <span className="text-sm font-medium text-charcoal">Furnished</span>
                     </label>
                   </div>
+                </div>
+
+                {/* Sprint 13 — AI rent estimate from real comparables */}
+                <div className="rounded-lg border border-charcoal/10 bg-cream p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-charcoal">Not sure what to charge?</p>
+                      <p className="text-xs text-charcoal/50">Compare with real listings of the same type in your city.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={estimateRent}
+                      disabled={estimating || !formData.propertyType || !formData.city}
+                      className="shrink-0 rounded bg-rust px-4 py-2 text-xs font-medium text-white hover:bg-rust-dark disabled:opacity-50"
+                    >
+                      {estimating ? 'Estimating…' : 'Get AI Estimate'}
+                    </button>
+                  </div>
+                  {estimate && (
+                    <div className="mt-3">
+                      {estimate.point ? (
+                        <>
+                          <p className="text-sm text-charcoal">
+                            Estimated: <span className="font-semibold">ETB {estimate.min?.toLocaleString()} – {estimate.max?.toLocaleString()}/month</span>
+                          </p>
+                          <p className="mt-0.5 text-xs text-charcoal/50">
+                            Based on {estimate.sampleSize} comparable listing{estimate.sampleSize === 1 ? '' : 's'} on HomeLink · confidence: {estimate.confidence}
+                            {estimate.note ? ` · ${estimate.note}` : ''}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-charcoal/60">{estimate.message}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

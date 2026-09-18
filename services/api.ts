@@ -122,6 +122,100 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
   return result.properties
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 13 — Responsible AI service (real backend endpoints)
+// ---------------------------------------------------------------------------
+
+export interface AiRentEstimate {
+  min: number | null
+  max: number | null
+  point: number | null
+  currency: string
+  confidence: 'high' | 'medium' | 'low' | 'none'
+  sampleSize: number
+  comparables?: number[]
+  message?: string
+  note?: string
+}
+
+/** Comparables-based rent estimate from real HomeLink listings. */
+export async function fetchRentEstimate(input: {
+  city: string
+  subCity?: string
+  propertyType: string
+  sizeM2?: number
+  bedrooms?: number
+  amenities?: string[]
+}): Promise<AiRentEstimate> {
+  const response = await post<{ data: { estimate: AiRentEstimate } }>('/api/v1/ai/rent-estimate', input)
+  return response.data.data.estimate
+}
+
+export interface AiMatch {
+  propertyId: string
+  title: string
+  propertyType: string
+  rentAmount: number
+  bedrooms: number
+  bathrooms: number
+  sizeM2?: number
+  location: { city?: string; subCity?: string }
+  images: { url?: string; key?: string }[]
+  verificationStatus: string
+  score: number
+  grade: 'A+' | 'A' | 'B+' | 'B' | 'C' | 'D'
+  breakdown: { budget: number; location: number; propertyType: number; bedrooms: number; amenities: number; availability: number }
+  reasons: { icon: 'check' | 'close' | 'partial'; text: string }[]
+}
+
+export interface AiMatchResponse {
+  matches: AiMatch[]
+  meta: {
+    weights: Record<string, number>
+    candidatesConsidered: number
+    confidence: 'high' | 'medium' | 'low'
+    method: string
+    note: string
+  }
+}
+
+/** Explainable weighted matching against live listings. */
+export async function fetchAiMatches(prefs: {
+  budget?: { min?: number; max?: number }
+  location?: { city?: string; subCity?: string }
+  propertyType?: string
+  bedrooms?: number | null
+  amenities?: string[]
+  limit?: number
+}): Promise<AiMatchResponse> {
+  const response = await post<{ data: AiMatchResponse }>('/api/v1/ai/match', prefs)
+  return response.data.data
+}
+
+export interface AiFraudPriorityItem {
+  propertyId: string
+  title: string
+  propertyType: string
+  rentAmount: number
+  location: { city?: string; subCity?: string }
+  verificationStatus: string
+  listingStatus: string
+  riskScore: number
+  riskLevel: 'HIGH' | 'MEDIUM' | 'LOW'
+  signals: string[]
+}
+
+export interface AiFraudPriorityResponse {
+  queue: AiFraudPriorityItem[]
+  summary: { total: number; high: number; medium: number; low: number; note: string }
+}
+
+/** Admin-only prioritized fraud review queue. */
+export async function fetchFraudPriority(): Promise<AiFraudPriorityResponse> {
+  const response = await get<{ data: AiFraudPriorityResponse }>('/api/v1/ai/fraud-priority')
+  return response.data.data
+}
+
 /** Fetch a single property with full detail by id. Throws if not found. */
 export async function fetchProperty(id: string): Promise<Property | null> {
   try {

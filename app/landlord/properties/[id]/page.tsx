@@ -3,7 +3,19 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import TopBar from '@/components/landlord/TopBar'
+import { mapApiProperty } from '@/services/api'
+
+// Real Leaflet map (same component as the public property page) — client-only
+const PropertyMap = dynamic(() => import('@/components/discovery/PropertyMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-charcoal/5 text-xs text-charcoal/40">
+      Loading map…
+    </div>
+  ),
+})
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -31,6 +43,7 @@ interface Property {
     subCity?: string
     woreda?: string
     city?: string
+    coordinates?: { coordinates?: number[] }
   }
   listingStatus: string
   verificationStatus: string
@@ -338,10 +351,24 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 {loc.woreda && <p className="text-charcoal/50">Woreda: <span className="font-medium text-charcoal/70">{loc.woreda}</span></p>}
                 <p className="text-charcoal/50">City: <span className="font-medium text-charcoal/70">{loc.city || 'Addis Ababa'}</span></p>
               </div>
-              {/* Map placeholder */}
-              <div className="mt-4 rounded-lg bg-charcoal/5 h-40 flex items-center justify-center">
-                <p className="text-xs text-charcoal/30">Map view (coming soon)</p>
+              {/* Real map — property coordinates from the DB (OpenStreetMap) */}
+              <div className="mt-4 h-56 overflow-hidden rounded-lg border border-charcoal/10">
+                <PropertyMap properties={[mapApiProperty(property)]} />
               </div>
+              {(() => {
+                const c = property.location?.coordinates?.coordinates
+                if (!c || c.length < 2) return null
+                return (
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${c[1]}&mlon=${c[0]}#map=16/${c[1]}/${c[0]}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-xs font-medium text-rust hover:text-rust-dark"
+                  >
+                    Open larger map ↗
+                  </a>
+                )
+              })()}
             </div>
           </div>
 

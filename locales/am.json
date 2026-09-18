@@ -203,7 +203,7 @@
         "collected": "ተሰብስቧል",
         "pending": "በመጠባበቅ ላይ",
         "overdue": "ዘግይቷል"
-      },
+      },"reports":{"title":"ሪፖርቶች","subtitle":"የገቢ እና የንብረት አፈጻጸም"},
       "maintenance": {
         "title": "የጥገና ጥያቄዎች",
         "subtitle": "የንብረት ጥገና ይያዙ",
@@ -381,7 +381,9 @@
     "helpCenter": "የእርዳታ ማዕከል",
     "contactSupport": "ድጋፍ ያግኙ",
     "landlordVerification": "የባለቤት ማረጋገጫ",
-    "propertyVerification": "የንብረት ማረጋገጫ"
+    "propertyVerification": "የንብረት ማረጋገጫ",
+    "reviews": "ግምገማዎች",
+    "analytics": "ትንተና"
   },
   "tenantDashboard": {
     "title": "ፋንኳኛ ዳሽቦርድ",

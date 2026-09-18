@@ -21,12 +21,15 @@ export default function Sidebar() {
     { label: t.sidebar.tenants, href: '/landlord/tenants', icon: 'users' },
     { label: t.sidebar.rentPayments, href: '/landlord/rent-payments', icon: 'card' },
     { label: t.sidebar.maintenance, href: '/landlord/maintenance', icon: 'wrench' },
-    { label: t.sidebar.reports, href: '#', icon: 'chart' },
-    { label: t.sidebar.messages, href: '#', icon: 'mail', badge: 2 },
+    { label: t.sidebar.reviews, href: '/landlord/reviews', icon: 'star' },
+    { label: t.sidebar.disputes, href: '/landlord/disputes', icon: 'scale' },
+    { label: t.sidebar.reports, href: '/landlord/reports', icon: 'chart' },
+    { label: t.sidebar.messages, href: '/landlord/messages', icon: 'mail' },
   ]
 
   const FOOTER_NAV = [
-    { label: t.sidebar.settings, href: '#', icon: 'settings' },
+    { label: t.sidebar.profile, href: '/landlord/profile', icon: 'user' },
+    { label: t.sidebar.settings, href: '/landlord/settings', icon: 'settings' },
     { label: t.sidebar.logout, href: '/logout', icon: 'logout' },
   ]
 
@@ -44,6 +47,8 @@ const ICON_PATH: Record<string, string> = {
   settings: 'M10 13a3 3 0 100-6 3 3 0 000 6zM3 10h1M16 10h1M10 3v1M10 16v1M5 5l.7.7M14.3 14.3l.7.7M5 15l.7-.7M14.3 5.7l.7-.7',
   help: 'M10 18a8 8 0 100-16 8 8 0 000 16zM7.8 7.5a2.2 2.2 0 014.2.9c0 1.5-2 1.6-2 3.1M10 14.2v.1',
   support: 'M10 2a8 8 0 018 8M2 10a8 8 0 018-8M4.5 4.5l2.8 2.8M15.5 4.5l-2.8 2.8M4.5 15.5l2.8-2.8M15.5 15.5l-2.8-2.8M6.5 10a3.5 3.5 0 117 0 3.5 3.5 0 01-7 0z',
+  star: 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.51.91-5.33-3.87-3.77 5.34-.78L10 1z',
+  scale: 'M10 2v16M4 6l-3 6a3 3 0 006 0l-3-6zM16 6l-3 6a3 3 0 006 0l-3-6zM4 6h12',
   logout: 'M11 16l4-4m0 0l-4-4m4 4H5m0-8v16',
 }
 

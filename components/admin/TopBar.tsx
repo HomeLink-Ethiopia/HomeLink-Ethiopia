@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useUIStore } from '@/lib/store'
 import NotificationBell from '@/components/shared/NotificationBell'
 import UserChip from '@/components/shared/UserChip'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 
 const PERIODS = ['Today', 'This Week', 'This Month', 'Last 6 Months'] as const
 
@@ -29,6 +30,8 @@ export default function TopBar({ title, defaultPeriod = 'This Month' }: { title:
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        <LanguageToggle />
+
         <div className="relative hidden sm:block">
           <button
             type="button"

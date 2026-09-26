@@ -143,11 +143,7 @@ function NavIcon({ name }: { name: string }) {
         <div className="space-y-1 border-t border-white/10 pt-3">
           <Link href="/support" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="help" />
-            {t.sidebar.needHelp}
-          </Link>
-          <Link href="/support" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
-            <NavIcon name="support" />
-            {t.sidebar.contactSupport}
+            {t.sidebar.helpCenter}
           </Link>
         </div>
       </aside>

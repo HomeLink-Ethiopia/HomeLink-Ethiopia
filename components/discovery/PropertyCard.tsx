@@ -9,10 +9,10 @@ import { formatEtb } from '@/lib/properties'
 import { useFavoritesStore } from '@/lib/store'
 import { useLanguage } from '@/lib/language-context'
 
-// motion() wraps Link itself (not a div around it) so the tilt/hover
-// transform and focus state live on the same element that navigates —
-// whileFocus on a div wrapped by a separate <a> wouldn't fire on tab.
-const MotionLink = motion(Link)
+// NOTE: never wrap next/link's <Link> in motion() — framer-motion owns the
+// wrapper element's DOM node and unmounting it mid-navigation crashes React
+// with "Failed to execute 'removeChild' on 'Node'". The tilt/hover motion
+// values live on an inner motion.div instead; navigation stays a plain Link.
 
 interface PropertyCardProps {
   property: Property
@@ -35,7 +35,7 @@ export default function PropertyCard({
   onHoverChange,
   className = '',
 }: PropertyCardProps) {
-  const cardRef = useRef<HTMLAnchorElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const saved = useFavoritesStore((s) => s.favorites.has(property.id))
   const { locale } = useLanguage()
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
@@ -51,7 +51,7 @@ export default function PropertyCard({
     damping: 25,
   })
 
-  function handlePointerMove(e: React.PointerEvent<HTMLAnchorElement>) {
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const rect = cardRef.current?.getBoundingClientRect()
     if (!rect) return
     mouseX.set((e.clientX - rect.left) / rect.width - 0.5)
@@ -64,26 +64,30 @@ export default function PropertyCard({
   }
 
   return (
-    <MotionLink
+    <Link
       href={`/property/${property.id}`}
-      ref={cardRef}
-      style={{ rotateX, rotateY, transformPerspective: 800 }}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={() => {
-        resetTilt()
-        onHoverChange?.(false)
-      }}
-      onPointerEnter={() => onHoverChange?.(true)}
-      whileHover={{ y: -8, scale: 1.015 }}
-      whileFocus={{ y: -8, scale: 1.015 }}
-      animate={
-        isHighlighted
-          ? { y: -8, scale: 1.015, boxShadow: '0 24px 40px -16px rgba(42,37,33,0.35)' }
-          : { y: 0, scale: 1, boxShadow: '0 1px 0 rgba(42,37,33,0.06)' }
-      }
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      className={`group block overflow-hidden rounded-lg bg-white ${className}`}
+      className={`group block overflow-hidden rounded-lg bg-white focus:outline-none ${className}`}
     >
+      <motion.div
+        ref={cardRef}
+        style={{ rotateX, rotateY, transformPerspective: 800 }}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={() => {
+          resetTilt()
+          onHoverChange?.(false)
+        }}
+        onPointerEnter={() => onHoverChange?.(true)}
+        whileHover={{ y: -8, scale: 1.015 }}
+        whileFocus={{ y: -8, scale: 1.015 }}
+        animate={
+          isHighlighted
+            ? { y: -8, scale: 1.015, boxShadow: '0 24px 40px -16px rgba(42,37,33,0.35)' }
+            : { y: 0, scale: 1, boxShadow: '0 1px 0 rgba(42,37,33,0.06)' }
+        }
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="block"
+        tabIndex={-1}
+      >
       <div className="relative aspect-[4/3] overflow-hidden">
         <Image
           src={property.image}
@@ -160,6 +164,7 @@ export default function PropertyCard({
           <span className="text-charcoal/50">({property.reviewCount})</span>
         </div>
       </div>
-    </MotionLink>
+      </motion.div>
+    </Link>
   )
 }

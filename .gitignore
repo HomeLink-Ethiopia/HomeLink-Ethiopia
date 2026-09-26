@@ -12,3 +12,6 @@ backend/.env
 homelink-backend-temp/
 backend/
 tsconfig.tsbuildinfo
+
+# Local backend backup (contains user data snapshots) - never publish
+backend-backup-kidist/

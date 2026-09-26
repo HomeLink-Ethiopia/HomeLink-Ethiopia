@@ -16,14 +16,17 @@ interface DisputeThread {
 
 interface Dispute {
   _id: string
-  reason: string
+  // Backend stores the reason as `category`; keep `reason` as a normalized alias
+  reason?: string
+  category?: string
   description: string
   status: 'open' | 'under_review' | 'resolved' | 'rejected' | 'withdrawn'
   propertyId?: { title?: string; location?: { city?: string; subCity?: string } } | null
   filedBy?: { firstName?: string; lastName?: string; email?: string }
   againstUserId?: { firstName?: string; lastName?: string; email?: string }
   resolution?: string
-  thread: DisputeThread[]
+  thread?: DisputeThread[]
+  history?: { status?: string; note?: string; at?: string }[]
   createdAt: string
 }
 
@@ -163,7 +166,7 @@ export default function TenantDisputesPage() {
             <h2 className="font-display text-lg font-semibold text-charcoal">New dispute</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="text-sm">
-                <span className="text-charcoal/70">Related agreement (optional)</span>
+                <span className="text-charcoal/70">Related agreement</span>
                 <select
                   value={agreementId}
                   onChange={(e) => setAgreementId(e.target.value)}
@@ -233,7 +236,7 @@ export default function TenantDisputesPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-medium capitalize text-charcoal/60">
-                      {d.reason.replace(/_/g, ' ')}
+                      {(d.reason || d.category || 'other').replace(/_/g, ' ')}
                     </span>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[d.status]}`}>
                       {d.status.replace(/_/g, ' ')}
@@ -256,7 +259,7 @@ export default function TenantDisputesPage() {
                       {active.status.replace(/_/g, ' ')}
                     </span>
                     <h2 className="mt-2 font-display text-lg font-semibold capitalize text-charcoal">
-                      {active.reason.replace(/_/g, ' ')}
+                      {(active.reason || active.category || 'other').replace(/_/g, ' ')}
                     </h2>
                     <p className="text-xs text-charcoal/40">
                       Filed {new Date(active.createdAt).toLocaleDateString()}
@@ -288,7 +291,7 @@ export default function TenantDisputesPage() {
                   Communication
                 </h3>
                 <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
-                  {active.thread.map((m, i) => (
+                  {(active.thread || []).map((m, i) => (
                     <div key={i} className="rounded bg-cream p-2.5">
                       <p className="text-xs font-medium capitalize text-charcoal">
                         {m.from} <span className="font-normal text-charcoal/40">{m.fromName ? `· ${m.fromName}` : ''}</span>

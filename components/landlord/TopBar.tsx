@@ -3,6 +3,7 @@
 import { useUIStore } from '@/lib/store'
 import NotificationBell from '@/components/shared/NotificationBell'
 import UserChip from '@/components/shared/UserChip'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 
 export default function TopBar({ title, subtitle }: { title: string; subtitle?: string }) {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
@@ -27,6 +28,8 @@ export default function TopBar({ title, subtitle }: { title: string; subtitle?: 
       </div>
 
       <div className="flex shrink-0 items-center gap-3 sm:gap-5">
+        <LanguageToggle />
+
         <NotificationBell />
 
         <UserChip />

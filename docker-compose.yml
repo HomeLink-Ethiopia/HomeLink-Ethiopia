@@ -1,0 +1,44 @@
+# HomeLink — full stack for development/staging
+# Usage: docker compose up --build
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - CHAPA_SECRET_KEY=${CHAPA_SECRET_KEY}
+      - AI_SERVICE_URL=http://ai-service:8000
+      - CORS_ORIGIN=http://localhost:3000
+    depends_on:
+      ai-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai-service:
+    build: ./ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped

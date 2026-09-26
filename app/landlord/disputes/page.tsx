@@ -16,7 +16,9 @@ interface DisputeThread {
 
 interface Dispute {
   _id: string
-  reason: string
+  // Backend stores the reason as `category`; keep `reason` as a normalized alias
+  reason?: string
+  category?: string
   description: string
   status: 'open' | 'under_review' | 'resolved' | 'rejected' | 'withdrawn'
   filedByRole: string
@@ -24,7 +26,8 @@ interface Dispute {
   filedBy?: { firstName?: string; lastName?: string }
   againstUserId?: { firstName?: string; lastName?: string }
   resolution?: string
-  thread: DisputeThread[]
+  thread?: DisputeThread[]
+  history?: { status?: string; note?: string; at?: string }[]
   createdAt: string
 }
 
@@ -205,7 +208,7 @@ export default function LandlordDisputesPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-medium capitalize text-charcoal/60">
-                      {d.reason.replace(/_/g, ' ')}
+                      {(d.reason || d.category || 'other').replace(/_/g, ' ')}
                     </span>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[d.status]}`}>
                       {d.status.replace(/_/g, ' ')}
@@ -228,7 +231,7 @@ export default function LandlordDisputesPage() {
                       {active.status.replace(/_/g, ' ')}
                     </span>
                     <h2 className="mt-2 font-display text-lg font-semibold capitalize text-charcoal">
-                      {active.reason.replace(/_/g, ' ')}
+                      {(active.reason || active.category || 'other').replace(/_/g, ' ')}
                     </h2>
                     <p className="text-xs text-charcoal/40">
                       Filed {new Date(active.createdAt).toLocaleDateString()} by{' '}
@@ -262,7 +265,7 @@ export default function LandlordDisputesPage() {
                   Communication
                 </h3>
                 <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
-                  {active.thread.map((m, i) => (
+                  {(active.thread || []).map((m, i) => (
                     <div key={i} className="rounded bg-cream p-2.5">
                       <p className="text-xs font-medium capitalize text-charcoal">
                         {m.from} <span className="font-normal text-charcoal/40">{m.fromName ? `· ${m.fromName}` : ''}</span>

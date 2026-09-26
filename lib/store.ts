@@ -7,11 +7,14 @@ import { create } from 'zustand'
  * stacking workflow modals would confuse the "what am I submitting"
  * mental model this platform depends on for trust.
  */
-export type ModalKind = 'application' | 'viewing' | 'maintenance' | 'fraud' | null
+export type ModalKind = 'application' | 'viewing' | 'maintenance' | 'fraud' | 'message' | null
 
 export interface ModalContext {
   propertyId?: string
   propertyTitle?: string
+  /** User account id of the landlord (property.landlord.accountId) for the message modal */
+  receiverId?: string
+  receiverName?: string
 }
 
 interface UIState {

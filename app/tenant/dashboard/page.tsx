@@ -10,6 +10,7 @@ import RentPaymentCard from '@/components/tenant/RentPaymentCard'
 import QuickActions from '@/components/tenant/QuickActions'
 import MaintenanceTrackerCard from '@/components/tenant/MaintenanceTrackerCard'
 import AiRecommendations from '@/components/tenant/AiRecommendations'
+import CreditScoreCard from '@/components/tenant/CreditScoreCard'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -124,6 +125,10 @@ export default function TenantDashboardPage() {
               date: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '',
             }))}
           />
+        </div>
+
+        <div className="mt-8">
+          <CreditScoreCard />
         </div>
 
         <div className="mt-8">

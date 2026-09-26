@@ -29,7 +29,7 @@ interface RawLandlord {
   averageRating?: number
   reviewCount?: number
   createdAt?: string
-  accountId?: { email?: string; phone?: string; createdAt?: string }
+  accountId?: { _id?: string; email?: string; phone?: string; createdAt?: string } | string
 }
 
 interface RawProperty extends Property {
@@ -172,7 +172,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const verification = VERIFICATION_LABEL[property.verificationStatus || (property.verified ? 'verified' : 'unverified')] || VERIFICATION_LABEL.unverified
   const landlord = property.landlord
   const landlordVerified = landlord?.verificationStatus === 'verified'
-  const memberSince = landlord?.accountId?.createdAt || landlord?.createdAt
+  const landlordAccount = typeof landlord?.accountId === 'object' ? landlord?.accountId : null
+  const memberSince = landlordAccount?.createdAt || landlord?.createdAt
 
   return (
     <div className="min-h-screen bg-cream/40">
@@ -361,6 +362,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               propertyTitle={property.title}
               priceEtb={property.priceEtb}
               depositEtb={deposit}
+              landlordAccountId={
+                typeof (landlord as any)?.accountId === 'object'
+                  ? (landlord as any)?.accountId?._id
+                  : (landlord as any)?.accountId
+              }
+              landlordName={landlord?.legalName}
             />
 
             <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-sm">

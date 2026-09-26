@@ -23,6 +23,7 @@ export default function Sidebar() {
     { label: t.sidebar.reviews, href: '/tenant/reviews', icon: 'star' },
     { label: t.sidebar.disputes, href: '/tenant/disputes', icon: 'scale' },
     { label: t.sidebar.aiMatch, href: '/tenant/ai-match', icon: 'match' },
+    { label: 'Neighborhoods', href: '/tenant/neighborhoods', icon: 'map' },
   ]
 
   const SECONDARY_NAV = [
@@ -53,6 +54,7 @@ const ICON_PATH: Record<string, string> = {
   book: 'M4 3h9a2 2 0 012 2v11a1.5 1.5 0 00-1.5-1.5H4V3zM4 14.5V3',
   logout: 'M11 16l4-4m0 0l-4-4m4 4H5m0-8v16',
   match: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+  map: 'M9 3L3 5v14l6-2 6 2 6-2V3l-6 2-6-2zM9 3v14M15 5v14',
   star: 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.51.91-5.33-3.87-3.77 5.34-.78L10 1z',
   scale: 'M10 2v16M4 6l-3 6a3 3 0 006 0l-3-6zM16 6l-3 6a3 3 0 006 0l-3-6zM4 6h12',
 }
@@ -153,10 +155,6 @@ function NavIcon({ name }: { name: string }) {
         <div className="space-y-1 border-t border-white/10 pt-3">
           <Link href="/support" className={itemClass('#')}>
             <NavIcon name="help" />
-            {t.sidebar.needHelp}
-          </Link>
-          <Link href="/support" className={itemClass('#')}>
-            <NavIcon name="book" />
             {t.sidebar.helpCenter}
           </Link>
         </div>

@@ -5,6 +5,7 @@ import TopBar from '@/components/landlord/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/LoadingSkeleton'
 import { notify } from '@/lib/notifications'
+import RenewalPanel from '@/components/agreements/RenewalPanel'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -234,6 +235,13 @@ export default function LandlordAgreementsPage() {
                       </button>
                     )}
                   </div>
+
+                  {/* Smart Lease Renewal — expiry banner, AI price, one-click signing */}
+                  {a.status === 'active' && (
+                    <div className="mt-4">
+                      <RenewalPanel agreement={a} myRole="landlord" onChanged={fetchAgreements} />
+                    </div>
+                  )}
 
                   {/* Rent tracking for active agreements */}
                   {a.status === 'active' && (

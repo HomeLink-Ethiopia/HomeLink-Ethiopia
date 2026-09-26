@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import TopBar from '@/components/tenant/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/LoadingSkeleton'
+import RenewalPanel from '@/components/agreements/RenewalPanel'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -258,6 +259,13 @@ export default function AgreementsPage() {
               {actionError && (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
                   <p className="text-sm text-red-700">{actionError}</p>
+                </div>
+              )}
+
+              {/* Smart Lease Renewal — expiry banner, AI price, one-click signing */}
+              {active.status === 'active' && (
+                <div className="mt-5">
+                  <RenewalPanel agreement={active} myRole="tenant" onChanged={fetchAgreements} />
                 </div>
               )}
 

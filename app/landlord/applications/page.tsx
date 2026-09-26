@@ -118,6 +118,37 @@ export default function LandlordApplicationsPage() {
   const applicantPhone = (a: Application) =>
     a.phone || (typeof a.tenantId === 'object' ? a.tenantId?.phone : undefined)
 
+  // ─── Tenant Rent Credit Score: fetch scores for all applicants in one batch ───
+  const [scores, setScores] = useState<Record<string, { score: number; tier: string }>>({})
+  useEffect(() => {
+    const token = localStorage.getItem('hl_token')
+    if (!token || apps.length === 0) return
+    const ids = Array.from(
+      new Set(
+        apps
+          .map((a) => (typeof a.tenantId === 'object' ? (a.tenantId as { _id?: string })?._id : a.tenantId))
+          .filter((v): v is string => Boolean(v))
+      )
+    )
+    if (ids.length === 0) return
+    fetch(`${API_URL}/api/v1/credit-score/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ tenantIds: ids }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.data && setScores(d.data))
+      .catch(() => {})
+  }, [apps])
+
+  const SCORE_TIER: Record<string, { label: string; cls: string }> = {
+    excellent: { label: 'Excellent tenant', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    good: { label: 'Good tenant', cls: 'bg-green-50 text-green-700 border-green-200' },
+    fair: { label: 'Fair tenant', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    building: { label: 'New tenant', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+    risky: { label: 'Flagged: at risk', cls: 'bg-red-50 text-red-700 border-red-200' },
+  }
+
   const filtered = filter === 'all' ? apps : apps.filter((a) => a.status === filter)
   const counts = {
     all: apps.length,
@@ -177,6 +208,21 @@ export default function LandlordApplicationsPage() {
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLE[app.status] || STATUS_STYLE.submitted}`}>
                           {STATUS_LABEL[app.status] || app.status}
                         </span>
+                        {(() => {
+                          const tid = typeof app.tenantId === 'object' ? (app.tenantId as { _id?: string })?._id : app.tenantId
+                          const s = tid ? scores[tid] : undefined
+                          if (!s) return null
+                          const t = SCORE_TIER[s.tier] || SCORE_TIER.building
+                          return (
+                            <span
+                              title={`Rent Credit Score: ${s.score}/1000 — based on on-time payments, lease completion and landlord reviews`}
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${t.cls}`}
+                            >
+                              ★ {s.score}
+                              <span className="font-normal opacity-75">· {t.label}</span>
+                            </span>
+                          )
+                        })()}
                       </div>
                       <p className="mt-0.5 text-sm text-charcoal/60">
                         {propertyTitle(app)}

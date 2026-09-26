@@ -3,6 +3,7 @@
 import { useUIStore } from '@/lib/store'
 import NotificationBell from '@/components/shared/NotificationBell'
 import UserChip from '@/components/shared/UserChip'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 
 export default function TopBar({ /* tenantName kept for compat, unused */ }: { tenantName?: string }) {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
@@ -27,6 +28,8 @@ export default function TopBar({ /* tenantName kept for compat, unused */ }: { t
         </svg>
         Messages
       </button>
+
+      <LanguageToggle />
 
       <NotificationBell />
 

@@ -22,6 +22,7 @@ interface Viewing {
 
 const STATUS_STYLE: Record<string, string> = {
   requested: 'bg-gold text-charcoal',
+  pending: 'bg-gold text-charcoal',
   confirmed: 'bg-verified text-white',
   completed: 'bg-charcoal/15 text-charcoal',
   cancelled: 'bg-rust text-white',
@@ -30,6 +31,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 const STATUS_LABEL: Record<string, string> = {
   requested: 'Awaiting landlord',
+  pending: 'Awaiting landlord',
   confirmed: 'Confirmed',
   completed: 'Completed',
   cancelled: 'Declined / Cancelled',

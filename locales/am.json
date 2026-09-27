@@ -203,7 +203,7 @@
         "collected": "ተሰብስቧል",
         "pending": "በመጠባበቅ ላይ",
         "overdue": "ዘግይቷል"
-      },
+      },"reports":{"title":"ሪፖርቶች","subtitle":"የገቢ እና የንብረት አፈጻጸም"},
       "maintenance": {
         "title": "የጥገና ጥያቄዎች",
         "subtitle": "የንብረት ጥገና ይያዙ",
@@ -350,6 +350,7 @@
     "search": "ፈልግ",
     "dashboard": "ዳሽቦርድ",
     "applications": "ማመልከቻዎች",
+    "viewings": "ጉብኝቶች",
     "payments": "ክፍያዎች",
     "agreements": "ስምምነቶች",
     "messages": "መልዕክቶች",
@@ -380,7 +381,9 @@
     "helpCenter": "የእርዳታ ማዕከል",
     "contactSupport": "ድጋፍ ያግኙ",
     "landlordVerification": "የባለቤት ማረጋገጫ",
-    "propertyVerification": "የንብረት ማረጋገጫ"
+    "propertyVerification": "የንብረት ማረጋገጫ",
+    "reviews": "ግምገማዎች",
+    "analytics": "ትንተና"
   },
   "tenantDashboard": {
     "title": "ፋንኳኛ ዳሽቦርድ",

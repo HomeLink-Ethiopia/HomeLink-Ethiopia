@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform, AnimatePresence, useInView, useMotionValue, useSpring } from 'framer-motion'
@@ -182,8 +183,27 @@ function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: stri
 /* ─── 1. HERO COMPONENT ─────────────────────────────────────────────────── */
 function HeroSection() {
   const { t, locale } = useLanguage()
+  const router = useRouter()
   const sectionRef = useRef<HTMLDivElement>(null)
   const [slideIdx, setSlideIdx] = useState(0)
+  const [where, setWhere] = useState('Ethiopia')
+  const [heroType, setHeroType] = useState('any')
+  const [heroBudget, setHeroBudget] = useState('any')
+  const [heroBeds, setHeroBeds] = useState('any')
+
+  // Hero search → /explore with the same URL params the Explore toolbar parses
+  function handleHeroSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = new URLSearchParams()
+    const w = where.trim()
+    if (w && !/^ethiopia$/i.test(w) && !/^addis\s*ababa$/i.test(w)) q.set('neighborhood', w)
+    if (heroType !== 'any') q.set('type', heroType)
+    if (heroBudget === 'under15') q.set('maxPrice', '15000')
+    else if (heroBudget === '15to25') { q.set('minPrice', '15000'); q.set('maxPrice', '25000') }
+    else if (heroBudget === 'over25') q.set('minPrice', '25001')
+    if (heroBeds !== 'any') q.set('beds', heroBeds)
+    router.push(`/explore?${q.toString()}`)
+  }
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] })
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '25%'])
   const contentY = useTransform(scrollYProgress, [0, 1], ['0%', '10%'])
@@ -267,7 +287,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.6 }}
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={handleHeroSearch}
           className="mt-10 grid gap-0 rounded-2xl bg-white/98 shadow-2xl backdrop-blur-md sm:grid-cols-[2fr_1.2fr_1.4fr_1fr_auto] overflow-hidden"
           style={{ borderRadius: '16px 16px 36px 16px' }}
         >
@@ -280,7 +300,8 @@ function HeroSection() {
                 <path fillRule="evenodd" d="M10 18s6-5.7 6-10.5A6 6 0 004 7.5C4 12.3 10 18 10 18zm0-8a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
               <input
-                defaultValue="Ethiopia"
+                value={where}
+                onChange={(e) => setWhere(e.target.value)}
                 placeholder={t.hero.searchPlaceholder}
                 className="w-full bg-transparent text-sm font-medium text-charcoal outline-none placeholder:text-charcoal/40"
               />
@@ -291,12 +312,16 @@ function HeroSection() {
             <span className="block font-mono text-[10px] font-semibold uppercase tracking-widest text-charcoal/50">
               {t.hero.propertyType}
             </span>
-            <select className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
+            <select
+              value={heroType}
+              onChange={(e) => setHeroType(e.target.value)}
+              className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none"
+            >
               {(locale === 'EN'
-                ? ['Any', 'Apartment', 'House', 'Villa', 'Studio']
-                : ['ማንኛውም', 'አፓርትመንት', 'ቤት', 'ቪላ', 'ስቱዲዮ']
-              ).map((opt) => (
-                <option key={opt}>{opt}</option>
+                ? [['any', 'Any'], ['apartment', 'Apartment'], ['house', 'House'], ['villa', 'Villa'], ['studio', 'Studio']]
+                : [['any', 'ማንኛውም'], ['apartment', 'አፓርትመንት'], ['house', 'ቤት'], ['villa', 'ቪላ'], ['studio', 'ስቱዲዮ']]
+              ).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
               ))}
             </select>
           </label>
@@ -305,12 +330,16 @@ function HeroSection() {
             <span className="block font-mono text-[10px] font-semibold uppercase tracking-widest text-charcoal/50">
               {t.hero.budget}
             </span>
-            <select className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
+            <select
+              value={heroBudget}
+              onChange={(e) => setHeroBudget(e.target.value)}
+              className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none"
+            >
               {(locale === 'EN'
-                ? ['Any Budget', 'Under ETB 15,000', 'ETB 15,000–25,000', 'Over ETB 25,000']
-                : ['ማንኛውም በጀት', 'ከETB 15,000 በታች', 'ETB 15,000–25,000', 'ከETB 25,000 በላይ']
-              ).map((opt) => (
-                <option key={opt}>{opt}</option>
+                ? [['any', 'Any Budget'], ['under15', 'Under ETB 15,000'], ['15to25', 'ETB 15,000–25,000'], ['over25', 'Over ETB 25,000']]
+                : [['any', 'ማንኛውም በጀት'], ['under15', 'ከETB 15,000 በታች'], ['15to25', 'ETB 15,000–25,000'], ['over25', 'ከETB 25,000 በላይ']]
+              ).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
               ))}
             </select>
           </label>
@@ -319,12 +348,16 @@ function HeroSection() {
             <span className="block font-mono text-[10px] font-semibold uppercase tracking-widest text-charcoal/50">
               {t.hero.bedrooms}
             </span>
-            <select className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none">
+            <select
+              value={heroBeds}
+              onChange={(e) => setHeroBeds(e.target.value)}
+              className="mt-1 w-full bg-transparent text-sm font-medium text-charcoal outline-none"
+            >
               {(locale === 'EN'
-                ? ['Any', '1+', '2+', '3+', '4+']
-                : ['ማንኛውም', '1+', '2+', '3+', '4+']
-              ).map((opt) => (
-                <option key={opt}>{opt}</option>
+                ? [['any', 'Any'], ['1', '1+'], ['2', '2+'], ['3', '3+'], ['4', '4+']]
+                : [['any', 'ማንኛውም'], ['1', '1+'], ['2', '2+'], ['3', '3+'], ['4', '4+']]
+              ).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
               ))}
             </select>
           </label>

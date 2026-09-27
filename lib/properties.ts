@@ -27,10 +27,9 @@ export interface Property {
   images?: string[] // Additional interior photos
   landlordId?: string
   furnished?: boolean
-  status?: 'active' | 'inactive' // For filtering from search results
-  fraudRiskScore?: number
-  riskLevel?: 'low' | 'medium' | 'high'
-  redFlags?: string[]
+  status?: 'active' | 'inactive' | 'draft' | 'rented' | 'suspended' // Availability (from API listingStatus)
+  availability?: string // same as status — explicit Sprint 5 field name
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected' | 'suspended'
   createdAt?: string
   updatedAt?: string
 }
@@ -85,6 +84,10 @@ export const NEIGHBORHOOD_COLOR: Partial<Record<Neighborhood, string>> = {
   CMC: '#B8862B', // gold
   Saris: '#2A2521', // charcoal
   Yeka: '#3D6B4F', // verified green
+}
+
+export function neighborhoodColor(n: Neighborhood): string {
+  return NEIGHBORHOOD_COLOR[n] || '#B8451F'
 }
 
 const RAW: Omit<Property, 'lat' | 'lng' | 'image'>[] = [

@@ -8,9 +8,31 @@
  * - Bedrooms: 15%
  * - Amenities: 10%
  * - Availability: 10%
+ *
+ * Every score is explainable: each factor produces a human-readable reason
+ * shown to the tenant ("Within your budget", "Not in preferred area").
  */
 
-import { get, post } from './http-client'
+const PREFS_STORAGE_KEY = 'hl_ai_preferences'
+
+/** Persist tenant preferences so they survive page reloads (localStorage;
+ * the same shape is ready to be saved to the user's profile in MongoDB). */
+export function savePreferences(preferences: TenantPreferences): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(preferences))
+  } catch { /* ignore */ }
+}
+
+/** Load previously saved preferences, or null if the tenant has none yet. */
+export function loadPreferences(): TenantPreferences | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(PREFS_STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as TenantPreferences
+  } catch { /* ignore */ }
+  return null
+}
 
 export interface TenantPreferences {
   budget: { min: number; max: number }
@@ -277,45 +299,4 @@ export function matchAllProperties(properties: any[], preferences: TenantPrefere
     .sort((a, b) => b.score - a.score)
 }
 
-/**
- * Match properties via the HomeLink backend AI microservice recommendations endpoint.
- * Gracefully falls back to heuristic matching if offline or unauthenticated.
- */
-export async function matchPropertiesViaAI(
-  properties: any[],
-  preferences: TenantPreferences
-): Promise<MatchResult[]> {
-  try {
-    const res = await get<{ data: any[] }>('/api/v1/properties/recommendations')
-    if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-      return res.data.data.map((p: any) => {
-        const score = Math.round(p.matchScore || 85)
-        const reasons: MatchReason[] = (p.matchReasons || ['Recommended match']).map((r: string) => ({
-          icon: 'check' as const,
-          text: r,
-          weight: 0.25
-        }))
-        return {
-          propertyId: String(p._id || p.id),
-          score,
-          grade: getGrade(score),
-          reasons,
-          breakdown: {
-            budget: score,
-            location: score,
-            propertyType: score,
-            bedrooms: score,
-            amenities: score,
-            availability: score
-          }
-        }
-      })
-    }
-  } catch (error) {
-    console.warn('Backend recommendations query fallback to local matching:', error)
-  }
-  return matchAllProperties(properties, preferences)
-}
-
 export { getGradeColor, WEIGHTS }
-

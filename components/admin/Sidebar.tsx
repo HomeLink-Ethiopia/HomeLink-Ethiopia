@@ -14,10 +14,12 @@ export default function Sidebar() {
     { label: t.sidebar.home, href: '/', icon: 'home' },
     { label: t.sidebar.dashboard, href: '/admin/dashboard', icon: 'grid' },
     { label: t.sidebar.verificationQueue, href: '/admin/verification-queue', icon: 'check' },
-    { label: t.sidebar.landlordVerification, href: '/admin/verification-queue', icon: 'user' },
-    { label: t.sidebar.propertyVerification, href: '/admin/verification-queue', icon: 'house' },
+    { label: t.sidebar.landlordVerification, href: '/admin/landlord-verification', icon: 'user' },
+    { label: t.sidebar.propertyVerification, href: '/admin/property-verification', icon: 'house' },
     { label: t.sidebar.fraudReports, href: '/admin/fraud-reports', icon: 'flag' },
     { label: t.sidebar.disputes, href: '/admin/disputes', icon: 'scale' },
+    { label: t.sidebar.users, href: '/admin/users', icon: 'user' },
+    { label: t.sidebar.analytics || 'Analytics', href: '/admin/analytics', icon: 'chart' },
     { label: t.sidebar.riskMonitoring, href: '/admin/risk-monitoring', icon: 'chart' },
     { label: t.sidebar.marketInsights, href: '/admin/market-insights', icon: 'trend' },
     { label: t.sidebar.auditLogs, href: '/admin/audit-logs', icon: 'log' },
@@ -114,7 +116,7 @@ function NavIcon({ name }: { name: string }) {
         </nav>
 
         <div className="border-t border-white/10 pt-3">
-          <Link href="#" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
+          <Link href="/admin/settings" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="settings" />
             {t.sidebar.settings}
           </Link>

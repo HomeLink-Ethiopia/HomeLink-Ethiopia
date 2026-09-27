@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/landlord/TopBar'
-import RentEstimateGauge from '@/components/property/RentEstimateGauge'
-import { fetchRentEstimate } from '@/services/api'
+import { fetchRentEstimate, type AiRentEstimate } from '@/services/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -36,6 +35,39 @@ export default function NewPropertyPage() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [images, setImages] = useState<ImagePreview[]>([])
+  // Sprint 13 — AI rent estimate
+  const [estimating, setEstimating] = useState(false)
+  const [estimate, setEstimate] = useState<AiRentEstimate | null>(null)
+
+  async function estimateRent() {
+    setEstimating(true)
+    setEstimate(null)
+    try {
+      const result = await fetchRentEstimate({
+        city: formData.city || 'Addis Ababa',
+        subCity: formData.subCity || undefined,
+        propertyType: formData.propertyType,
+        sizeM2: formData.sizeM2 ? Number(formData.sizeM2) : undefined,
+        bedrooms: formData.bedrooms ? Number(formData.bedrooms) : undefined,
+        amenities: formData.amenities,
+      })
+      setEstimate(result)
+    } catch (e) {
+      // Surface the real failure (network vs validation) instead of a generic message
+      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : ''
+      setEstimate({
+        min: null,
+        max: null,
+        point: null,
+        currency: 'ETB',
+        confidence: 'none',
+        sampleSize: 0,
+        message: msg || 'Could not reach the estimation service. Make sure the backend is running on port 5000.',
+      })
+    } finally {
+      setEstimating(false)
+    }
+  }
 
   const [formData, setFormData] = useState({
     title: '',
@@ -53,41 +85,6 @@ export default function NewPropertyPage() {
     amenities: [] as string[],
     availableFrom: '',
   })
-
-  const [rentEstimate, setRentEstimate] = useState<{ low: number; fair: number; high: number } | null>(null)
-  const [estimating, setEstimating] = useState(false)
-
-  // Auto-estimate rent via XGBoost when property specs change
-  useEffect(() => {
-    const subCity = formData.subCity
-    const bedrooms = Number(formData.bedrooms)
-    const bathrooms = Number(formData.bathrooms) || 1
-    const sizeM2 = Number(formData.sizeM2) || 0
-
-    if (subCity && bedrooms > 0) {
-      const timer = setTimeout(async () => {
-        setEstimating(true)
-        try {
-          const res = await fetchRentEstimate({
-            subCity,
-            bedrooms,
-            bathrooms,
-            sizeM2: sizeM2 > 0 ? sizeM2 : bedrooms * 35,
-            is_furnished: formData.furnished,
-            has_water_tank: formData.amenities.some(a => a.toLowerCase().includes('water')),
-            has_generator: formData.amenities.some(a => a.toLowerCase().includes('generator')),
-            amenities: formData.amenities,
-          })
-          setRentEstimate({ low: res.low, fair: res.fair, high: res.high })
-        } catch {
-          // Keep prior estimate or fallback
-        } finally {
-          setEstimating(false)
-        }
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [formData.subCity, formData.bedrooms, formData.bathrooms, formData.sizeM2, formData.furnished, formData.amenities])
 
   // Image handling
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,24 +143,19 @@ export default function NewPropertyPage() {
     if (images.length === 0) return true
 
     const token = localStorage.getItem('hl_token')
-    for (let i = 0; i < images.length; i++) {
-      const formDataImg = new FormData()
-      formDataImg.append('image', images[i].file)
-      formDataImg.append('isPrimary', images[i].isPrimary ? 'true' : 'false')
-      formDataImg.append('order', String(i))
+    const formDataImg = new FormData()
+    images.forEach(img => {
+      formDataImg.append('images', img.file)
+    })
 
-      try {
-        const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formDataImg,
-        })
-        if (!res.ok) {
-          console.error(`Failed to upload image ${i + 1}`)
-        }
-      } catch {
-        console.error(`Network error uploading image ${i + 1}`)
-      }
+    const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formDataImg,
+    })
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      throw new Error(j.message || `Image upload failed (${res.status})`)
     }
     return true
   }
@@ -219,32 +211,42 @@ export default function NewPropertyPage() {
       })
 
       let propertyId = ''
+      let apiError = ''
       try {
         if (res.headers.get('content-type')?.includes('application/json')) {
           const data = await res.json()
           propertyId = data.data?._id || data._id || ''
+          if (!res.ok) apiError = data.message || `Request failed (${res.status})`
+        } else if (!res.ok) {
+          apiError = `Server error (${res.status})`
         }
       } catch {}
 
       if (!res.ok) {
-        // Demo mode — show success anyway
-        setSuccess(true)
-        setTimeout(() => router.push('/landlord/properties'), 2000)
+        setErrors([apiError || 'Could not create the property. Please try again.'])
+        setSubmitting(false)
         return
       }
 
       // Upload images if we have a property ID
       if (propertyId) {
-        await uploadImages(propertyId)
+        try {
+          await uploadImages(propertyId)
+        } catch (uploadErr: unknown) {
+          const msg = uploadErr instanceof Error ? uploadErr.message : 'Image upload failed'
+          setErrors([`Property created, but images failed to upload: ${msg}`])
+          setSubmitting(false)
+          return
+        }
       }
 
       setSuccess(true)
-      setTimeout(() => router.push('/landlord/properties'), 2000)
-    } catch (err) {
+      setTimeout(() => router.push('/landlord/properties'), 1500)
+    } catch (err: unknown) {
       console.error('Create property error:', err)
-      // Demo mode — show success
-      setSuccess(true)
-      setTimeout(() => router.push('/landlord/properties'), 2000)
+      const msg = err instanceof Error ? err.message : 'Network error'
+      setErrors([msg])
+      setSubmitting(false)
     } finally {
       setSubmitting(false)
     }
@@ -560,28 +562,40 @@ export default function NewPropertyPage() {
                   </div>
                 </div>
 
-                {/* ─── AI FAIR RENT ESTIMATE GAUGE ─── */}
-                {rentEstimate && (
-                  <div className="mt-4 rounded-xl border border-rust/20 bg-cream/30 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-semibold text-charcoal">AI Fair Market Rent Guidance (XGBoost)</span>
-                      </div>
-                      {estimating && <span className="text-[11px] text-charcoal/50">Recalculating...</span>}
+                {/* Sprint 13 — AI rent estimate from real comparables */}
+                <div className="rounded-lg border border-charcoal/10 bg-cream p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-charcoal">Not sure what to charge?</p>
+                      <p className="text-xs text-charcoal/50">Compare with real listings of the same type in your city.</p>
                     </div>
-                    <RentEstimateGauge estimate={rentEstimate} />
-                    <div className="mt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, rentAmount: String(rentEstimate.fair) }))}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-rust hover:text-rust-dark transition-colors"
-                      >
-                        Apply Fair Rent ({rentEstimate.fair.toLocaleString()} ETB) →
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={estimateRent}
+                      disabled={estimating || !formData.propertyType || !formData.city}
+                      className="shrink-0 rounded bg-rust px-4 py-2 text-xs font-medium text-white hover:bg-rust-dark disabled:opacity-50"
+                    >
+                      {estimating ? 'Estimating…' : 'Get AI Estimate'}
+                    </button>
                   </div>
-                )}
+                  {estimate && (
+                    <div className="mt-3">
+                      {estimate.point ? (
+                        <>
+                          <p className="text-sm text-charcoal">
+                            Estimated: <span className="font-semibold">ETB {estimate.min?.toLocaleString()} – {estimate.max?.toLocaleString()}/month</span>
+                          </p>
+                          <p className="mt-0.5 text-xs text-charcoal/50">
+                            Based on {estimate.sampleSize} comparable listing{estimate.sampleSize === 1 ? '' : 's'} on HomeLink · confidence: {estimate.confidence}
+                            {estimate.note ? ` · ${estimate.note}` : ''}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-charcoal/60">{estimate.message}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

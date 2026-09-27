@@ -3,6 +3,7 @@ import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { LanguageProvider } from '@/lib/language-context'
+import AutoTranslate from '@/lib/auto-translate'
 import ModalRoot from '@/components/modals/ModalRoot'
 import RoleSwitcher from '@/components/RoleSwitcher'
 
@@ -43,6 +44,7 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthProvider>
             {children}
+            <AutoTranslate />
             <ModalRoot />
             <RoleSwitcher />
           </AuthProvider>

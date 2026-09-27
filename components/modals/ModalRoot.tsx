@@ -4,6 +4,7 @@ import ApplicationModal from './ApplicationModal'
 import ViewingModal from './ViewingModal'
 import MaintenanceModal from './MaintenanceModal'
 import FraudModal from './FraudModal'
+import MessageModal from './MessageModal'
 
 export default function ModalRoot() {
   return (
@@ -12,6 +13,7 @@ export default function ModalRoot() {
       <ViewingModal />
       <MaintenanceModal />
       <FraudModal />
+      <MessageModal />
     </>
   )
 }

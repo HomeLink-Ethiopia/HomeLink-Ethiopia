@@ -33,6 +33,7 @@ export default function Footer() {
         { label: t.footer.termsOfService, href: '/legal/terms' },
         { label: t.footer.privacyPolicy, href: '/legal/privacy' },
         { label: t.footer.cookiePolicy, href: '/legal/cookies' },
+        { label: 'How we use AI', href: '/ai-transparency' },
       ],
     },
   ]

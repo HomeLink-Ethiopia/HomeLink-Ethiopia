@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatEtb, type Property } from '@/lib/properties'
 import { PROPERTIES } from '@/lib/properties'
-import { get } from '@/lib/http-client'
 
 interface MatchResult {
   property: Property
@@ -99,60 +98,18 @@ function ScoreRing({ score }: { score: number }) {
 
 export default function AiRecommendations() {
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [matches, setMatches] = useState<MatchResult[]>([])
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function loadLiveRecommendations() {
-      try {
-        const res = await get<{ data: any[] }>('/api/v1/properties/recommendations')
-        if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-          const apiMatches: MatchResult[] = res.data.data.slice(0, 4).map((p: any) => ({
-            property: {
-              id: p._id || p.id,
-              title: p.title,
-              neighborhood: (p.location?.subCity || p.subCity || 'Bole') as any,
-              priceEtb: p.rentAmount || 0,
-              beds: p.bedrooms || 0,
-              baths: p.bathrooms || 0,
-              sizeSqm: p.sizeM2 || 0,
-              rating: p.fraudRiskScore ? 5.0 - p.fraudRiskScore * 2 : 4.8,
-              reviewCount: 14,
-              verified: p.verificationStatus === 'verified',
-              image: p.images?.[0]?.url || '/images/cities/bole/1.png',
-              lat: 9.0084,
-              lng: 38.7913,
-              fraudRiskScore: p.fraudRiskScore,
-              riskLevel: p.riskLevel,
-              redFlags: p.redFlags
-            },
-            score: Math.round(p.matchScore || 85),
-            reasons: p.matchReasons || ['Within your budget', 'Preferred neighborhood']
-          }))
-          setMatches(apiMatches)
-          setLoading(false)
-          return
-        }
-      } catch (err) {
-        console.warn('Backend recommendations fallback:', err)
-      }
+  // Simulate AI matching with user preferences
+  const userPrefs = {
+    budget: 20000,
+    beds: 2,
+    neighborhoods: ['Bole', 'Kazanchis'],
+  }
 
-      // Fallback to local properties calculation
-      const userPrefs = {
-        budget: 20000,
-        beds: 2,
-        neighborhoods: ['Bole', 'Kazanchis'],
-      }
-      const fallbackMatches = PROPERTIES
-        .map((p) => matchProperty(p, userPrefs))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 4)
-      setMatches(fallbackMatches)
-      setLoading(false)
-    }
-
-    loadLiveRecommendations()
-  }, [])
+  const matches = PROPERTIES
+    .map((p) => matchProperty(p, userPrefs))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
 
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-stamp">

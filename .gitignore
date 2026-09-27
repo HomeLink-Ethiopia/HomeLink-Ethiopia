@@ -1,16 +1,17 @@
-.env 
-
-# Python virtual environment & caches
-ai/.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-
-node_modules
+node_modules/
 .next/
-*.tsbuildinfo
-.env.*
-.tools/
-backend/test_*.js
-backend/create-live-landlord.js
-backend/verify-users.js
+out/
+.env
+.env.local
+.env*.local
+backend/.env
+.DS_Store
+*.log
+.freebuff/
+*.tmp
+homelink-backend-temp/
+backend/
+tsconfig.tsbuildinfo
+
+# Local backend backup (contains user data snapshots) - never publish
+backend-backup-kidist/

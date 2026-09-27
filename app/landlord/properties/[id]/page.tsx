@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/landlord/TopBar'
@@ -67,8 +67,8 @@ const VERIFICATION_MAP: Record<string, { label: string; color: string; bg: strin
   rejected: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
 }
 
-export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const [property, setProperty] = useState<Property | null>(null)
   const [loading, setLoading] = useState(true)

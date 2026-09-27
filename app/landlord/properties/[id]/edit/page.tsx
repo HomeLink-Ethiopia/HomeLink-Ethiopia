@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
@@ -49,8 +49,8 @@ interface ImagePreview {
   url?: string
 }
 
-export default function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function EditPropertyPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(true)

@@ -56,12 +56,11 @@ const createProperty = async (req, res) => {
                 bathrooms: Number(req.body.bathrooms || 1),
                 area_sqm: Number(req.body.sizeM2 || req.body.area_sqm || 50),
                 subcity: subCity,
-                description: req.body.description || '',
-                contact_info: req.user?.email || ''
+                description_text: req.body.description || ''
             });
 
             if (fraudResult && typeof fraudResult.risk_score === 'number') {
-                fraudRiskScore = fraudResult.risk_score;
+                fraudRiskScore = fraudResult.risk_score / 100;
                 riskLevel = fraudResult.risk_level || 'low';
                 redFlags = fraudResult.red_flags || [];
                 console.log(`🛡️ AI Fraud Check: risk_score=${fraudRiskScore} (${riskLevel})`);
@@ -892,7 +891,7 @@ const getRecommendations = async (req, res) => {
                 preferred_subcities: preferredSubcities,
                 min_bedrooms: preferences.bedrooms || 1,
                 min_bathrooms: preferences.bathrooms || 1,
-                require_furnished: preferences.furnished,
+                is_furnished_required: preferences.furnished,
                 limit: properties.length,
                 candidate_properties: candidateList
             });

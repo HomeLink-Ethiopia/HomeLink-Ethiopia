@@ -3,7 +3,7 @@
  * heuristic fallback models when the microservice is offline or unreachable.
  */
 
-const AI_BASE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+const AI_BASE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
 const AI_TIMEOUT_MS = parseInt(process.env.AI_TIMEOUT_MS || "3000", 10);
 
 /**

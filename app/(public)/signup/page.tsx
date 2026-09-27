@@ -4,16 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Role } from '@/types/roles'
 import Logo from '@/components/Logo'
-import { useAuth } from '@/lib/auth-context'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function SignupPage() {
   const router = useRouter()
-  const { login } = useAuth()
   const [step, setStep] = useState<'form' | 'otp'>('form')
-  const [emailNotDelivered, setEmailNotDelivered] = useState(false)
-  const [resendNotice, setResendNotice] = useState('')
   const [role, setRole] = useState<Role>('tenant')
   const [formData, setFormData] = useState({
     firstName: '',
@@ -88,7 +84,7 @@ export default function SignupPage() {
         }),
       })
 
-      const data = await response.json().catch(() => ({}))
+      const data = await response.json()
 
       if (!response.ok) {
         setError(data.message || 'Registration failed')
@@ -96,16 +92,10 @@ export default function SignupPage() {
         return
       }
 
-      // The account is saved in MongoDB at this point. When Resend could not
-      // deliver (free tier only reaches @resend.dev), the backend still
-      // returns the code for development — show it instead of a scary error.
-      if (data.emailSent === false) {
-        setEmailNotDelivered(true)
-      }
-      setVerificationCode(data.devVerificationCode || '')
-      setStep('otp')
+      // Skip OTP screen and go directly to login
+      router.push('/login?verified=true')
     } catch (err) {
-      setError('Registration failed. Please try again.')
+      setError('Unable to reach HomeLink server (http://localhost:5000). Please ensure the backend is running.')
     } finally {
       setLoading(false)
     }
@@ -139,7 +129,7 @@ export default function SignupPage() {
         body: JSON.stringify({ email: formData.email, code: otpCode }),
       })
 
-      const data = await response.json().catch(() => ({}))
+      const data = await response.json()
 
       if (!response.ok) {
         setError(data.message || 'Invalid verification code')
@@ -147,12 +137,8 @@ export default function SignupPage() {
         return
       }
 
-      // Verified! Log the user straight into their dashboard.
-      const loginResult = await login(formData.email, formData.password)
-      if (!loginResult.success) {
-        // Auto-login failed (rare) — fall back to the login page as before.
-        router.push('/login?verified=true')
-      }
+      // Success! Redirect to login
+      router.push('/login?verified=true')
     } catch (err) {
       setError('Verification failed. Please try again.')
     } finally {
@@ -168,15 +154,11 @@ export default function SignupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email }),
       })
-      const data = await response.json().catch(() => ({}))
+      const data = await response.json()
       if (!response.ok) {
         setError(data.message || 'Failed to resend code')
       } else {
-        if (data.devVerificationCode) {
-          setVerificationCode(data.devVerificationCode)
-          setOtp(data.devVerificationCode.split(''))
-        }
-        setResendNotice(data.message || 'New verification code sent!')
+        alert('New verification code sent to your email!')
       }
     } catch {
       setError('Failed to resend code')
@@ -205,26 +187,13 @@ export default function SignupPage() {
             </p>
             <p className="mt-1 text-center font-semibold text-charcoal">{formData.email}</p>
             
-            <div className={`mt-4 rounded-lg border p-3 ${emailNotDelivered ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-              {emailNotDelivered ? (
-                <>
-                  <p className="text-center text-sm text-amber-700">
-                    Your account has been created, but email delivery is temporarily unavailable.
-                  </p>
-                  <p className="mt-1 text-center text-xs text-amber-600">
-                    Use the code below to finish verification. You can request a new code anytime.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-center text-sm text-green-700">
-                    A verification code has been sent to your email.
-                  </p>
-                  <p className="mt-1 text-center text-xs text-green-600">
-                    Check your inbox and spam folder for the 6-digit code.
-                  </p>
-                </>
-              )}
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
+              <p className="text-center text-sm text-green-700">
+                📧 A verification code has been sent to your email.
+              </p>
+              <p className="mt-1 text-center text-xs text-green-600">
+                Check your inbox and spam folder for the 6-digit code.
+              </p>
             </div>
             {verificationCode && (
               <div 
@@ -236,13 +205,9 @@ export default function SignupPage() {
                   lastInput?.focus()
                 }}
               >
-                <p className="text-center text-xs text-blue-500 mb-1">Development code (click to auto-fill):</p>
+                <p className="text-center text-xs text-blue-500 mb-1">Your verification code (click to auto-fill):</p>
                 <p className="text-center text-2xl font-bold tracking-[8px] text-blue-700 font-mono">{verificationCode}</p>
               </div>
-            )}
-
-            {resendNotice && (
-              <p className="mt-3 text-center text-xs text-green-700">{resendNotice}</p>
             )}
 
             {error && (
@@ -334,9 +299,7 @@ export default function SignupPage() {
                       : 'border-charcoal/20 bg-white text-charcoal hover:border-rust'
                   }`}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="inline-block h-4 w-4 align-[-2px]">
-                    <path d="M3 10.5 12 4l9 6.5M5 9.5V20h14V9.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg> Tenant
+                  🏠 Tenant
                 </button>
                 <button
                   type="button"
@@ -347,9 +310,7 @@ export default function SignupPage() {
                       : 'border-charcoal/20 bg-white text-charcoal hover:border-rust'
                   }`}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="inline-block h-4 w-4 align-[-2px]">
-                    <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg> Landlord
+                  🏢 Landlord
                 </button>
               </div>
             </div>

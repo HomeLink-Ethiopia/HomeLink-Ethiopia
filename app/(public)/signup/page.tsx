@@ -92,9 +92,8 @@ export default function SignupPage() {
         return
       }
 
-      // Show OTP screen with verification code from backend
-      setVerificationCode(data.verificationCode || '')
-      setStep('otp')
+      // Skip OTP screen and go directly to login
+      router.push('/login?verified=true')
     } catch (err) {
       setError('Unable to reach HomeLink server (http://localhost:5000). Please ensure the backend is running.')
     } finally {

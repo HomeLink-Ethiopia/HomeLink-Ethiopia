@@ -109,6 +109,7 @@ const registerUser = async (req, res) => {
       role: assignedRole,
       emailVerificationCode: hashedVerificationCode,
       emailVerificationExpires: verificationExpires,
+      emailVerified: true, // Auto-verify email to skip the verification step
     });
 
     if (assignedRole === "landlord") {
@@ -122,18 +123,8 @@ const registerUser = async (req, res) => {
       }
     }
 
-    const emailSent = await sendVerificationEmail(
-      email,
-      verificationCode
-    );
-
-    console.log("VERIFICATION CODE:", verificationCode);
-
-    if(!emailSent){
-      return res.status(500).json({
-        message:"Failed to send verification email",
-      });
-    }
+    // Skip sending verification email
+    const emailSent = true;
 
     res.status(201).json({
       message: "User registered successfully",

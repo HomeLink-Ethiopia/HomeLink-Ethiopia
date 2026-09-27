@@ -27,9 +27,12 @@ export default function ForgotPasswordPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // If backend returns the code directly (dev mode), show it
-        if (data.resetCode) {
-          setResetCode(data.resetCode)
+        // If backend returns the code directly (dev/mock mode), show it on
+        // screen so the flow completes without email access
+        // (sprint-otp-on-screen).
+        const code = data.resetCode || data.devResetCode || ''
+        if (code) {
+          setResetCode(code)
         }
         setSent(true)
       } else {

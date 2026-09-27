@@ -56,6 +56,8 @@ export default function TenantDisputesPage() {
   const [success, setSuccess] = useState('')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [threadText, setThreadText] = useState('')
+  // Sprint 11 — evidence attachments (photos of damage, receipts, contracts)
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([])
 
   // new dispute form
   const [showForm, setShowForm] = useState(false)
@@ -97,19 +99,22 @@ export default function TenantDisputesPage() {
     setSubmitting(true)
     setSuccess('')
     try {
+      // Multipart so evidence files (receipts, photos, contracts) ride along.
+      const fd = new FormData()
+      if (agreementId) fd.append('agreementId', agreementId)
+      fd.append('reason', reason)
+      fd.append('description', description.trim())
+      evidenceFiles.slice(0, 5).forEach((f) => fd.append('evidence', f))
       const res = await fetch(`${API_URL}/api/v1/disputes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({
-          agreementId: agreementId || undefined,
-          reason,
-          description: description.trim(),
-        }),
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.message || 'Failed')
       setSuccess('Dispute filed. Our team will review it and mediate with the other party.')
       setDescription('')
+      setEvidenceFiles([])
       setShowForm(false)
       await load()
     } catch (err) {
@@ -205,6 +210,19 @@ export default function TenantDisputesPage() {
                 placeholder="Describe the issue clearly — dates, amounts, what was agreed, and what went wrong. This is shared with the mediator."
                 className="mt-1 w-full rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm focus:border-rust focus:outline-none"
               />
+            </label>
+            <label className="mt-4 block text-sm">
+              <span className="text-charcoal/70">Evidence (optional — up to 5 files)</span>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={(e) => setEvidenceFiles(Array.from(e.target.files || []))}
+                className="mt-1 block w-full text-sm text-charcoal/70 file:mr-3 file:rounded file:border-0 file:bg-sand file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-charcoal hover:file:bg-charcoal/10"
+              />
+              {evidenceFiles.length > 0 && (
+                <span className="mt-1 block text-xs text-charcoal/50">{evidenceFiles.length} file(s) attached</span>
+              )}
             </label>
             <button
               type="submit"

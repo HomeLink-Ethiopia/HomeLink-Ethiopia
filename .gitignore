@@ -15,3 +15,6 @@ tsconfig.tsbuildinfo
 
 # Local backend backup (contains user data snapshots) - never publish
 backend-backup-kidist/
+
+# mock-mode persisted users (demo data)
+mock-users.json

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
 import { useLanguage } from '@/lib/language-context'
+import { resolveImageUrl } from '@/lib/image-url'
 
 interface Property {
   _id: string
@@ -274,7 +275,7 @@ export default function PropertiesPage() {
                       {/* Image Thumbnail */}
                       <Link href={`/landlord/properties/${property._id}`} className="w-24 h-24 rounded-lg bg-charcoal/5 flex items-center justify-center overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
                         {property.images?.[0]?.url ? (
-                          <img src={`${API_URL}${property.images[0].url}`} alt={property.title} className="w-full h-full object-cover" />
+                          <img src={resolveImageUrl(property.images[0]?.url)} alt={property.title} className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-xs font-medium text-charcoal/40 uppercase tracking-wider">{typeLabel}</span>
                         )}

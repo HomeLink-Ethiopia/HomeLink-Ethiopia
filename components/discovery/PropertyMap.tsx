@@ -63,16 +63,23 @@ export default function PropertyMap({ properties, hoveredId = null, onHoverChang
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   // Guard against Leaflet's "Map container is already initialized" error:
-  // when the component unmounts/remounts quickly (React StrictMode in dev,
-  // Fast Refresh), Leaflet can leave state behind on the container element.
-  // Giving each mount its own container element avoids the collision.
+  // react-leaflet v4 leaks the map binding on unmount (it never calls
+  // map.remove()), so in React 18 StrictMode / Fast Refresh remounts the
+  // stale `_leaflet_id` on the inner .leaflet-container div makes the next
+  // L.map() throw. Child effect cleanups run before ours, so by the time
+  // this runs react-leaflet is done and we can safely drop the stale id.
   useEffect(() => {
     return () => {
-      // On unmount, clear the DOM node's Leaflet binding if any
-      const el = containerRef.current
-      if (el && (el as any)._leaflet_id != null) {
-        delete (el as any)._leaflet_id
+      const root = containerRef.current
+      if (!root) return
+      if ((root as any)._leaflet_id != null) {
+        delete (root as any)._leaflet_id
       }
+      root.querySelectorAll('.leaflet-container').forEach((el) => {
+        if ((el as any)._leaflet_id != null) {
+          delete (el as any)._leaflet_id
+        }
+      })
     }
   }, [])
 

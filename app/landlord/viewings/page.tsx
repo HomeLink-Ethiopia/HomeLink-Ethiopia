@@ -133,7 +133,7 @@ export default function LandlordViewingsPage() {
                       <div className="flex flex-wrap items-center gap-3">
                         <h3 className="text-lg font-semibold text-charcoal">{propertyTitle(v)}</h3>
                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLE[v.status] || STATUS_STYLE.requested}`}>
-                          {v.status.charAt(0).toUpperCase() + v.status.slice(1)}
+                          {(v.status || 'requested').charAt(0).toUpperCase() + (v.status || 'requested').slice(1)}
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-charcoal/70">

@@ -31,6 +31,36 @@ export default function AboutPage() {
             </p>
           </div>
 
+          {/* Company anchors the footer links to (sprint-footer-legal) */}
+          <div id="careers" className="rounded-2xl border border-charcoal/10 bg-white p-8 sm:p-10 shadow-stamp">
+            <h2 className="font-display text-2xl font-bold text-charcoal">Careers at HomeLink</h2>
+            <p className="mt-3 text-sm text-charcoal/75 leading-relaxed">
+              We&apos;re a small team building Ethiopia&apos;s trusted digital housing infrastructure. We look for
+              engineers, verification specialists, and customer-support staff who care about fair, transparent
+              renting. Openings are posted here as they open — in the meantime, send your CV via the{' '}
+              <Link href="/support" className="font-semibold text-rust hover:text-rust-dark">support form</Link>.
+            </p>
+          </div>
+
+          <div id="blog" className="rounded-2xl border border-charcoal/10 bg-white p-8 sm:p-10 shadow-stamp">
+            <h2 className="font-display text-2xl font-bold text-charcoal">From the HomeLink blog</h2>
+            <ul className="mt-3 space-y-2 text-sm text-charcoal/75">
+              <li>• How we verify landlords and properties — what the badge means</li>
+              <li>• Understanding your tenant credit score (and how to improve it)</li>
+              <li>• Neighborhood guide: Bole vs. Kazanchis vs. CMC for young renters</li>
+              <li>• Why the AI fair-rent estimate shows a range, not a single number</li>
+            </ul>
+          </div>
+
+          <div id="press" className="rounded-2xl border border-charcoal/10 bg-white p-8 sm:p-10 shadow-stamp">
+            <h2 className="font-display text-2xl font-bold text-charcoal">Press</h2>
+            <p className="mt-3 text-sm text-charcoal/75 leading-relaxed">
+              Media enquiries are welcome through our{' '}
+              <Link href="/support" className="font-semibold text-rust hover:text-rust-dark">contact form</Link>{' '}
+              — our team responds within two business days.
+            </p>
+          </div>
+
           {/* Core Pillars */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <div className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-stamp">

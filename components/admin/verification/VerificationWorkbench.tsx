@@ -75,9 +75,9 @@ function DocumentViewer({ doc, onClose }: { doc: DocRecord; onClose: () => void 
       <div className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-charcoal/10 px-5 py-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-charcoal">{doc.docType.replace(/_/g, ' ')}</p>
+            <p className="text-sm font-semibold text-charcoal">{(doc.docType || doc.originalName || doc.fileKey.split('/').pop() || 'document').replace(/_/g, ' ')}</p>
             <p className="truncate text-xs text-charcoal/50">
-              {doc.originalName || doc.fileKey.split('/').pop()} · uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
+              {doc.originalName || doc.fileKey.split('/').pop()}{doc.uploadedAt ? ` · uploaded ${new Date(doc.uploadedAt).toLocaleDateString()}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -435,7 +435,7 @@ export default function VerificationWorkbench({ scope = 'all', title = 'Verifica
                                 {l.accountId?.email || 'no email'} {l.phone ? `· ${l.phone}` : ''}
                               </p>
                               <p className="mt-0.5 text-xs text-charcoal/40">
-                                Submitted {new Date(l.updatedAt || l.createdAt).toLocaleString()}
+                                Submitted {(l.updatedAt || l.createdAt) ? new Date(l.updatedAt || l.createdAt).toLocaleString() : '—'}
                               </p>
                             </div>
 
@@ -468,10 +468,10 @@ export default function VerificationWorkbench({ scope = 'all', title = 'Verifica
                                       </div>
                                     ) : (
                                       // eslint-disable-next-line @next/next/no-img-element
-                                      <img src={d.fileKey.startsWith('http') ? d.fileKey : `${API_URL}${d.fileKey}`} alt={d.docType} className="h-20 w-full object-cover" />
+                                      <img src={d.fileKey.startsWith('http') ? d.fileKey : `${API_URL}${d.fileKey}`} alt={d.docType || 'document'} className="h-20 w-full object-cover" />
                                     )}
                                     <div className="p-1.5">
-                                      <p className="truncate text-[10px] font-medium text-charcoal">{d.docType.replace(/_/g, ' ')}</p>
+                                      <p className="truncate text-[10px] font-medium text-charcoal">{(d.docType || d.originalName || d.fileKey?.split('/').pop() || 'document').replace(/_/g, ' ')}</p>
                                     </div>
                                   </button>
                                 ))}
@@ -570,10 +570,10 @@ export default function VerificationWorkbench({ scope = 'all', title = 'Verifica
                                       </div>
                                     ) : (
                                       // eslint-disable-next-line @next/next/no-img-element
-                                      <img src={d.fileKey.startsWith('http') ? d.fileKey : `${API_URL}${d.fileKey}`} alt={d.docType} className="h-20 w-full object-cover" />
+                                      <img src={d.fileKey.startsWith('http') ? d.fileKey : `${API_URL}${d.fileKey}`} alt={d.docType || 'document'} className="h-20 w-full object-cover" />
                                     )}
                                     <div className="p-1.5">
-                                      <p className="truncate text-[10px] font-medium text-charcoal">{d.docType.replace(/_/g, ' ')}</p>
+                                      <p className="truncate text-[10px] font-medium text-charcoal">{(d.docType || d.originalName || d.fileKey?.split('/').pop() || 'document').replace(/_/g, ' ')}</p>
                                     </div>
                                   </button>
                                 ))}

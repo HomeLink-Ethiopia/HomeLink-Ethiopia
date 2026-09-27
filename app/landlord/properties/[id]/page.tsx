@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import TopBar from '@/components/landlord/TopBar'
 import { mapApiProperty } from '@/services/api'
+import { resolveImageUrl } from '@/lib/image-url'
 
 // Real Leaflet map (same component as the public property page) — client-only
 const PropertyMap = dynamic(() => import('@/components/discovery/PropertyMap'), {
@@ -216,7 +217,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               {/* Main Image */}
               <div className="relative aspect-[16/9] sm:aspect-[21/9] bg-charcoal/5">
                 <img
-                  src={`${API_URL}${images[activeImageIndex]?.url}`}
+                  src={resolveImageUrl(images[activeImageIndex]?.url)}
                   alt={property.title}
                   className="w-full h-full object-cover"
                 />
@@ -258,7 +259,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                         i === activeImageIndex ? 'border-rust' : 'border-transparent hover:border-charcoal/20'
                       }`}
                     >
-                      <img src={`${API_URL}${img.url}`} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                      <img src={resolveImageUrl(img.url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -467,7 +468,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             </div>
             <div className="relative">
               <img
-                src={`${API_URL}${images[activeImageIndex]?.url}`}
+                src={resolveImageUrl(images[activeImageIndex]?.url)}
                 alt={`Photo ${activeImageIndex + 1}`}
                 className="w-full rounded-lg max-h-[70vh] object-contain"
               />
@@ -496,7 +497,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                     i === activeImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <img src={`${API_URL}${img.url}`} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <img src={resolveImageUrl(img.url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

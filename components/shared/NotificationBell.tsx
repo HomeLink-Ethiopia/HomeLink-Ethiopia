@@ -112,11 +112,30 @@ export default function NotificationBell() {
 
   useEffect(() => {
     refresh()
-    const iv = setInterval(refresh, 15000)
-    window.addEventListener('focus', refresh)
+    // (perf-bell-visibility) Poll only while the tab is visible — hidden
+    // tabs wasted a request + rerender every 15s per open dashboard.
+    let iv: ReturnType<typeof setInterval> | null = null
+    const start = () => {
+      if (iv === null) iv = setInterval(refresh, 15000)
+    }
+    const stop = () => {
+      if (iv !== null) {
+        clearInterval(iv)
+        iv = null
+      }
+    }
+    const onVisibility = () => {
+      if (document.hidden) stop()
+      else {
+        refresh()
+        start()
+      }
+    }
+    start()
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
-      clearInterval(iv)
-      window.removeEventListener('focus', refresh)
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [refresh])
 

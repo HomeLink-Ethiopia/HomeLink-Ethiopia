@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { Role } from '@/types/roles'
 import Logo from '@/components/Logo'
 import { useAuth } from '@/lib/auth-context'
@@ -9,7 +9,16 @@ import { useAuth } from '@/lib/auth-context'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupContent />
+    </Suspense>
+  )
+}
+
+function SignupContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login } = useAuth()
   const [step, setStep] = useState<'form' | 'otp'>('form')
   const [emailNotDelivered, setEmailNotDelivered] = useState(false)
@@ -28,6 +37,22 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
+
+  // Login's "Resend verification" redirects here with ?step=otp&email=…
+  // (sprint-otp-on-screen): jump straight to the OTP step for that email.
+  // The user requests a fresh code from this screen — we can't show the old
+  // one because it was never returned to us.
+  useEffect(() => {
+    if (searchParams.get('step') === 'otp') {
+      const emailParam = searchParams.get('email')
+      if (emailParam) {
+        setFormData((f) => ({ ...f, email: emailParam }))
+        setStep('otp')
+        setResendNotice("Click \u201CResend code\u201D below \u2014 the new code will appear right here on screen.")
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
   const [passwordStrength, setPasswordStrength] = useState<{
     score: number
     message: string
@@ -99,10 +124,12 @@ export default function SignupPage() {
       // The account is saved in MongoDB at this point. When Resend could not
       // deliver (free tier only reaches @resend.dev), the backend still
       // returns the code for development — show it instead of a scary error.
+      // Mock mode returns it as `verificationCode`; MongoDB mode as
+      // `devVerificationCode` (sprint-otp-on-screen).
       if (data.emailSent === false) {
         setEmailNotDelivered(true)
       }
-      setVerificationCode(data.devVerificationCode || '')
+      setVerificationCode(data.devVerificationCode || data.verificationCode || '')
       setStep('otp')
     } catch (err) {
       setError('Registration failed. Please try again.')
@@ -172,9 +199,10 @@ export default function SignupPage() {
       if (!response.ok) {
         setError(data.message || 'Failed to resend code')
       } else {
-        if (data.devVerificationCode) {
-          setVerificationCode(data.devVerificationCode)
-          setOtp(data.devVerificationCode.split(''))
+        const code = data.devVerificationCode || data.verificationCode || ''
+        if (code) {
+          setVerificationCode(code)
+          setOtp(code.split(''))
         }
         setResendNotice(data.message || 'New verification code sent!')
       }

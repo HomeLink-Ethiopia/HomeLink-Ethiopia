@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  poweredByHeader: false,
+  compiler: {
+    // Strip console.* (except errors/warnings) from production bundles
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },

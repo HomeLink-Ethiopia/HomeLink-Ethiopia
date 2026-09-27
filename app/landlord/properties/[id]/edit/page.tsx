@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
+import { resolveImageUrl } from '@/lib/image-url'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -81,7 +82,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
           // Load existing images
           if (p.images && p.images.length > 0) {
             setImages(p.images.map((img: { url: string; isPrimary: boolean }) => ({
-              preview: img.url ? `${API_URL}${img.url}` : '',
+              preview: img.url ? resolveImageUrl(img.url) : '',
               isPrimary: img.isPrimary,
               existing: true,
               url: img.url,

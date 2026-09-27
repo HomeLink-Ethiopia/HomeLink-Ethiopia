@@ -15,7 +15,7 @@ export default function Sidebar() {
     { label: t.sidebar.overview, href: '/landlord/dashboard', icon: 'grid' },
     { label: t.sidebar.properties, href: '/landlord/properties', icon: 'house', match: '/landlord/properties' },
     { label: t.sidebar.verification, href: '/landlord/verification', icon: 'check' },
-    { label: t.sidebar.applications, href: '/landlord/applications', icon: 'file', badge: 5 },
+    { label: t.sidebar.applications, href: '/landlord/applications', icon: 'file' },
     { label: t.sidebar.viewings, href: '/landlord/viewings', icon: 'calendar' },
     { label: t.sidebar.agreements, href: '/landlord/agreements', icon: 'book' },
     { label: t.sidebar.tenants, href: '/landlord/tenants', icon: 'users' },
@@ -122,11 +122,6 @@ function NavIcon({ name }: { name: string }) {
             <Link key={item.label} href={item.href} className={itemClass(item)}>
               <NavIcon name={item.icon} />
               <span className="flex-1">{item.label}</span>
-              {'badge' in item && item.badge ? (
-                <span className="rounded-full bg-rust px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {item.badge}
-                </span>
-              ) : null}
             </Link>
           ))}
 

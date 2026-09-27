@@ -8,7 +8,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useInView } from 'framer-motion'
 import TopBar from '@/components/landlord/TopBar'
-import { personPhoto, stockPhoto } from '@/lib/images'
+import InitialsAvatar from '@/components/shared/InitialsAvatar'
+import { stockPhoto } from '@/lib/images'
 
 /* ─── MOCK DATA ──────────────────────────────────────────────────────────── */
 const SUMMARY_CARDS = [
@@ -19,11 +20,11 @@ const SUMMARY_CARDS = [
 ]
 
 const RECENT_PAYMENTS = [
-  { name: 'Tsedi Kebede', property: 'Bole 2-Bed Apt', amount: 22000, dueDate: 'Aug 1', paid: true, avatar: personPhoto('tsedi-kebede-tenant', 80) },
-  { name: 'Meron Alemu', property: 'Kazanchis Studio', amount: 14500, dueDate: 'Aug 3', paid: true, avatar: personPhoto('meron-alemu-t', 80) },
-  { name: 'Henok Girma', property: 'CMC Family Home', amount: 32000, dueDate: 'Aug 5', paid: false, avatar: personPhoto('henok-girma-t', 80) },
-  { name: 'Sara Tadesse', property: 'Yeka Villa', amount: 28000, dueDate: 'Aug 8', paid: true, avatar: personPhoto('sara-tadesse-t', 80) },
-  { name: 'Daniel Bekele', property: 'Saris 1-Bed', amount: 11500, dueDate: 'Aug 10', paid: false, avatar: personPhoto('daniel-bekele-t', 80) },
+  { name: 'Tsedi Kebede', property: 'Bole 2-Bed Apt', amount: 22000, dueDate: 'Aug 1', paid: true },
+  { name: 'Meron Alemu', property: 'Kazanchis Studio', amount: 14500, dueDate: 'Aug 3', paid: true },
+  { name: 'Henok Girma', property: 'CMC Family Home', amount: 32000, dueDate: 'Aug 5', paid: false },
+  { name: 'Sara Tadesse', property: 'Yeka Villa', amount: 28000, dueDate: 'Aug 8', paid: true },
+  { name: 'Daniel Bekele', property: 'Saris 1-Bed', amount: 11500, dueDate: 'Aug 10', paid: false },
 ]
 
 const PROPERTIES_OVERVIEW = [
@@ -34,9 +35,9 @@ const PROPERTIES_OVERVIEW = [
 ]
 
 const RECENT_APPS = [
-  { name: 'Bereket Haile', property: 'Yeka Villa', submitted: 'Today, 9:22 AM', score: 92, avatar: personPhoto('bereket-haile-app', 80) },
-  { name: 'Yemi Mulatu', property: 'Yeka Villa', submitted: 'Yesterday', score: 78, avatar: personPhoto('yemi-mulatu-app', 80) },
-  { name: 'Amina Osman', property: 'Saris 1-Bed', submitted: '2 days ago', score: 85, avatar: personPhoto('amina-osman-app', 80) },
+  { name: 'Bereket Haile', property: 'Yeka Villa', submitted: 'Today, 9:22 AM', score: 92 },
+  { name: 'Yemi Mulatu', property: 'Yeka Villa', submitted: 'Yesterday', score: 78 },
+  { name: 'Amina Osman', property: 'Saris 1-Bed', submitted: '2 days ago', score: 85 },
 ]
 
 /* ─── ICON HELPER ────────────────────────────────────────────────────────── */
@@ -184,9 +185,7 @@ export default function LandlordDashboardPage() {
                         <tr key={p.name} className="hover:bg-sand/20">
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-sand">
-                                <Image src={p.avatar} alt={p.name} fill sizes="32px" className="object-cover" />
-                              </div>
+                              <InitialsAvatar name={p.name} size={32} />
                               <span className="font-medium text-charcoal">{p.name}</span>
                             </div>
                           </td>
@@ -224,9 +223,7 @@ export default function LandlordDashboardPage() {
                 <div className="divide-y divide-charcoal/8">
                   {RECENT_APPS.map((app) => (
                     <div key={app.name} className="flex items-start gap-3 px-5 py-4 hover:bg-sand/20 transition-colors">
-                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-sand">
-                        <Image src={app.avatar} alt={app.name} fill sizes="36px" className="object-cover" />
-                      </div>
+                      <InitialsAvatar name={app.name} size={36} className="border border-sand" />
                       <div className="flex-1 min-w-0">
                         <p className="font-display text-sm font-bold text-charcoal">{app.name}</p>
                         <p className="text-xs text-charcoal/55 truncate">{app.property}</p>

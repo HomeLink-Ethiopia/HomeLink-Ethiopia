@@ -190,7 +190,6 @@ export const UI_DICTIONARY: Record<string, string> = {
   'MAIN': 'ዋና',
   'What': 'ምን',
   'Rejected — reason:': 'ውድቅ — ምክንያት:',
-  'PDF': 'PDF',
   'Total properties': 'ጠቅላላ ንብረቶች',
   '/mo': '/ወር',
   '/ month': '/ ወር',
@@ -363,6 +362,32 @@ export const UI_DICTIONARY: Record<string, string> = {
   'Getting started': 'ማጀመር',
   'Account': 'መለያ',
 
+  // ─── Admin verification workbench + topbar (exact phrases first) ───
+  // (sprint-i18n-admin-phrases) Exact phrases so these labels translate
+  // cleanly instead of being word-mangled by the fallback pass.
+  'Total Requests': 'ጠቅላላ ጥያቄዎች',
+
+
+
+  'Landlord Identity': 'የባለቤት ማንነት',
+  'Property Verification': 'የንብረት ማረጋገጫ',
+  'All': 'ሁሉም',
+
+  'Documents': 'ሰነዶች',
+
+  'No documents attached.': 'ሰነድ አልተያያዘም።',
+  'No landlord verifications': 'የባለቤት ማረጋገጫዎች የሉም',
+  'Landlords who submit identity documents will appear here.': 'የማንነት ሰነድ የሚያቅርቡ ባለቤቶች እዚህ ይታያሉ።',
+  'AUDIT TRAIL': 'የኦዲት መከታተያ',
+  'This Month': 'ይህ ወር',
+  'This Week': 'ይህ ሳምንት',
+  'Today': 'ዛሬ',
+  'Last 6 Months': 'ያለፉ 6 ወራት',
+  'User': 'ተጠቃሚ',
+  'no email': 'ኢሜይል የለም',
+  'click to view full size': 'ሙሉ መጠን ለማየት ይንኩ',
+  'Documents (2)': 'ሰነዶች (2)',
+
   // ─── Word-level pass (covers titles, subs, leftovers) ───
   'Bedroom': 'መኝታ ክፍል',
   'bed': 'መኝታ',
@@ -484,6 +509,9 @@ export const UI_DICTIONARY: Record<string, string> = {
   'Can I pay my rent online via HomeLink Ethiopia?': 'ኪራይን በኦንላይን በሆምሊንክ ኢትዮጵያ መክፈል እችላለሁ?',
   'Yes, our platform records monthly rent obligations, payment receipts, and balance ledgers, with support for local digital banking channels (e.g. Telebirr, CBE Birr).': 'አዎ፣ መድረካችን ወርሃዊ የኪራይ ግዴታዎችን፣ የክፍያ ደረሰኞችን እና ቀሪ ሂሳብ መዝገቦችን ይይዛል፤ ለሎካል ዲጂታል ባንኪንግ (ቴሌብር፣ CBE ብር) ይደገፋል።',
   'Still have questions?': 'አሁንም ጥያቄዎች አሉዎት?',
+  'Resolve': 'መፍትሄ', // sprint-support-inbox
+  'Messages submitted from the public support form will appear here.': 'ከይፋዊ የድጋፍ ቅጽ የተላኩ መልእክቶች እዚህ ይታያሉ።', // sprint-support-inbox
+  'No support messages yet': 'እስካሁን የድጋፍ መልእክቶች የሉም', // sprint-support-inbox
   'Send our support team a direct message.': 'ለድጋፍ ቡድናችን በቀጥታ መልእክት ይላኩ።',
   'YOUR NAME': 'የእርስዎ ስም',
   'Your Name': 'የእርስዎ ስም',
@@ -643,7 +671,11 @@ function translateTextNode(textNode: Text) {
   // Pass 1 — exact phrase match on the whole node.
   const exact = lookup(normalized)
   if (exact) {
-    textNode.nodeValue = content.replace(normalized, exact)
+    // (perf-translate-noop) identity mappings (e.g. 'PDF' → 'PDF') must not
+    // rewrite identical content: every nodeValue write fires another
+    // characterData mutation → infinite observer loop → frozen page.
+    const next = content.replace(normalized, exact)
+    if (next !== content) textNode.nodeValue = next
     return
   }
 
@@ -672,7 +704,7 @@ function translateTextNode(textNode: Text) {
     const word = parts[i]
     if (!word || !/^[A-Za-z]/.test(word)) continue
     const hit = lookup(word.replace(/[.,!?;:]+$/, ''))
-    if (hit) {
+    if (hit && hit !== word) {
       parts[i] = hit
       changed = true
     }
@@ -747,28 +779,46 @@ export default function AutoTranslate() {
 
     if (locale === 'AM') {
       translateTree(root, UI_DICTIONARY)
-      const mo = new MutationObserver((muts) => {
-        for (const m of muts) {
+      // (perf-translate-batch) Mutation bursts (typing, polling, big list
+      // renders) previously ran a full DOM walk synchronously per record —
+      // a main-thread killer on busy pages. Coalesce records arriving in
+      // the same frame and process them in one rAF callback instead.
+      let pending: MutationRecord[] = []
+      let rafId: number | null = null
+      const flush = () => {
+        rafId = null
+        const batch = pending
+        pending = []
+        const targets: (Element | Text)[] = []
+        for (const m of batch) {
           m.addedNodes.forEach((n) => {
-            if (n.nodeType === 1) {
-              translateTree(n as Element, UI_DICTIONARY)
-            } else if (n.nodeType === 3) {
-              const t = n as Text
-              snapshotNode(t)
-              translateTextNode(t)
-            }
+            if (n.nodeType === 1) targets.push(n as Element)
+            else if (n.nodeType === 3) targets.push(n as Text)
           })
           if (m.type === 'characterData' && m.target.nodeType === 3) {
-            const t = m.target as Text
             // React wrote new English content into a node we translated
             // before — refresh the snapshot and re-translate.
-            snapshotNode(t)
-            translateTextNode(t)
+            targets.push(m.target as Text)
           }
         }
+        for (const t of targets) {
+          if (t.nodeType === 1) translateTree(t as Element, UI_DICTIONARY)
+          else {
+            const text = t as Text
+            snapshotNode(text)
+            translateTextNode(text)
+          }
+        }
+      }
+      const mo = new MutationObserver((muts) => {
+        pending.push(...muts)
+        if (rafId === null) rafId = requestAnimationFrame(flush)
       })
       mo.observe(root, { childList: true, subtree: true, characterData: true })
-      return () => mo.disconnect()
+      return () => {
+        if (rafId !== null) cancelAnimationFrame(rafId)
+        mo.disconnect()
+      }
     }
 
     // EN: restore original English text everywhere.

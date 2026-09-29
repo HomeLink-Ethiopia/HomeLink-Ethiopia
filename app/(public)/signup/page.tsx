@@ -121,11 +121,10 @@ function SignupContent() {
         return
       }
 
-      // The account is saved in MongoDB at this point. When Resend could not
-      // deliver (free tier only reaches @resend.dev), the backend still
-      // returns the code for development — show it instead of a scary error.
-      // Mock mode returns it as `verificationCode`; MongoDB mode as
-      // `devVerificationCode` (sprint-otp-on-screen).
+      // Formal verification: the 6-digit code arrives by email only. The
+      // backend returns `devVerificationCode` ONLY when email delivery
+      // failed (SMTP down / not configured) — in that case we show the
+      // amber rescue block so the user is never locked out.
       if (data.emailSent === false) {
         setEmailNotDelivered(true)
       }
@@ -199,6 +198,10 @@ function SignupContent() {
       if (!response.ok) {
         setError(data.message || 'Failed to resend code')
       } else {
+        // Formal verification: rescue code only appears when delivery failed.
+        if (data.emailSent === false) {
+          setEmailNotDelivered(true)
+        }
         const code = data.devVerificationCode || data.verificationCode || ''
         if (code) {
           setVerificationCode(code)
@@ -254,9 +257,9 @@ function SignupContent() {
                 </>
               )}
             </div>
-            {verificationCode && (
+            {emailNotDelivered && verificationCode && (
               <div 
-                className="mt-3 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-3 cursor-pointer hover:bg-blue-100 transition-colors"
+                className="mt-3 rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-3 cursor-pointer hover:bg-amber-100 transition-colors"
                 onClick={() => {
                   const newOtp = verificationCode.split('')
                   setOtp(newOtp)
@@ -264,8 +267,8 @@ function SignupContent() {
                   lastInput?.focus()
                 }}
               >
-                <p className="text-center text-xs text-blue-500 mb-1">Development code (click to auto-fill):</p>
-                <p className="text-center text-2xl font-bold tracking-[8px] text-blue-700 font-mono">{verificationCode}</p>
+                <p className="text-center text-xs text-amber-600 mb-1">Email delivery failed — your code (click to auto-fill):</p>
+                <p className="text-center text-2xl font-bold tracking-[8px] text-amber-700 font-mono">{verificationCode}</p>
               </div>
             )}
 

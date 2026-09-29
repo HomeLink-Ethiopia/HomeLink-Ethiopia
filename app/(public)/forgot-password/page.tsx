@@ -27,12 +27,11 @@ export default function ForgotPasswordPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // If backend returns the code directly (dev/mock mode), show it on
-        // screen so the flow completes without email access
-        // (sprint-otp-on-screen).
-        const code = data.resetCode || data.devResetCode || ''
-        if (code) {
-          setResetCode(code)
+        // Formal verification: the reset code is delivered by email. Shown on
+        // screen ONLY when email delivery failed (rescue path).
+        if (data.emailSent === false) {
+          const code = data.devResetCode || ''
+          if (code) setResetCode(code)
         }
         setSent(true)
       } else {
@@ -71,10 +70,10 @@ export default function ForgotPasswordPage() {
             </p>
 
             {resetCode && (
-              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
-                <strong>Your reset code: {resetCode}</strong>
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+                <strong>Email delivery failed — your reset code: {resetCode}</strong>
                 <br />
-                <span className="text-xs text-blue-500">(Check your email too — this is shown for demo purposes)</span>
+                <span className="text-xs text-amber-500">Use this code to continue; request a new one anytime.</span>
               </div>
             )}
 

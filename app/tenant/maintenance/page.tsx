@@ -112,8 +112,8 @@ export default function MaintenancePage() {
   const propTitle = (r: MaintenanceRequest) =>
     (typeof r.propertyId === 'object' ? r.propertyId?.title : null) || ''
 
-  const getPriorityText = (priority: string) =>
-    priority.charAt(0).toUpperCase() + priority.slice(1)
+  const getPriorityText = (priority?: string | null) =>
+    priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : 'Medium'
 
   return (
     <>

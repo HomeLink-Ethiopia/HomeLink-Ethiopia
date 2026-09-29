@@ -18,6 +18,7 @@ const SECTIONS = [
       'For matching: only the preferences you enter — budget, preferred city/sub-city, property type, bedrooms, amenities. We do not use your race, religion, gender, or any other protected characteristic, and we do not profile you from other behavior.',
       'For rent estimates: real comparable listings on HomeLink — same city and property type, with adjustments for bedrooms, size and amenities. No external or invented data.',
       'For fraud risk: report counts, duplicate images across listings, how a price compares to the area average, verification status and listing age.',
+      'We collect only what these features need — no browsing-history profiling, no data from outside HomeLink, and your preferences are never sold or shared.',
     ],
   },
   {
@@ -35,6 +36,7 @@ const SECTIONS = [
       'It never approves or rejects a landlord or property verification.',
       'It never hides or removes a listing on its own.',
       'It never sets your rent — the estimate is guidance, the final price is agreed between landlord and tenant.',
+      'It never fills in the price for you — on the Add Property form the estimate appears as a suggested range, and the landlord still types the actual rent.',
     ],
   },
   {
@@ -50,7 +52,8 @@ const SECTIONS = [
     items: [
       'Match results show every factor score (budget, location, type, bedrooms, amenities, availability) and plain-language reasons — including the negatives — so you can judge for yourself.',
       'Rent estimates state how many comparable listings they are based on and a confidence level (high ≥ 15 comparables, medium ≥ 7, low otherwise). Small samples mean wide ranges.',
-      'If there is not enough real data, the AI says so instead of inventing a number.',
+      'Fewer comparables mean a wider range — a low-confidence estimate is visibly wider, and the estimate itself says how many listings it is based on.',
+      'If there is not enough real data, the AI says so instead of inventing a number — you see a plain message, never a made-up price.',
     ],
   },
 ]

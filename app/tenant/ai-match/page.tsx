@@ -60,7 +60,7 @@ export default function AIMatchPage() {
     try {
       const response = await fetchAiMatches({
         budget: { min: preferences.budget.min, max: preferences.budget.max },
-        location: { city: preferences.location[0] || '' },
+        location: { subCity: preferences.location[0] || '' },
         propertyType: preferences.propertyType === 'any' ? '' : preferences.propertyType,
         bedrooms: preferences.bedrooms,
         amenities: preferences.amenities,
@@ -336,7 +336,7 @@ export default function AIMatchPage() {
                 </p>
                 {meta && (
                   <p className="mt-0.5 text-xs text-charcoal/40">
-                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${Math.round(w * 100)}%`).join(', ')}
+                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${w >= 1 ? Math.round(w) : Math.round(w * 100)}%`).join(', ')}
                   </p>
                 )}
               </div>

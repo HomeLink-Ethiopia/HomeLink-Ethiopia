@@ -285,7 +285,7 @@ export default function LandlordAgreementsPage() {
                                       r.status === 'paid' ? 'bg-verified text-white' :
                                       r.status === 'overdue' ? 'bg-rust text-white' : 'bg-gold text-charcoal'
                                     }`}>
-                                      {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                                      {(r.status || 'pending').charAt(0).toUpperCase() + (r.status || 'pending').slice(1)}
                                     </span>
                                   </td>
                                   <td className="px-3 py-2 text-xs text-charcoal/50">

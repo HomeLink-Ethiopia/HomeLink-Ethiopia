@@ -7,7 +7,8 @@ import Image from 'next/image'
 import { motion, useScroll, useTransform, AnimatePresence, useInView, useMotionValue, useSpring } from 'framer-motion'
 import PropertyCard from '@/components/discovery/PropertyCard'
 import { PROPERTIES } from '@/lib/properties'
-import { stockPhoto, personPhoto } from '@/lib/images'
+import { stockPhoto } from '@/lib/images'
+import InitialsAvatar from '@/components/shared/InitialsAvatar'
 import { useLanguage } from '@/lib/language-context'
 
 /* ─── HERO SLIDESHOW IMAGES ─────────────────────────────────────────────── */
@@ -770,9 +771,7 @@ function RentWithConfidence() {
               className="absolute bottom-6 right-6 flex items-center gap-3 rounded-2xl bg-white/95 p-3 text-charcoal shadow-2xl backdrop-blur-md"
               style={{ borderRadius: '12px 12px 24px 12px' }}
             >
-              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-sand">
-                <Image src={personPhoto('landlord-spotlight')} alt="Landlord" fill sizes="40px" className="object-cover" />
-              </div>
+              <InitialsAvatar name={locale === 'EN' ? 'Samuel Kebede' : 'ሳሙኤል ከበደ'} size={40} />
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="font-display text-xs font-bold text-charcoal">{locale === 'EN' ? 'Landlord' : 'ባለቤት'}</p>

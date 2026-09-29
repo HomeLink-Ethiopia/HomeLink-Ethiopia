@@ -1,4 +1,4 @@
-import { stockPhoto } from './images'
+import { homePhoto } from './images'
 
 export type Neighborhood =
   // Addis Ababa
@@ -109,7 +109,7 @@ export const PROPERTIES: Property[] = RAW.map((p, i) => {
     ...p,
     lat,
     lng,
-    image: stockPhoto(`${p.id}-${p.neighborhood}`, 640, 480),
+    image: homePhoto(`${p.id}-${p.neighborhood}`, p.propertyType),
   }
 })
 

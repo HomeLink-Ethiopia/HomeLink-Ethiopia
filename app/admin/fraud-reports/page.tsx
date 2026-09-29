@@ -6,33 +6,45 @@ import EmptyState from '@/components/ui/EmptyState'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+// Shape returned by GET /api/v1/fraud-reports (model enum, risk pre-sorted).
 interface FraudReport {
   _id: string
   reporterId?: { firstName?: string; lastName?: string; email?: string } | string
-  propertyId?: { title?: string; location?: string } | string
+  propertyId?: { title?: string; _id?: string } | string
   reportedUserId?: string
   reportType: string
   description?: string
   status: string
   adminNotes?: string
   riskScore?: number
+  riskLevel?: string
+  aiSignals?: string[]
   createdAt: string
 }
 
 const STATUS_CLASSES: Record<string, string> = {
-  pending: 'bg-amber-50 text-amber-700 border border-amber-200',
+  open: 'bg-amber-50 text-amber-700 border border-amber-200',
   under_review: 'bg-blue-50 text-blue-700 border border-blue-200',
-  resolved: 'bg-green-50 text-green-700 border border-green-200',
+  resolved_action_taken: 'bg-green-50 text-green-700 border border-green-200',
+  resolved_no_action: 'bg-green-50 text-green-700 border border-green-200',
   dismissed: 'bg-gray-50 text-gray-600 border border-gray-200',
 }
 
+// Model enum (FraudReport.category) + the user-facing names from Sprint 10.
 const TYPE_LABELS: Record<string, string> = {
-  fake_property: 'Fake Listing',
-  fake_landlord: 'Fake Landlord',
+  fake_listing: 'Fake Property',
+  impersonation: 'Fake Landlord',
   scam: 'Scam',
   duplicate_listing: 'Duplicate Listing',
-  suspicious_payment: 'Suspicious Payment',
-  misleading_info: 'Misleading Info',
+  suspicious_payment: 'Suspicious Payment Request',
+  image_theft: 'Stolen Photos',
+  other: 'Misleading Information',
+}
+
+const RISK_CLASSES: Record<string, string> = {
+  HIGH: 'bg-red-50 text-red-700 border border-red-200',
+  MEDIUM: 'bg-amber-50 text-amber-700 border border-amber-200',
+  LOW: 'bg-green-50 text-green-700 border border-green-200',
 }
 
 export default function FraudReportsPage() {
@@ -63,6 +75,7 @@ export default function FraudReportsPage() {
     }
   }
 
+  // Admin decisions only — the AI risk score never bans anyone automatically.
   async function updateReport(reportId: string, status: string, adminNotes?: string) {
     setActionLoading(reportId)
     try {
@@ -92,6 +105,15 @@ export default function FraudReportsPage() {
     setNoteDraft('')
   }
 
+  function RiskBadge({ level, score }: { level?: string; score?: number }) {
+    if (!level && score == null) return null
+    return (
+      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${RISK_CLASSES[level || 'LOW'] || RISK_CLASSES.LOW}`}>
+        Risk:        {level || ((score || 0) >= 60 ? 'HIGH' : (score || 0) >= 30 ? 'MEDIUM' : 'LOW')}
+      </span>
+    )
+  }
+
   return (
     <>
       <TopBar title="Fraud Reports" />
@@ -111,7 +133,7 @@ export default function FraudReportsPage() {
                   : 'User'
                 const propertyTitle = typeof r.propertyId === 'object' && r.propertyId
                   ? r.propertyId.title || 'Property'
-                  : r.propertyId || 'N/A'
+                  : r.propertyId || 'General'
                 return (
                   <button
                     key={r._id}
@@ -128,8 +150,9 @@ export default function FraudReportsPage() {
                       <p className="text-sm font-medium text-charcoal">{TYPE_LABELS[r.reportType] || r.reportType}</p>
                       <p className="truncate text-xs text-charcoal/50">{reporterName} reported {propertyTitle}</p>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_CLASSES[r.status] || 'bg-gray-50 text-gray-600'}`}>
-                      {r.status.replace('_', ' ')}
+                    <RiskBadge level={r.riskLevel} score={r.riskScore} />
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_CLASSES[r.status] || 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
+                      {r.status.replace(/_/g, ' ')}
                     </span>
                   </button>
                 )
@@ -141,9 +164,12 @@ export default function FraudReportsPage() {
                 <p className="text-sm text-charcoal/40">Select a report to view details.</p>
               ) : (
                 <>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[active.status] || 'bg-gray-50 text-gray-600'}`}>
-                    {active.status.replace('_', ' ')}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[active.status] || 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
+                      {active.status.replace(/_/g, ' ')}
+                    </span>
+                    <RiskBadge level={active.riskLevel} score={active.riskScore} />
+                  </div>
                   <h2 className="mt-2 font-display text-lg font-semibold text-charcoal">
                     {TYPE_LABELS[active.reportType] || active.reportType}
                   </h2>
@@ -156,10 +182,17 @@ export default function FraudReportsPage() {
                   )}
                   {active.riskScore != null && (
                     <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-charcoal/50">Risk Score:</span>
-                      <span className={`text-sm font-bold ${active.riskScore >= 75 ? 'text-red-600' : active.riskScore >= 50 ? 'text-amber-600' : 'text-green-600'}`}>
+                      <span className="text-xs text-charcoal/50">AI Risk Score:</span>
+                      <span className={`text-sm font-bold ${active.riskScore >= 60 ? 'text-red-600' : active.riskScore >= 30 ? 'text-amber-600' : 'text-green-600'}`}>
                         {active.riskScore}/100
                       </span>
+                    </div>
+                  )}
+                  {active.aiSignals && active.aiSignals.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {active.aiSignals.map(s => (
+                        <span key={s} className="rounded bg-charcoal/5 px-2 py-0.5 text-[11px] text-charcoal/60">{s.replace(/_/g, ' ')}</span>
+                      ))}
                     </div>
                   )}
 
@@ -185,10 +218,10 @@ export default function FraudReportsPage() {
                       >
                         {actionLoading === active._id ? 'Saving...' : 'Add Note'}
                       </button>
-                      {active.status !== 'resolved' && (
+                      {active.status !== 'resolved_action_taken' && active.status !== 'resolved_no_action' && (
                         <button
                           type="button"
-                          onClick={() => updateReport(active._id, 'resolved')}
+                          onClick={() => updateReport(active._id, 'resolved_action_taken')}
                           disabled={actionLoading === active._id}
                           className="flex-1 rounded border border-green-300 bg-green-50 px-3 py-2 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
                         >

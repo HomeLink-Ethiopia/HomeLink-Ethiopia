@@ -10,6 +10,10 @@ interface Review {
   _id: string
   propertyId?: { title?: string; _id?: string } | string
   authorId?: { firstName?: string; lastName?: string } | string
+  reviewerName?: string
+  revieweeName?: string
+  propertyTitle?: string
+  reviewType?: string
   rating: number
   comment?: string
   landlordReply?: string
@@ -26,6 +30,7 @@ interface AgreementRow {
 
 export default function LandlordReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([])
+  const [myTenantRatings, setMyTenantRatings] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [replying, setReplying] = useState<string | null>(null)
@@ -58,7 +63,7 @@ export default function LandlordReviewsPage() {
         })
         if (mine.ok) {
           const md = await mine.json()
-          const rated = new Set<string>((md.data || []).filter((r: any) => r.agreementId).map((r: any) => String(r.agreementId)))
+          const rated = new Set<string>((md.data || []).filter((r: any) => r.agreementId && r.reviewType === 'landlord_to_tenant').map((r: any) => String(r.agreementId)))
           setRatedAgreements(rated)
         }
       }
@@ -106,6 +111,14 @@ export default function LandlordReviewsPage() {
         const data = await res.json()
         setReviews(data.data || data.reviews || [])
       }
+      // Ratings I gave to tenants (landlord→tenant) — shown as chips below.
+      const mineRes = await fetch(`${API_URL}/api/v1/reviews/mine`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (mineRes.ok) {
+        const mineData = await mineRes.json()
+        setMyTenantRatings((mineData.data || []).filter((r: Review) => r.reviewType === 'landlord_to_tenant'))
+      }
     } catch (e) {
       console.error('Fetch reviews error:', e)
     } finally {
@@ -120,7 +133,7 @@ export default function LandlordReviewsPage() {
     try {
       const token = localStorage.getItem('homelink-token') || localStorage.getItem('hl_token')
       const res = await fetch(`${API_URL}/api/v1/reviews/${reviewId}/reply`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -138,23 +151,18 @@ export default function LandlordReviewsPage() {
     }
   }
 
-  function renderStars(rating: number) {
+  function renderStars(count: number) {
     return Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < rating ? 'text-amber-500' : 'text-gray-300'}>&#9733;</span>
+      <span key={i} className={i < count ? 'text-amber-500' : 'text-gray-300'}>&#9733;</span>
     ))
   }
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0.0'
 
   return (
-    <div className="flex min-h-screen bg-[#F5F1EC]">
-      <TopBar title="Reviews" />
-      <main className="ml-64 flex-1 p-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-charcoal">Reviews</h1>
-          <p className="text-sm text-charcoal/60 mt-1">See what tenants say about your properties</p>
-        </div>
-
+    <>
+      <TopBar title="Reviews" subtitle="See what tenants say about your properties" />
+      <main className="flex-1 space-y-6 px-6 py-8 sm:px-8">
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="rounded-xl border border-charcoal/10 bg-white p-4">
             <p className="text-sm text-charcoal/60">Total Reviews</p>
@@ -175,7 +183,7 @@ export default function LandlordReviewsPage() {
           <section className="mb-8 rounded-xl border border-charcoal/10 bg-white p-5">
             <h2 className="text-lg font-bold text-charcoal">Rate your tenants</h2>
             <p className="text-xs text-charcoal/50 mt-0.5">
-              After signing an agreement you can rate the tenant once per agreement — the same anti-abuse rules apply.
+              Only tenants with a signed agreement appear here. One rating per agreement — duplicates and self-reviews are blocked by the server.
             </p>
             {ratingMsg && <p className="mt-2 text-xs font-medium text-rust">{ratingMsg}</p>}
             <div className="mt-3 space-y-3">
@@ -242,13 +250,30 @@ export default function LandlordReviewsPage() {
           <EmptyState title="No reviews yet" description="When tenants review your properties, they will appear here." />
         ) : (
           <div className="space-y-4">
+            {myTenantRatings.length > 0 && (
+              <section className="rounded-xl border border-charcoal/10 bg-white p-5">
+                <h2 className="text-base font-semibold text-charcoal">Ratings you gave tenants</h2>
+                <div className="mt-3 space-y-2">
+                  {myTenantRatings.map(r => (
+                    <div key={r._id} className="flex flex-wrap items-center gap-3 rounded-lg border border-charcoal/10 px-3 py-2">
+                      <span className="text-sm font-medium text-charcoal">{r.revieweeName || 'Tenant'}</span>
+                      {renderStars(r.rating)}
+                      {r.comment && <span className="text-xs text-charcoal/50">&ldquo;{r.comment}&rdquo;</span>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {reviews.map(review => {
-              const authorName = typeof review.authorId === 'object' && review.authorId
-                ? `${review.authorId.firstName || ''} ${review.authorId.lastName || ''}`.trim() || 'Tenant'
-                : 'Tenant'
-              const propertyName = typeof review.propertyId === 'object' && review.propertyId
-                ? review.propertyId.title || 'Property'
-                : 'Property'
+              const authorName = review.reviewerName
+                || (typeof review.authorId === 'object' && review.authorId
+                  ? `${review.authorId.firstName || ''} ${review.authorId.lastName || ''}`.trim() || 'Tenant'
+                  : 'Tenant')
+              const propertyName = review.propertyTitle
+                || (typeof review.propertyId === 'object' && review.propertyId
+                  ? review.propertyId.title || 'Property'
+                  : 'Property')
               return (
                 <div key={review._id} className="rounded-xl border border-charcoal/10 bg-white p-5">
                   <div className="flex items-start justify-between">
@@ -294,6 +319,6 @@ export default function LandlordReviewsPage() {
           </div>
         )}
       </main>
-    </div>
+    </>
   )
 }

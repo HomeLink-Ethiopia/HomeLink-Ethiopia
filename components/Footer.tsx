@@ -13,7 +13,7 @@ export default function Footer() {
       title: t.footer.company,
       links: [
         { label: t.footer.aboutUs, href: '/about' },
-        { label: t.footer.careers, href: '/careers' },
+        { label: t.footer.careers, href: '/about#careers' },
         { label: t.footer.blog, href: '/about#blog' },
         { label: t.footer.press, href: '/about#press' },
       ],

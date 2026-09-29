@@ -1,7 +1,7 @@
 'use client'
 
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import Image from 'next/image'
@@ -60,18 +60,32 @@ function priceBubbleIcon(property: Property, isHighlighted: boolean) {
 export default function PropertyMap({ properties, hoveredId = null, onHoverChange }: PropertyMapProps) {
   const handleHoverChange = onHoverChange ?? (() => {})
   const markerRefs = useRef<Record<string, L.Marker | null>>({})
-  
-  const [mountId, setMountId] = useState('')
+  const containerRef = useRef<HTMLDivElement | null>(null)
 
   // Guard against Leaflet's "Map container is already initialized" error:
-  // when the component unmounts/remounts quickly (React StrictMode in dev),
-  // giving the wrapper a unique key forces React to discard the old DOM node.
+  // react-leaflet v4 leaks the map binding on unmount (it never calls
+  // map.remove()), so in React 18 StrictMode / Fast Refresh remounts the
+  // stale `_leaflet_id` on the inner .leaflet-container div makes the next
+  // L.map() throw. Child effect cleanups run before ours, so by the time
+  // this runs react-leaflet is done and we can safely drop the stale id.
   useEffect(() => {
-    setMountId(Math.random().toString())
+    return () => {
+      const root = containerRef.current
+      if (!root) return
+      if ((root as any)._leaflet_id != null) {
+        delete (root as any)._leaflet_id
+      }
+      root.querySelectorAll('.leaflet-container').forEach((el) => {
+        if ((el as any)._leaflet_id != null) {
+          delete (el as any)._leaflet_id
+        }
+      })
+    }
   }, [])
 
   // List-driven hover: open/close the matching marker's popup when the
-  // hovered property changes
+  // hovered property changes for a reason other than hovering the pin
+  // itself (react-leaflet keeps this idempotent either way).
   useEffect(() => {
     Object.entries(markerRefs.current).forEach(([id, marker]) => {
       if (!marker) return
@@ -80,10 +94,8 @@ export default function PropertyMap({ properties, hoveredId = null, onHoverChang
     })
   }, [hoveredId])
 
-  if (!mountId) return null
-
   return (
-    <div key={mountId} className="h-full w-full">
+    <div ref={containerRef} className="h-full w-full">
     <MapContainer
       center={ADDIS_ABABA_CENTER}
       zoom={13}

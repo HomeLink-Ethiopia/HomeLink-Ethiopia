@@ -121,6 +121,15 @@ const getMyProperties = async (req, res) => {
     try {
         const userId = req.user.id;
 
+        if (isMockMode()) {
+            const properties = Array.from(mockStore.properties || []).filter(p => {
+                const lp = Array.from(mockStore.landlordProfiles.values() || []).find(l => String(l.accountId) === String(userId));
+                return lp ? String(p.landlordId) === String(lp._id) : false;
+            });
+            // If they just registered, they might not have a profile, but return empty array
+            return res.status(200).json({ data: properties });
+        }
+
         const landlordProfile = await LandlordProfile.findOne({ accountId: userId });
 
         if (!landlordProfile) {
@@ -141,6 +150,12 @@ const getMyProperties = async (req, res) => {
 const getPropertyById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (isMockMode()) {
+            const property = Array.from(mockStore.properties || []).find(p => p._id === id);
+            if (!property) return res.status(404).json({ message: 'Property not found' });
+            return res.status(200).json({ data: property });
+        }
 
         const property = await Property.findById(id);
 
@@ -304,6 +319,23 @@ const searchProperties = async (req, res) => {
 
         // ─── EXECUTE ───
         console.log('📊 Pagination:', { page: pageNum, limit: limitNum, skip });
+
+        if (isMockMode()) {
+            let mockedProps = Array.from(mockStore.properties || []);
+            mockedProps.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const paginated = mockedProps.slice(skip, skip + limitNum);
+            return res.status(200).json({
+                data: paginated,
+                pagination: {
+                    page: pageNum,
+                    limit: limitNum,
+                    total: mockedProps.length,
+                    totalPages: Math.ceil(mockedProps.length / limitNum),
+                    hasNext: skip + limitNum < mockedProps.length,
+                    hasPrev: pageNum > 1
+                }
+            });
+        }
 
         const properties = await Property.find(query)
             .sort(sortOption)

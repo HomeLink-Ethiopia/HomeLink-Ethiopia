@@ -1,7 +1,7 @@
 'use client'
 
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import Image from 'next/image'
@@ -60,25 +60,18 @@ function priceBubbleIcon(property: Property, isHighlighted: boolean) {
 export default function PropertyMap({ properties, hoveredId = null, onHoverChange }: PropertyMapProps) {
   const handleHoverChange = onHoverChange ?? (() => {})
   const markerRefs = useRef<Record<string, L.Marker | null>>({})
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  
+  const [mountId, setMountId] = useState('')
 
   // Guard against Leaflet's "Map container is already initialized" error:
-  // when the component unmounts/remounts quickly (React StrictMode in dev,
-  // Fast Refresh), Leaflet can leave state behind on the container element.
-  // Giving each mount its own container element avoids the collision.
+  // when the component unmounts/remounts quickly (React StrictMode in dev),
+  // giving the wrapper a unique key forces React to discard the old DOM node.
   useEffect(() => {
-    return () => {
-      // On unmount, clear the DOM node's Leaflet binding if any
-      const el = containerRef.current
-      if (el && (el as any)._leaflet_id != null) {
-        delete (el as any)._leaflet_id
-      }
-    }
+    setMountId(Math.random().toString())
   }, [])
 
   // List-driven hover: open/close the matching marker's popup when the
-  // hovered property changes for a reason other than hovering the pin
-  // itself (react-leaflet keeps this idempotent either way).
+  // hovered property changes
   useEffect(() => {
     Object.entries(markerRefs.current).forEach(([id, marker]) => {
       if (!marker) return
@@ -87,8 +80,10 @@ export default function PropertyMap({ properties, hoveredId = null, onHoverChang
     })
   }, [hoveredId])
 
+  if (!mountId) return null
+
   return (
-    <div ref={containerRef} className="h-full w-full">
+    <div key={mountId} className="h-full w-full">
     <MapContainer
       center={ADDIS_ABABA_CENTER}
       zoom={13}

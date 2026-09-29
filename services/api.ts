@@ -147,8 +147,32 @@ export async function fetchRentEstimate(input: {
   bedrooms?: number
   amenities?: string[]
 }): Promise<AiRentEstimate> {
-  const response = await post<{ data: { estimate: AiRentEstimate } }>('/api/v1/ai/rent-estimate', input)
-  return response.data.data.estimate
+  const response = await post<any>('/api/ai/estimate-rent', {
+    subcity: input.subCity || input.city,
+    bedrooms: input.bedrooms || 1,
+    bathrooms: 1,
+    area_sqm: input.sizeM2 || 50,
+    has_water_tank: input.amenities?.includes('Water Tank') || false,
+    has_generator: input.amenities?.includes('Generator') || false,
+    is_furnished: input.amenities?.includes('Furnished') || false
+  })
+  
+  const data = response.data
+  const point = data.estimated_rent_etb || 0
+  let conf: 'high' | 'medium' | 'low' | 'none' = 'none'
+  if (data.confidence > 0.8) conf = 'high'
+  else if (data.confidence > 0.5) conf = 'medium'
+  else conf = 'low'
+
+  return {
+    min: Math.round(point * 0.85),
+    max: Math.round(point * 1.15),
+    point: point,
+    currency: 'ETB',
+    confidence: conf,
+    sampleSize: data.sampleSize || 15,
+    note: data.model_used || 'AI model',
+  }
 }
 
 export interface AiMatch {

@@ -593,3 +593,22 @@ export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
   };
 }
 
+
+export interface AiFraudPriorityItem {
+  propertyId: string;
+  title: string;
+  riskScore: number;
+  riskLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+  signals: string[];
+  verificationStatus: string;
+}
+
+export async function fetchFraudPriority(): Promise<{ queue: AiFraudPriorityItem[], summary: { note: string } }> {
+  try {
+    const response = await get<any>('/api/v1/fraud-reports/priority-queue');
+    return response.data?.data || { queue: [], summary: { note: 'No data' } };
+  } catch (error) {
+    return { queue: [], summary: { note: 'Priority queue unavailable' } };
+  }
+}
+

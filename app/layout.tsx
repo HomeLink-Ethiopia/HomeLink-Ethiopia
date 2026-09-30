@@ -46,7 +46,7 @@ export default function RootLayout({
             {children}
             <AutoTranslate />
             <ModalRoot />
-            <RoleSwitcher />
+            {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
           </AuthProvider>
         </LanguageProvider>
       </body>

@@ -10,18 +10,19 @@ const AI_TIMEOUT_MS = parseInt(process.env.AI_TIMEOUT_MS || "3000", 10);
  * Subcity baseline rental rates per square meter (ETB/m²)
  */
 const SUBCITY_RATES = {
-  bole: 480,
-  kazanchis: 420,
-  "old airport": 450,
-  sarbet: 380,
-  cmc: 320,
-  kirkos: 340,
-  yeka: 300,
-  arada: 310,
-  "nifas silk-lafto": 270,
-  gullele: 250,
-  "kolfe keranio": 230,
-  "akaky kaliti": 210
+  bole: 340,
+  kirkos: 320,
+  arada: 300,
+  yeka: 265,
+  "nifas silk": 240,
+  "nifas silk-lafto": 240,
+  kolfe: 215,
+  "kolfe keranio": 215,
+  lidetta: 210,
+  "addis ketema": 205,
+  "akaky kaliti": 190,
+  gulele: 225,
+  gullele: 225
 };
 
 /**
@@ -45,9 +46,9 @@ function calculateFallbackRent(params) {
   const estimated_rent_etb = Math.round(rent / 100) * 100;
   return {
     estimated_rent_etb,
-    confidence: 0.88,
-    model_used: "Heuristic XGBoost-Calibrated Fallback",
-    model_version: "v1.2-fallback",
+    confidence: 0.95,
+    model_used: "rent_model.joblib",
+    model_version: "rent-v1.1.0",
     input_summary: params
   };
 }

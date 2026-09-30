@@ -126,11 +126,13 @@ function SignupContent() {
       // returns the code for development — show it instead of a scary error.
       // Mock mode returns it as `verificationCode`; MongoDB mode as
       // `devVerificationCode` (sprint-otp-on-screen).
-      if (data.emailSent === false) {
-        setEmailNotDelivered(true)
+      // Registration successful! The backend auto-verifies the email now.
+      // Log the user straight into their dashboard.
+      const loginResult = await login(formData.email, formData.password)
+      if (!loginResult.success) {
+        // Auto-login failed (rare) — fall back to the login page as before.
+        router.push('/login?verified=true')
       }
-      setVerificationCode(data.devVerificationCode || data.verificationCode || '')
-      setStep('otp')
     } catch (err) {
       setError('Registration failed. Please try again.')
     } finally {

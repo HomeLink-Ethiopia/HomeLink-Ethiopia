@@ -7,6 +7,7 @@ const mockStore = {
   users: new Map(),
   landlordProfiles: new Map(),
   tenantPreferences: new Map(),
+  disputes: [],
   properties: [
     {
       _id: "66d1f801e12a4b001a111111",

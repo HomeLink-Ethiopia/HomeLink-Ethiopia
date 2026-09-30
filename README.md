@@ -63,74 +63,50 @@ HomeLink-Ethiopia/
 
 ---
 
-## Getting Started
+## Getting Started (Hackathon Quick Start)
+
+We've simplified the boot process so teammates and judges can run the stack locally without friction.
 
 ### Prerequisites
 
-- **Node.js 18+**
-- **npm 9+**
-- A MongoDB database (local or [Atlas](https://www.mongodb.com/atlas))
-- A [Resend](https://resend.com) API key (for verification emails — optional in development)
+- **Node.js 18+** & **npm 9+**
+- **Python 3.10+** (or Conda)
 
-### 1. Install dependencies
+### 1. Install Dependencies
+
+Install the frontend, backend, and AI dependencies:
 
 ```bash
-# Frontend
+# 1. Next.js Frontend (Root)
 npm install
 
-# Backend
+# 2. Express Backend
 cd backend
 npm install
-cd ..
+
+# 3. AI Backend
+cd ../ai
+pip install -r requirements.txt
 ```
 
-### 2. Configure environment variables
+### 2. Launch the Application
 
-**Backend** — create `backend/.env` (copy `backend/.env.example`):
+The easiest way to launch all three servers is to use the automated startup script:
 
-```env
-PORT=5000
-MONGO_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/homelink
-JWT_SECRET=your-secret-key
-RESEND_API_KEY=re_xxxxxxxx
-```
+> **🔥 Quick Start Automation:** If you are on Windows, simply double-click the `start-project.bat` script in the project root to automatically launch the Next.js frontend, Express backend, and FastAPI AI Engine in parallel!
 
-**Frontend** — create `.env.local` in the project root (copy `.env.example`):
-
-```env
-NEXT_PUBLIC_MOCK_MODE=false
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
-
-> `NEXT_PUBLIC_MOCK_MODE=false` is **required** — without it the frontend uses an in-browser mock instead of the real API.
-
-### 3. Seed the database (optional but recommended)
-
-Creates three verified development accounts used by the on-screen Dev role switcher:
+If you prefer to start them manually, open three terminal windows:
 
 ```bash
-cd backend
-node scripts/seed-dev-accounts.js
-```
+# Terminal 1 - Express Backend (from /backend)
+npm start
 
-| Role | Email | Password |
-|---|---|---|
-| Tenant | dev.tenant@homelink.test | Password123! |
-| Landlord | dev.landlord@homelink.test | Password123! |
-| Admin | dev.admin@homelink.test | Password123! |
+# Terminal 2 - AI Backend (from /ai)
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-### 4. Run the app
-
-```bash
-# Terminal 1 — backend (from backend/)
-npm start            # or: node server.js
-
-# Terminal 2 — frontend (from project root)
+# Terminal 3 - Next.js Frontend (from root)
 npm run dev
 ```
-
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
 
 ---
 

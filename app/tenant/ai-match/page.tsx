@@ -334,9 +334,9 @@ export default function AIMatchPage() {
                 <p className="text-sm text-charcoal/60">
                   Top {results.length} matches from {meta?.candidatesConsidered ?? allProperties.length} live listings • Budget: ETB {preferences.budget.min.toLocaleString()} – {preferences.budget.max.toLocaleString()}
                 </p>
-                {meta && (
+                {meta && meta.weights && (
                   <p className="mt-0.5 text-xs text-charcoal/40">
-                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${w >= 1 ? Math.round(w) : Math.round(w * 100)}%`).join(', ')}
+                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${w >= 1 ? Math.round(w as number) : Math.round((w as number) * 100)}%`).join(', ')}
                   </p>
                 )}
               </div>
@@ -425,11 +425,12 @@ export default function AIMatchPage() {
                         <h4 className="text-sm font-semibold text-charcoal mb-3">WHY THIS HOME MATCHES YOU</h4>
 
                         {/* Score Breakdown Bar */}
-                        <div className="grid grid-cols-6 gap-2 mb-4">
-                          {Object.entries(result.breakdown).map(([key, score]) => (
-                            <div key={key} className="text-center">
-                              <div className="h-20 bg-sand rounded relative overflow-hidden">
-                                <div
+                        {result.breakdown && (
+                          <div className="grid grid-cols-6 gap-2 mb-4">
+                            {Object.entries(result.breakdown).map(([key, score]) => (
+                              <div key={key} className="text-center">
+                                <div className="h-20 bg-sand rounded relative overflow-hidden">
+                                  <div
                                   className="absolute bottom-0 left-0 right-0 rounded transition-all"
                                   style={{
                                     height: `${score}%`,
@@ -446,10 +447,11 @@ export default function AIMatchPage() {
                             </div>
                           ))}
                         </div>
+                        )}
 
                         {/* Reason List */}
                         <div className="space-y-2">
-                          {result.reasons.map((reason, i) => (
+                          {(result.reasons || (result.matchReasons || []).map(r => ({ icon: 'check', text: r }))).map((reason: any, i: number) => (
                             <div key={i} className="flex items-center gap-2 text-sm">
                               {reason.icon === 'check' && (
                                 <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

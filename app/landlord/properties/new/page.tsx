@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/landlord/TopBar'
-import { fetchRentEstimate, type AiRentEstimate } from '@/services/api'
+import RentEstimateGauge from '@/components/property/RentEstimateGauge'
+import { fetchRentEstimate } from '@/services/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -35,39 +36,6 @@ export default function NewPropertyPage() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [images, setImages] = useState<ImagePreview[]>([])
-  // Sprint 13 — AI rent estimate
-  const [estimating, setEstimating] = useState(false)
-  const [estimate, setEstimate] = useState<AiRentEstimate | null>(null)
-
-  async function estimateRent() {
-    setEstimating(true)
-    setEstimate(null)
-    try {
-      const result = await fetchRentEstimate({
-        city: formData.city || 'Addis Ababa',
-        subCity: formData.subCity || undefined,
-        propertyType: formData.propertyType,
-        sizeM2: formData.sizeM2 ? Number(formData.sizeM2) : undefined,
-        bedrooms: formData.bedrooms ? Number(formData.bedrooms) : undefined,
-        amenities: formData.amenities,
-      })
-      setEstimate(result)
-    } catch (e) {
-      // Surface the real failure (network vs validation) instead of a generic message
-      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : ''
-      setEstimate({
-        min: null,
-        max: null,
-        point: null,
-        currency: 'ETB',
-        confidence: 'none',
-        sampleSize: 0,
-        message: msg || 'Could not reach the estimation service. Make sure the backend is running on port 5000.',
-      })
-    } finally {
-      setEstimating(false)
-    }
-  }
 
   const [formData, setFormData] = useState({
     title: '',
@@ -85,6 +53,48 @@ export default function NewPropertyPage() {
     amenities: [] as string[],
     availableFrom: '',
   })
+
+  const [rentEstimate, setRentEstimate] = useState<{ low: number; fair: number; high: number } | null>(null)
+  const [estimating, setEstimating] = useState(false)
+
+  // Auto-estimate rent via XGBoost when property specs change
+  useEffect(() => {
+    const subCity = formData.subCity
+    const bedrooms = Number(formData.bedrooms)
+    const bathrooms = Number(formData.bathrooms) || 1
+    const sizeM2 = Number(formData.sizeM2) || 0
+
+    if (subCity && bedrooms > 0) {
+      if (sizeM2 <= 0) {
+        setRentEstimate(null)
+        setEstimating(false)
+        return
+      }
+
+      const timer = setTimeout(async () => {
+        setEstimating(true)
+        try {
+          const res = await fetchRentEstimate({
+            subCity,
+            bedrooms,
+            bathrooms,
+            sizeM2,
+            is_furnished: formData.furnished,
+            has_water_tank: formData.amenities.some(a => a.toLowerCase().includes('water')),
+            has_generator: formData.amenities.some(a => a.toLowerCase().includes('generator')),
+            amenities: formData.amenities,
+          })
+          setRentEstimate({ low: res.low, fair: res.fair, high: res.high })
+        } catch (error) {
+          console.error("AI Estimation failed - ensure Python FastAPI is running on port 8000:", error)
+          setRentEstimate(null)
+        } finally {
+          setEstimating(false)
+        }
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [formData.subCity, formData.bedrooms, formData.bathrooms, formData.sizeM2, formData.furnished, formData.amenities])
 
   // Image handling
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,19 +153,24 @@ export default function NewPropertyPage() {
     if (images.length === 0) return true
 
     const token = localStorage.getItem('hl_token')
-    const formDataImg = new FormData()
-    images.forEach(img => {
-      formDataImg.append('images', img.file)
-    })
+    for (let i = 0; i < images.length; i++) {
+      const formDataImg = new FormData()
+      formDataImg.append('image', images[i].file)
+      formDataImg.append('isPrimary', images[i].isPrimary ? 'true' : 'false')
+      formDataImg.append('order', String(i))
 
-    const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formDataImg,
-    })
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}))
-      throw new Error(j.message || `Image upload failed (${res.status})`)
+      try {
+        const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formDataImg,
+        })
+        if (!res.ok) {
+          console.error(`Failed to upload image ${i + 1}`)
+        }
+      } catch {
+        console.error(`Network error uploading image ${i + 1}`)
+      }
     }
     return true
   }
@@ -211,42 +226,38 @@ export default function NewPropertyPage() {
       })
 
       let propertyId = ''
-      let apiError = ''
       try {
         if (res.headers.get('content-type')?.includes('application/json')) {
           const data = await res.json()
+          
+          if (!res.ok) {
+            setErrors([data.message || 'Failed to create property'])
+            return
+          }
           propertyId = data.data?._id || data._id || ''
-          if (!res.ok) apiError = data.message || `Request failed (${res.status})`
-        } else if (!res.ok) {
-          apiError = `Server error (${res.status})`
         }
-      } catch {}
+      } catch (e) {
+        if (!res.ok) {
+           setErrors(['Failed to create property: Server returned an error'])
+           return
+        }
+      }
 
       if (!res.ok) {
-        setErrors([apiError || 'Could not create the property. Please try again.'])
-        setSubmitting(false)
+        setErrors(['Failed to create property'])
         return
       }
 
       // Upload images if we have a property ID
       if (propertyId) {
-        try {
-          await uploadImages(propertyId)
-        } catch (uploadErr: unknown) {
-          const msg = uploadErr instanceof Error ? uploadErr.message : 'Image upload failed'
-          setErrors([`Property created, but images failed to upload: ${msg}`])
-          setSubmitting(false)
-          return
-        }
+        await uploadImages(propertyId)
       }
 
       setSuccess(true)
-      setTimeout(() => router.push('/landlord/properties'), 1500)
-    } catch (err: unknown) {
+      setTimeout(() => router.push('/landlord/properties'), 2000)
+    } catch (err) {
       console.error('Create property error:', err)
-      const msg = err instanceof Error ? err.message : 'Network error'
-      setErrors([msg])
-      setSubmitting(false)
+      setErrors(['An unexpected error occurred while creating the property. Please ensure you have completed your Landlord Registration.'])
     } finally {
       setSubmitting(false)
     }
@@ -562,37 +573,40 @@ export default function NewPropertyPage() {
                   </div>
                 </div>
 
-                {/* Sprint 13 — AI rent estimate from real comparables */}
-                <div className="rounded-lg border border-charcoal/10 bg-cream p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-charcoal">Not sure what to charge?</p>
-                      <p className="text-xs text-charcoal/50">Compare with real listings of the same type in your city.</p>
+                {/* ─── AI FAIR RENT ESTIMATE GAUGE ─── */}
+                <div className="mt-4 rounded-xl border border-rust/20 bg-cream/30 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-semibold text-charcoal">AI Fair Market Rent Guidance (XGBoost)</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={estimateRent}
-                      disabled={estimating || !formData.propertyType || !formData.city}
-                      className="shrink-0 rounded bg-rust px-4 py-2 text-xs font-medium text-white hover:bg-rust-dark disabled:opacity-50"
-                    >
-                      {estimating ? 'Estimating…' : 'Get AI Estimate'}
-                    </button>
+                    {estimating && <span className="text-[11px] text-charcoal/50">Recalculating...</span>}
                   </div>
-                  {estimate && (
-                    <div className="mt-3">
-                      {estimate.point ? (
-                        <>
-                          <p className="text-sm text-charcoal">
-                            Estimated: <span className="font-semibold">ETB {estimate.min?.toLocaleString()} – {estimate.max?.toLocaleString()}/month</span>
-                          </p>
-                          <p className="mt-0.5 text-xs text-charcoal/50">
-                            Based on {estimate.sampleSize} comparable listing{estimate.sampleSize === 1 ? '' : 's'} on HomeLink · confidence: {estimate.confidence}
-                            {estimate.note ? ` · ${estimate.note}` : ''}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-xs text-charcoal/60">{estimate.message}</p>
-                      )}
+                  {!formData.sizeM2 || Number(formData.sizeM2) <= 0 ? (
+                    <div className="py-6 text-center">
+                      <p className="text-sm font-medium text-charcoal/60">Please enter property size (m²) for an accurate AI estimate</p>
+                    </div>
+                  ) : rentEstimate ? (
+                    <>
+                      <RentEstimateGauge estimate={rentEstimate} />
+                      <div className="mt-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, rentAmount: String(rentEstimate.fair) }))}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-rust hover:text-rust-dark transition-colors"
+                        >
+                          Apply Fair Rent ({rentEstimate.fair.toLocaleString()} ETB) →
+                        </button>
+                      </div>
+                    </>
+                  ) : formData.subCity && Number(formData.bedrooms) > 0 ? (
+                    <div className="py-6 text-center">
+                      <p className="text-sm font-medium text-red-600">AI Engine is offline or failed to connect.</p>
+                      <p className="text-xs text-charcoal/50 mt-1">Make sure the Python FastAPI server is running on port 8000.</p>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center">
+                      <p className="text-sm font-medium text-charcoal/60">Fill in property details to generate estimate</p>
                     </div>
                   )}
                 </div>

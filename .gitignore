@@ -18,3 +18,14 @@ backend-backup-kidist/
 
 # mock-mode persisted users (demo data)
 mock-users.json
+
+# Python / Virtual Environments
+venv/
+.venv/
+__pycache__/
+
+# Ensure required ML assets are tracked
+!ai/models/rent_model.joblib
+!ai/requirements.txt
+
+ai/miniconda.exe

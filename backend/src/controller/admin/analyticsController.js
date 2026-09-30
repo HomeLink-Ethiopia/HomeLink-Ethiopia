@@ -5,6 +5,7 @@ const RentalAgreement = require('../../models/RentalAgreement');
 const Application = require('../../models/Application');
 const FraudReport = require('../../models/FraudReport');
 const Dispute = require('../../models/Dispute');
+const { isMockMode } = require('../../config/db');
 
 const getKPIs = async (req, res) => {
     try {
@@ -120,6 +121,26 @@ const getChartData = async (req, res) => {
 
 const getAnalytics = async (req, res) => {
     try {
+        if (isMockMode()) {
+            return res.status(200).json({
+                data: {
+                    kpis: {
+                        totalUsers: 15, totalLandlords: 3, totalTenants: 10, totalProperties: 10,
+                        verifiedProperties: 5, pendingVerifications: 2, activeRentals: 4,
+                        totalApplications: 12, openFraudReports: 1, openDisputes: 0
+                    },
+                    charts: {
+                        propertiesByCity: [{label: 'Bole', value: 5}, {label: 'Kazanchis', value: 3}],
+                        usersByRole: [{label: 'tenant', value: 10}, {label: 'landlord', value: 3}, {label: 'admin', value: 2}],
+                        propertiesByPriceRange: [{label: '10000', value: 2}, {label: '20000', value: 8}],
+                        verificationStats: [{label: 'verified', value: 5}, {label: 'pending', value: 2}],
+                        fraudByType: [{label: 'fake_listing', value: 1}],
+                        applicationTrend: [{label: '2023-09', value: 12}]
+                    }
+                }
+            });
+        }
+
         const [
             totalUsers, totalLandlords, totalTenants, totalProperties,
             verifiedProperties, pendingVerifications, activeRentals,

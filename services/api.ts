@@ -561,7 +561,7 @@ export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
   try {
     const prefsPayload = {
       budget: params.budget || { min: 0, max: 100000 },
-      location: params.location?.subCity ? [params.location.subCity] : ['Bole'],
+      location: { subCity: params.location?.subCity || 'Bole' },
       propertyType: params.propertyType || 'any',
       bedrooms: params.bedrooms || 1,
       bathrooms: params.bathrooms || 1,

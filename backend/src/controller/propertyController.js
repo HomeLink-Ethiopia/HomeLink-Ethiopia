@@ -907,7 +907,7 @@ const getRecommendations = async (req, res) => {
             };
         }
 
-        if ((!properties || properties.length === 0) && isMockMode()) {
+        if (!properties || properties.length === 0) {
             properties = [...mockStore.properties];
         }
 

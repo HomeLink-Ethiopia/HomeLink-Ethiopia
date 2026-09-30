@@ -5,7 +5,6 @@ import { AuthProvider } from '@/lib/auth-context'
 import { LanguageProvider } from '@/lib/language-context'
 import AutoTranslate from '@/lib/auto-translate'
 import ModalRoot from '@/components/modals/ModalRoot'
-import RoleSwitcher from '@/components/RoleSwitcher'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -46,7 +45,6 @@ export default function RootLayout({
             {children}
             <AutoTranslate />
             <ModalRoot />
-            {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
           </AuthProvider>
         </LanguageProvider>
       </body>

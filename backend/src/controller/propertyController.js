@@ -86,11 +86,30 @@ const createProperty = async (req, res) => {
             console.warn('⚠️ AI Fraud Detection fallback (service offline or error):', aiErr.message);
         }
 
+        let propertyData = { ...req.body };
+        if (propertyData.location) {
+            if (!propertyData.location.coordinates || !Array.isArray(propertyData.location.coordinates.coordinates)) {
+                propertyData.location.coordinates = {
+                    type: "Point",
+                    coordinates: [38.7578, 9.0300] // Default to center of Addis Ababa
+                };
+            }
+        } else {
+            propertyData.location = {
+                city: "Addis Ababa",
+                subCity: "Bole",
+                coordinates: {
+                    type: "Point",
+                    coordinates: [38.7578, 9.0300]
+                }
+            };
+        }
+
         let property = null;
         try {
             property = await Property.create({
                 landlordId: landlordProfile._id,
-                ...req.body,
+                ...propertyData,
                 fraudRiskScore,
                 riskLevel,
                 redFlags
@@ -100,7 +119,7 @@ const createProperty = async (req, res) => {
                 property = {
                     _id: "mock-prop-" + Date.now(),
                     landlordId: landlordProfile._id,
-                    ...req.body,
+                    ...propertyData,
                     listingStatus: 'active',
                     verificationStatus: 'verified',
                     fraudRiskScore,

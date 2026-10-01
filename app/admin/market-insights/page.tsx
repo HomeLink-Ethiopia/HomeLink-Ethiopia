@@ -1,108 +1,141 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useEffect, useState, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import TopBar from '@/components/admin/TopBar'
+import { SkeletonTable } from '@/components/ui/LoadingSkeleton'
 
-/* ─── DATA ─────────────────────────────────────────────────────────────── */
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-const MARKET_KPIS = [
-  { label: 'Avg Monthly Rent (2-Bed)', value: 'ETB 19,420', change: '+4.1%', up: true },
-  { label: 'Active Listings', value: '2,847', change: '+12.3%', up: true },
-  { label: 'Vacancy Rate', value: '6.4%', change: '-1.8%', up: false },
-  { label: 'Avg Days to Lease', value: '11 days', change: '-3 days', up: false },
-]
+/**
+ * Market Insights — every number comes from the live database via
+ * GET /api/v1/admin/market-insights (verified active listings only).
+ * Small-sample reality is shown, not invented: charts say "not enough
+ * data yet" instead of fabricating trends.
+ */
 
-const NEIGHBORHOOD_TABLE = [
-  { name: 'Bole', listings: 426, avgRent: 22000, changeQoQ: 4.2, demand: 'Very High', vacancy: '4.1%' },
-  { name: 'Old Airport', listings: 145, avgRent: 26500, changeQoQ: 5.4, demand: 'Very High', vacancy: '3.7%' },
-  { name: 'Kazanchis', listings: 312, avgRent: 23000, changeQoQ: 3.8, demand: 'High', vacancy: '5.2%' },
-  { name: 'CMC', listings: 276, avgRent: 17500, changeQoQ: 2.0, demand: 'Moderate', vacancy: '7.3%' },
-  { name: 'Yeka', listings: 188, avgRent: 16000, changeQoQ: 2.6, demand: 'Growing', vacancy: '8.1%' },
-  { name: 'Saris', listings: 196, avgRent: 13500, changeQoQ: 2.3, demand: 'Moderate', vacancy: '9.0%' },
-  { name: 'Megenagna', listings: 122, avgRent: 15000, changeQoQ: 1.7, demand: 'Low', vacancy: '11.4%' },
-]
-
-const PRICE_TREND_MONTHS = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug']
-const PRICE_TREND_VALUES = [16800, 17200, 17900, 18300, 18700, 19100, 19420]
-const maxTrend = Math.max(...PRICE_TREND_VALUES)
-
-const PROPERTY_TYPE_BREAKDOWN = [
-  { type: '2 Bedroom Apartment', pct: 38, count: 1082 },
-  { type: '1 Bedroom / Studio', pct: 27, count: 769 },
-  { type: '3 Bedroom Apartment', pct: 19, count: 541 },
-  { type: 'House / Villa', pct: 12, count: 342 },
-  { type: 'Other', pct: 4, count: 113 },
-]
-
-const DEMAND_BARS = [
-  { name: 'Bole', views: 9240, applications: 1120 },
-  { name: 'Kazanchis', views: 7100, applications: 840 },
-  { name: 'CMC', views: 5800, applications: 620 },
-  { name: 'Old Airport', views: 4600, applications: 540 },
-  { name: 'Yeka', views: 3900, applications: 390 },
-  { name: 'Saris', views: 3200, applications: 290 },
-]
-const maxViews = Math.max(...DEMAND_BARS.map((d) => d.views))
-
-/* ─── HELPERS ───────────────────────────────────────────────────────────── */
-function Badge({ demand }: { demand: string }) {
-  const cls =
-    demand === 'Very High' ? 'bg-rust/10 text-rust' :
-    demand === 'High' ? 'bg-amber-100 text-amber-700' :
-    demand === 'Growing' ? 'bg-blue-50 text-blue-700' :
-    'bg-sand text-charcoal/60'
-  return <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cls}`}>{demand}</span>
+interface Insights {
+  headline: {
+    activeListings: number
+    verifiedListings: number
+    avgRentEtb: number
+    minRentEtb: number
+    maxRentEtb: number
+    totalTenants: number
+    newListingsThisMonth: number
+    occupancyRate: number
+  }
+  rentTrend: { labels: (string | null)[]; values: (number | null)[] }
+  popularNeighborhoods: { name: string; views: number; apps: number; listings: number }[]
+  propertyTypeDistribution: { type: string; count: number; share: number }[]
+  priceDistribution: { label: string; count: number }[]
+  sampleSizes: { verifiedActive: number; totalActive: number }
 }
 
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true })
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay }}>
+    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay }}>
       {children}
     </motion.div>
   )
 }
 
-/* ─── PAGE ──────────────────────────────────────────────────────────────── */
+const fmt = (n: number) => `ETB ${n.toLocaleString()}`
+
 export default function MarketInsightsPage() {
-  const [period, setPeriod] = useState<'Last 3 Months' | 'Last 6 Months' | 'Last Year'>('Last 6 Months')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [data, setData] = useState<Insights | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const token = localStorage.getItem('hl_token')
+      const res = await fetch(`${API_URL}/api/v1/admin/market-insights`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (res.status === 401) {
+        setError('Please log in as an admin to see market insights.')
+        return
+      }
+      if (!res.ok) throw new Error('failed')
+      const json = await res.json()
+      setData(json.data)
+    } catch {
+      setError('Could not load market insights. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  if (loading) {
+    return (
+      <>
+        <TopBar title="Market Insights" />
+        <main className="px-6 py-8 sm:px-8">
+          <SkeletonTable rows={4} cols={4} />
+        </main>
+      </>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <>
+        <TopBar title="Market Insights" />
+        <main className="px-6 py-8 sm:px-8">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {error || 'No data available.'}
+          </div>
+        </main>
+      </>
+    )
+  }
+
+  const h = data.headline
+  const kpis = [
+    { label: 'Avg Verified Rent', value: fmt(h.avgRentEtb), sub: `range ${fmt(h.minRentEtb)} – ${fmt(h.maxRentEtb)}` },
+    { label: 'Active Listings', value: String(h.activeListings), sub: `${h.verifiedListings} verified` },
+    { label: 'Registered Tenants', value: String(h.totalTenants), sub: 'on the platform' },
+    { label: 'New Listings (30 days)', value: String(h.newListingsThisMonth), sub: `occupancy ${h.occupancyRate}%` },
+  ]
+
+  const trendPairs = data.rentTrend.labels.map((l, i) => ({ label: l, v: data.rentTrend.values[i] }))
+  const trendValues = trendPairs.map((p) => p.v).filter((v): v is number => v !== null)
+  const maxTrend = trendValues.length ? Math.max(...trendValues) : 0
+  const hasTrend = trendValues.length >= 2
+
+  const maxViews = Math.max(1, ...data.popularNeighborhoods.map((d) => d.views))
 
   return (
     <>
-      <TopBar title="Market Insights" defaultPeriod={period as any} />
+      <TopBar title="Market Insights" />
 
       <main className="flex-1 space-y-8 px-6 py-8 sm:px-8">
         <div className="flex items-center justify-between -mt-2">
           <p className="text-sm text-charcoal/60">
-            Aggregated, privacy-preserving rental indicators for Addis Ababa.
+            Live indicators from verified active listings in Addis Ababa.
+            {data.sampleSizes.verifiedActive < 10 && (
+              <span className="ml-2 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                Small sample — {data.sampleSizes.verifiedActive} verified listings
+              </span>
+            )}
           </p>
-          <div className="flex items-center gap-1 rounded-lg border border-charcoal/10 bg-white p-1 shadow-sm">
-            {(['Last 3 Months', 'Last 6 Months', 'Last Year'] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriod(p)}
-                className={`rounded px-3 py-1.5 text-xs font-semibold transition-all ${period === p ? 'bg-rust text-white shadow-sm' : 'text-charcoal/60 hover:text-charcoal'}`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* ── KPI CARDS ── */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {MARKET_KPIS.map((k, i) => (
+          {kpis.map((k, i) => (
             <FadeIn key={k.label} delay={i * 0.07}>
-              <div className="rounded-xl border border-charcoal/8 bg-white p-5 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
+              <div className="rounded-xl border border-charcoal/10 bg-white p-5 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
                 <p className="text-xs font-medium text-charcoal/50">{k.label}</p>
                 <p className="mt-2 font-display text-2xl font-bold text-charcoal">{k.value}</p>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className={`text-[11px] font-semibold ${k.up ? 'text-verified' : 'text-rust'}`}>{k.change}</span>
-                  <span className="text-[11px] text-charcoal/40">vs last period</span>
-                </div>
+                <p className="mt-1 text-[11px] text-charcoal/40">{k.sub}</p>
               </div>
             </FadeIn>
           ))}
@@ -110,151 +143,154 @@ export default function MarketInsightsPage() {
 
         {/* ── CHARTS ROW ── */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-          {/* Average Rent Trend */}
+          {/* Rent trend */}
           <FadeIn delay={0.12}>
-            <div className="rounded-xl border border-charcoal/8 bg-white p-6 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
+            <div className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
               <div className="mb-5">
-                <h3 className="font-display text-base font-bold text-charcoal">Avg Monthly Rent — 2-Bedroom</h3>
-                <p className="text-xs text-charcoal/50">Addis Ababa composite · ETB</p>
+                <h3 className="font-display text-base font-bold text-charcoal">Average Rent by Listing Month</h3>
+                <p className="text-xs text-charcoal/50">All new listings · ETB/month</p>
               </div>
-              <div className="flex items-end gap-2 h-40">
-                {PRICE_TREND_VALUES.map((v, i) => {
-                  const height = (v / maxTrend) * 100
-                  const isLast = i === PRICE_TREND_VALUES.length - 1
-                  return (
+              {hasTrend ? (
+                <div className="flex h-40 items-end gap-2">
+                  {trendPairs.map((p, i) => (
                     <div key={i} className="group flex flex-1 flex-col items-center gap-1">
-                      <div className="hidden group-hover:block text-[10px] font-mono font-semibold text-charcoal/70">
-                        {(v / 1000).toFixed(1)}k
-                      </div>
+                      {p.v !== null && (
+                        <div className="hidden text-[10px] font-mono font-semibold text-charcoal/70 group-hover:block">
+                          {(p.v / 1000).toFixed(1)}k
+                        </div>
+                      )}
                       <motion.div
                         initial={{ height: 0 }}
-                        whileInView={{ height: `${height}%` }}
+                        whileInView={{ height: p.v ? `${(p.v / maxTrend) * 100}%` : '4px' }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.7, delay: i * 0.07, ease: 'easeOut' }}
-                        className={`w-full rounded-t-md ${isLast ? 'bg-rust' : 'bg-rust/30 group-hover:bg-rust/60'} transition-colors`}
+                        className={`w-full rounded-t-md transition-colors ${p.v ? 'bg-rust/30 group-hover:bg-rust/60' : 'bg-sand'}`}
                         style={{ minHeight: '4px' }}
                       />
-                      <span className="text-[9px] font-mono text-charcoal/40">{PRICE_TREND_MONTHS[i]}</span>
+                      <span className="font-mono text-[9px] text-charcoal/40">{p.label}</span>
                     </div>
-                  )
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="flex h-40 items-center justify-center text-sm text-charcoal/40">
+                  Not enough listing history yet for a trend.
+                </p>
+              )}
             </div>
           </FadeIn>
 
-          {/* Demand by Neighborhood */}
+          {/* Demand by neighborhood */}
           <FadeIn delay={0.16}>
-            <div className="rounded-xl border border-charcoal/8 bg-white p-6 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
+            <div className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
               <div className="mb-5">
                 <h3 className="font-display text-base font-bold text-charcoal">Demand by Neighborhood</h3>
-                <p className="text-xs text-charcoal/50">Listing views vs applications (this period)</p>
+                <p className="text-xs text-charcoal/50">Listing views vs applications (live counts)</p>
               </div>
-              <div className="space-y-3">
-                {DEMAND_BARS.map((d) => (
-                  <div key={d.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-charcoal">{d.name}</span>
-                      <span className="font-mono text-charcoal/50">{d.views.toLocaleString()} views · {d.applications.toLocaleString()} apps</span>
+              {data.popularNeighborhoods.length === 0 ? (
+                <p className="py-10 text-center text-sm text-charcoal/40">No active listings yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {data.popularNeighborhoods.map((d) => (
+                    <div key={d.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-charcoal">{d.name}</span>
+                        <span className="font-mono text-charcoal/50">
+                          {d.views.toLocaleString()} views · {d.apps.toLocaleString()} apps · {d.listings} listing{d.listings === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <div className="relative h-2 overflow-hidden rounded-full bg-sand">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${(d.views / maxViews) * 100}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, ease: 'easeOut' }}
+                          className="absolute left-0 top-0 h-full rounded-full bg-rust/25"
+                        />
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${(d.apps / maxViews) * 100}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+                          className="absolute left-0 top-0 h-full rounded-full bg-rust"
+                        />
+                      </div>
                     </div>
-                    <div className="relative h-2 rounded-full bg-sand overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${(d.views / maxViews) * 100}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, ease: 'easeOut' }}
-                        className="absolute left-0 top-0 h-full rounded-full bg-rust/25"
-                      />
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${(d.applications / maxViews) * 100}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
-                        className="absolute left-0 top-0 h-full rounded-full bg-rust"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </FadeIn>
         </div>
 
         {/* ── PROPERTY TYPE BREAKDOWN ── */}
         <FadeIn delay={0.2}>
-          <div className="rounded-xl border border-charcoal/8 bg-white p-6 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
+          <div className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
             <div className="mb-5">
               <h3 className="font-display text-base font-bold text-charcoal">Listing Mix by Property Type</h3>
-              <p className="text-xs text-charcoal/50">Share of active verified listings</p>
+              <p className="text-xs text-charcoal/50">Share of verified active listings</p>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {PROPERTY_TYPE_BREAKDOWN.map((t) => (
-                <div key={t.type} className="text-center">
-                  <div className="relative mx-auto mb-2 h-16 w-16">
-                    <svg className="-rotate-90" viewBox="0 0 64 64">
-                      <circle cx="32" cy="32" r="26" fill="none" stroke="#F5F1EC" strokeWidth="8" />
-                      <motion.circle
-                        cx="32" cy="32" r="26"
-                        fill="none" stroke="#B8451F"
-                        strokeWidth="8"
-                        strokeLinecap="round"
-                        strokeDasharray={163.36}
-                        initial={{ strokeDashoffset: 163.36 }}
-                        whileInView={{ strokeDashoffset: 163.36 * (1 - t.pct / 100) }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1.0, ease: 'easeOut' }}
-                      />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-charcoal">
-                      {t.pct}%
-                    </span>
+            {data.propertyTypeDistribution.length === 0 ? (
+              <p className="py-10 text-center text-sm text-charcoal/40">No verified listings yet.</p>
+            ) : (
+              <div className={`grid grid-cols-1 gap-4 ${data.propertyTypeDistribution.length >= 5 ? 'sm:grid-cols-2 lg:grid-cols-5' : `sm:grid-cols-${Math.min(data.propertyTypeDistribution.length, 4)}`}`}>
+                {data.propertyTypeDistribution.map((t) => (
+                  <div key={t.type} className="text-center">
+                    <div className="relative mx-auto mb-2 h-16 w-16">
+                      <svg className="-rotate-90" viewBox="0 0 64 64">
+                        <circle cx="32" cy="32" r="26" fill="none" stroke="#F5F1EC" strokeWidth="8" />
+                        <motion.circle
+                          cx="32" cy="32" r="26"
+                          fill="none" stroke="#B8451F"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={163.36}
+                          initial={{ strokeDashoffset: 163.36 }}
+                          whileInView={{ strokeDashoffset: 163.36 * (1 - t.share / 100) }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1.0, ease: 'easeOut' }}
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-charcoal">
+                        {t.share}%
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold capitalize text-charcoal">{t.type}</p>
+                    <p className="text-[11px] text-charcoal/50">{t.count} listing{t.count === 1 ? '' : 's'}</p>
                   </div>
-                  <p className="text-xs font-semibold text-charcoal">{t.type}</p>
-                  <p className="text-[11px] text-charcoal/50">{t.count.toLocaleString()} listings</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </FadeIn>
 
-        {/* ── NEIGHBORHOOD TABLE ── */}
+        {/* ── PRICE BANDS ── */}
         <FadeIn delay={0.24}>
-          <div className="rounded-xl border border-charcoal/8 bg-white shadow-sm overflow-hidden" style={{ borderRadius: '12px 12px 24px 12px' }}>
-            <div className="border-b border-charcoal/8 px-6 py-4">
-              <h3 className="font-display text-base font-bold text-charcoal">Neighborhood Breakdown</h3>
-              <p className="text-xs text-charcoal/50">Aggregated from verified listings · data is anonymized</p>
+          <div className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm" style={{ borderRadius: '12px 12px 24px 12px' }}>
+            <div className="mb-5">
+              <h3 className="font-display text-base font-bold text-charcoal">Rent Distribution</h3>
+              <p className="text-xs text-charcoal/50">Verified active listings by monthly rent</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px] text-sm">
-                <thead className="bg-sand/40 text-xs uppercase tracking-wider text-charcoal/45">
-                  <tr>
-                    <th className="px-5 py-3 text-left font-medium">Neighborhood</th>
-                    <th className="px-5 py-3 text-left font-medium">Active Listings</th>
-                    <th className="px-5 py-3 text-left font-medium">Avg 2-Bed Rent</th>
-                    <th className="px-5 py-3 text-left font-medium">QoQ Change</th>
-                    <th className="px-5 py-3 text-left font-medium">Demand</th>
-                    <th className="px-5 py-3 text-left font-medium">Vacancy Rate</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-charcoal/8">
-                  {NEIGHBORHOOD_TABLE.map((row, i) => (
-                    <tr key={row.name} className={`hover:bg-sand/20 transition-colors ${i % 2 === 0 ? '' : 'bg-cream/40'}`}>
-                      <td className="px-5 py-3 font-display font-semibold text-charcoal">{row.name}</td>
-                      <td className="px-5 py-3 text-charcoal/70">{row.listings.toLocaleString()}</td>
-                      <td className="px-5 py-3 font-mono font-bold text-rust">ETB {row.avgRent.toLocaleString()}</td>
-                      <td className="px-5 py-3">
-                        <span className="font-semibold text-verified">+{row.changeQoQ}%</span>
-                      </td>
-                      <td className="px-5 py-3"><Badge demand={row.demand} /></td>
-                      <td className="px-5 py-3 text-charcoal/60">{row.vacancy}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex h-36 items-end gap-6 px-4">
+              {data.priceDistribution.map((b, i) => {
+                const max = Math.max(1, ...data.priceDistribution.map((x) => x.count))
+                return (
+                  <div key={b.label} className="flex flex-1 flex-col items-center gap-2">
+                    <span className="font-mono text-xs font-semibold text-charcoal/70">{b.count}</span>
+                    <motion.div
+                      initial={{ height: 0 }}
+                      whileInView={{ height: `${(b.count / max) * 100}%` }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.6, delay: i * 0.08, ease: 'easeOut' }}
+                      className="w-full rounded-t-md bg-rust/70"
+                      style={{ minHeight: '4px' }}
+                    />
+                    <span className="text-[10px] font-mono text-charcoal/50">{b.label}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </FadeIn>
-
       </main>
     </>
   )

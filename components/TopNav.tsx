@@ -6,9 +6,12 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Logo from '@/components/Logo'
 import { useLanguage } from '@/lib/language-context'
+import { useAuth } from '@/lib/auth-context'
+import { ROLE_HOME } from '@/types/roles'
 
 export default function TopNav() {
   const { locale, setLocale, t } = useLanguage()
+  const { user, logout } = useAuth()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchInput, setSearchInput] = useState('')
@@ -75,18 +78,38 @@ export default function TopNav() {
             {locale}
           </button>
           <span className="text-charcoal/30">|</span>
-          <Link
-            href="/login"
-            className="text-sm font-medium text-charcoal/70 transition-colors hover:text-rust"
-          >
-            {t.common.login}
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-lg bg-rust px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rust-dark transition-colors"
-          >
-            {t.common.signup}
-          </Link>
+          {user ? (
+            <>
+              <Link
+                href={ROLE_HOME[user.role] || '/'}
+                className="text-sm font-medium text-charcoal/70 transition-colors hover:text-rust"
+              >
+                { (user.name || user.email || 'My').split(' ')[0] }'s Dashboard
+              </Link>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="text-sm font-medium text-charcoal/50 transition-colors hover:text-rust"
+              >
+                {t.common.logout || 'Logout'}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-medium text-charcoal/70 transition-colors hover:text-rust"
+              >
+                {t.common.login}
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-lg bg-rust px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rust-dark transition-colors"
+              >
+                {t.common.signup}
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -128,18 +151,38 @@ export default function TopNav() {
               >
                 {locale}
               </button>
-              <Link
-                href="/login"
-                className="rounded-lg border border-rust px-4 py-2 text-center text-sm font-semibold text-rust hover:bg-rust/5 transition-colors"
-              >
-                {t.common.login}
-              </Link>
-              <Link
-                href="/signup"
-                className="flex-1 rounded-lg bg-rust px-5 py-2 text-center text-sm font-semibold text-white shadow-sm"
-              >
-                {t.common.signup}
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href={ROLE_HOME[user.role] || '/'}
+                    className="rounded-lg border border-rust px-4 py-2 text-center text-sm font-semibold text-rust hover:bg-rust/5 transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => logout()}
+                    className="flex-1 rounded-lg bg-charcoal px-5 py-2 text-center text-sm font-semibold text-white"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="rounded-lg border border-rust px-4 py-2 text-center text-sm font-semibold text-rust hover:bg-rust/5 transition-colors"
+                  >
+                    {t.common.login}
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="flex-1 rounded-lg bg-rust px-5 py-2 text-center text-sm font-semibold text-white shadow-sm"
+                  >
+                    {t.common.signup}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </nav>

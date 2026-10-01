@@ -75,3 +75,18 @@
 .property-pin-popup .leaflet-popup-tip {
   box-shadow: none;
 }
+
+/* --- Leaflet z-index containment -------------------------------------------
+   Leaflet panes/controls use z-index 400-1000 internally, which bleeds above
+   app modals (z-100) when a map sits under an open dialog. Clamp everything
+   Leaflet renders below the modal layer. */
+.leaflet-container .leaflet-pane { z-index: 10; }
+.leaflet-container .leaflet-tile-pane { z-index: 1; }
+.leaflet-container .leaflet-overlay-pane { z-index: 2; }
+.leaflet-container .leaflet-shadow-pane { z-index: 3; }
+.leaflet-container .leaflet-marker-pane { z-index: 4; }
+.leaflet-container .leaflet-tooltip-pane { z-index: 5; }
+.leaflet-container .leaflet-popup-pane { z-index: 6; }
+.leaflet-container .leaflet-control-container .leaflet-top,
+.leaflet-container .leaflet-control-container .leaflet-bottom { z-index: 7; }
+.leaflet-container .leaflet-popup { z-index: 8; }

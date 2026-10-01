@@ -1,141 +1,247 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import Image from 'next/image'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import TopBar from '@/components/tenant/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
-import { TENANT_CONVERSATIONS, type Conversation, type ChatMessage } from '@/lib/tenantMessages'
+import { SkeletonList } from '@/components/ui/LoadingSkeleton'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+interface Participant {
+  _id: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  role?: string
+}
+
+interface Conversation {
+  _id: string
+  participants: Participant[]
+  lastMessage: string
+  lastMessageAt: string
+  propertyId?: { title?: string } | string
+}
+
+interface ChatMessage {
+  _id: string
+  senderId: Participant | string
+  text: string
+  createdAt: string
+  readAt?: string
+}
 
 export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
-  const [conversations] = useState<Conversation[]>(TENANT_CONVERSATIONS)
-  const [activeId, setActiveId] = useState<string>(TENANT_CONVERSATIONS[0]?.id ?? '')
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [activeId, setActiveId] = useState('')
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
   const [draft, setDraft] = useState('')
-  const [localMessages, setLocalMessages] = useState<Record<string, ChatMessage[]>>({})
+  const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const currentUserId = useRef('')
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 500)
-    return () => clearTimeout(t)
+  const getToken = () => localStorage.getItem('hl_token') || ''
+
+  const fetchConversations = useCallback(async () => {
+    setLoading(true)
+    try {
+      const token = getToken()
+      const res = await fetch(`${API_URL}/api/v1/messages/conversations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setConversations(data.data || [])
+      }
+    } catch { /* ignore */ }
+    setLoading(false)
   }, [])
 
-  const active = conversations.find((c) => c.id === activeId)
+  useEffect(() => { fetchConversations() }, [fetchConversations])
 
-  const messages = active
-    ? [...(active.messages || []), ...(localMessages[activeId] || [])]
-    : []
+  useEffect(() => {
+    const user = localStorage.getItem('hl_user')
+    if (user) {
+      try { currentUserId.current = JSON.parse(user).id || JSON.parse(user)._id || '' } catch { /* ignore */ }
+    }
+  }, [])
+
+  const fetchMessages = useCallback(async (convId: string) => {
+    setLoadingMessages(true)
+    try {
+      const token = getToken()
+      const res = await fetch(`${API_URL}/api/v1/messages/${convId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setMessages(data.data || [])
+      }
+    } catch { /* ignore */ }
+    setLoadingMessages(false)
+  }, [])
+
+  useEffect(() => {
+    if (activeId) fetchMessages(activeId)
+  }, [activeId, fetchMessages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length, activeId])
+  }, [messages.length])
 
-  function sendMessage() {
-    if (!draft.trim() || !activeId) return
-    const newMsg: ChatMessage = {
-      id: `local-${Date.now()}`,
-      from: 'me',
-      text: draft.trim(),
-      time: 'Just now',
-    }
-    setLocalMessages((prev) => ({
-      ...prev,
-      [activeId]: [...(prev[activeId] || []), newMsg],
-    }))
-    setDraft('')
+  const selectConversation = async (convId: string) => {
+    setActiveId(convId)
+    setMessages([])
+    // Mark as read
+    try {
+      const token = getToken()
+      await fetch(`${API_URL}/api/v1/messages/${convId}/read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      // Update conversation list to remove unread
+      setConversations(prev => prev.map(c => c._id === convId ? { ...c, lastMessage: c.lastMessage } : c))
+    } catch { /* ignore */ }
   }
+
+  const sendMessage = async () => {
+    if (!draft.trim() || !activeId || sending) return
+    setSending(true)
+    try {
+      const token = getToken()
+      const res = await fetch(`${API_URL}/api/v1/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ conversationId: activeId, text: draft.trim() }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setMessages(prev => [...prev, data.data || data.message])
+        setDraft('')
+        // Refresh conversations to update lastMessage
+        fetchConversations()
+      }
+    } catch { /* ignore */ }
+    setSending(false)
+  }
+
+  const otherName = (conv: Conversation) => {
+    const other = conv.participants?.find(p => p._id !== currentUserId.current)
+    return other ? `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.email : 'User'
+  }
+
+  const otherRole = (conv: Conversation) => {
+    const other = conv.participants?.find(p => p._id !== currentUserId.current)
+    return other?.role || ''
+  }
+
+  const senderName = (msg: ChatMessage) => {
+    if (typeof msg.senderId === 'object') {
+      return `${msg.senderId.firstName || ''} ${msg.senderId.lastName || ''}`.trim() || 'User'
+    }
+    return msg.senderId === currentUserId.current ? 'You' : 'User'
+  }
+
+  const formatTime = (date: string) => {
+    const d = new Date(date)
+    const now = new Date()
+    const diff = now.getTime() - d.getTime()
+    if (diff < 60000) return 'Just now'
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+    return d.toLocaleDateString()
+  }
+
+  const activeConv = conversations.find(c => c._id === activeId)
 
   return (
     <>
       <TopBar tenantName="Tenant" />
-
       <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
         <div className="mx-auto h-[calc(100vh-180px)] max-w-6xl overflow-hidden rounded-xl border border-charcoal/10 bg-white shadow-stamp">
           <div className="flex h-full">
-            {/* ── Conversation list ── */}
+            {/* Conversation list */}
             <div className="hidden w-80 shrink-0 flex-col border-r border-charcoal/10 sm:flex">
               <div className="border-b border-charcoal/10 px-4 py-3">
                 <h2 className="font-display text-lg font-semibold text-charcoal">Messages</h2>
-                <div className="relative mt-2">
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-charcoal/40">
-                    <path d="M9 3a6 6 0 100 12 6 6 0 000-12zM17 17l-3.5-3.5" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Search conversations…"
-                    className="w-full rounded-lg border border-charcoal/10 bg-cream py-2 pl-9 pr-3 text-sm text-charcoal placeholder:text-charcoal/40 focus:border-rust focus:outline-none"
-                  />
-                </div>
               </div>
-
               <div className="flex-1 overflow-y-auto">
-                {conversations.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setActiveId(c.id)}
-                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
-                      activeId === c.id ? 'bg-rust-tint/40' : 'hover:bg-sand/30'
-                    }`}
-                  >
-                    <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-sand">
-                      <Image src={c.avatar} alt={c.name} fill sizes="40px" className="object-cover" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="truncate text-sm font-medium text-charcoal">{c.name}</span>
-                        <span className="shrink-0 text-[10px] text-charcoal/40">{c.lastTime}</span>
-                      </div>
-                      <p className="truncate text-xs text-charcoal/50">{c.lastMessage}</p>
-                    </div>
-                    {c.unread > 0 && (
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rust text-[10px] font-bold text-white">
-                        {c.unread}
+                {loading ? (
+                  <div className="p-4"><SkeletonList count={4} /></div>
+                ) : conversations.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-charcoal/40">No conversations yet.</div>
+                ) : (
+                  conversations.map((c) => (
+                    <button
+                      key={c._id}
+                      type="button"
+                      onClick={() => selectConversation(c._id)}
+                      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        activeId === c._id ? 'bg-rust-tint/40' : 'hover:bg-sand/30'
+                      }`}
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sand text-sm font-semibold text-charcoal">
+                        {otherName(c)!.charAt(0).toUpperCase()}
                       </span>
-                    )}
-                  </button>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="truncate text-sm font-medium text-charcoal">{otherName(c)}</span>
+                          <span className="shrink-0 text-[10px] text-charcoal/40">
+                            {c.lastMessageAt ? formatTime(c.lastMessageAt) : ''}
+                          </span>
+                        </div>
+                        <p className="truncate text-xs text-charcoal/50">
+                          {c.lastMessage || 'No messages yet'}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
-            {/* ── Chat window ── */}
+            {/* Chat window */}
             <div className="flex flex-1 flex-col">
-              {active ? (
+              {activeConv ? (
                 <>
-                  {/* Chat header */}
                   <div className="flex items-center gap-3 border-b border-charcoal/10 px-4 py-3">
-                    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-sand">
-                      <Image src={active.avatar} alt={active.name} fill sizes="36px" className="object-cover" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm font-semibold text-charcoal">
+                      {otherName(activeConv)!.charAt(0).toUpperCase()}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-charcoal">{active.name}</p>
-                      <p className="text-[11px] text-charcoal/50">{active.role}</p>
+                      <p className="text-sm font-semibold text-charcoal">{otherName(activeConv)}</p>
+                      <p className="text-[11px] text-charcoal/50 capitalize">{otherRole(activeConv)}</p>
                     </div>
                   </div>
 
-                  {/* Messages */}
                   <div className="flex-1 overflow-y-auto px-4 py-4">
-                    <div className="space-y-3">
-                      {messages.map((m) => (
-                        <div key={m.id} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
-                          <div
-                            className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                              m.from === 'me'
-                                ? 'bg-rust text-white rounded-br-md'
-                                : 'bg-cream text-charcoal rounded-bl-md'
-                            }`}
-                          >
-                            <p>{m.text}</p>
-                            <p className={`mt-1 text-[10px] ${m.from === 'me' ? 'text-white/60' : 'text-charcoal/40'}`}>
-                              {m.time}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
+                    {loadingMessages ? (
+                      <SkeletonList count={3} />
+                    ) : (
+                      <div className="space-y-3">
+                        {messages.map((m) => {
+                          const isMe = (typeof m.senderId === 'string' ? m.senderId : m.senderId?._id) === currentUserId.current
+                          return (
+                            <div key={m._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                                isMe ? 'bg-rust text-white rounded-br-md' : 'bg-cream text-charcoal rounded-bl-md'
+                              }`}>
+                                <p>{m.text}</p>
+                                <p className={`mt-1 text-[10px] ${isMe ? 'text-white/60' : 'text-charcoal/40'}`}>
+                                  {formatTime(m.createdAt)}
+                                  {isMe && m.readAt ? ' • Read' : ''}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    )}
                   </div>
 
-                  {/* Input */}
                   <div className="border-t border-charcoal/10 px-4 py-3">
                     <div className="flex items-end gap-2">
                       <textarea
@@ -148,13 +254,13 @@ export default function MessagesPage() {
                           }
                         }}
                         rows={1}
-                        placeholder="Type a message…"
+                        placeholder="Type a message..."
                         className="min-h-[40px] max-h-24 flex-1 resize-none rounded-xl border border-charcoal/10 bg-cream px-4 py-2.5 text-sm text-charcoal placeholder:text-charcoal/40 focus:border-rust focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={sendMessage}
-                        disabled={!draft.trim()}
+                        disabled={!draft.trim() || sending}
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rust text-white transition-colors hover:bg-rust-dark disabled:opacity-40"
                       >
                         <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -165,9 +271,11 @@ export default function MessagesPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-1 items-center justify-center text-sm text-charcoal/40">
-                  Select a conversation to start messaging.
-                </div>
+                <EmptyState
+                  icon="message"
+                  title="Messages"
+                  description="Select a conversation to start messaging."
+                />
               )}
             </div>
           </div>

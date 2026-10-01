@@ -1,147 +1,300 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
+import { useState, useEffect, useCallback } from 'react'
 import TopBar from '@/components/admin/TopBar'
-import { DISPUTES, DISPUTE_STATUS_BADGE_CLASS, type Dispute } from '@/lib/adminDisputes'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonList } from '@/components/ui/LoadingSkeleton'
 
-export default function DisputesPage() {
-  const [disputes, setDisputes] = useState<Dispute[]>(DISPUTES)
-  const [activeId, setActiveId] = useState<string>(DISPUTES[0].id)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+interface ThreadMsg {
+  from: string
+  fromName?: string
+  text: string
+  at?: string
+}
+
+interface Dispute {
+  _id: string
+  reason: string
+  description: string
+  status: 'open' | 'under_review' | 'resolved' | 'rejected' | 'withdrawn'
+  filedByRole: string
+  propertyId?: { title?: string } | null
+  filedBy?: { firstName?: string; lastName?: string; email?: string; role?: string }
+  againstUserId?: { firstName?: string; lastName?: string; email?: string; role?: string }
+  resolution?: string
+  thread: ThreadMsg[]
+  createdAt: string
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  open: 'bg-amber-100 text-amber-800',
+  under_review: 'bg-blue-100 text-blue-800',
+  resolved: 'bg-emerald-100 text-emerald-800',
+  rejected: 'bg-red-100 text-red-700',
+  withdrawn: 'bg-stone-200 text-stone-600',
+}
+
+const FILTERS = ['all', 'open', 'under_review', 'resolved', 'rejected', 'withdrawn'] as const
+
+export default function AdminDisputesPage() {
+  const [disputes, setDisputes] = useState<Dispute[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all')
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const [resolution, setResolution] = useState('')
+  const [actionError, setActionError] = useState('')
 
-  const active = disputes.find((d) => d.id === activeId) ?? disputes[0]
+  const getToken = () => localStorage.getItem('hl_token') || ''
 
-  function sendMessage() {
-    if (!message.trim()) return
-    setDisputes((prev) =>
-      prev.map((d) =>
-        d.id === active.id
-          ? { ...d, thread: [...d.thread, { from: 'Admin', text: message.trim(), time: 'Just now' }], status: 'In Mediation' }
-          : d
-      )
-    )
+  const load = useCallback(async () => {
+    try {
+      setError('')
+      const res = await fetch(`${API_URL}/api/v1/disputes`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error()
+      const json = await res.json()
+      setDisputes(json.data || [])
+    } catch {
+      setError('Could not load disputes. Is the backend running?')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const filtered = filter === 'all' ? disputes : disputes.filter((d) => d.status === filter)
+  const active = filtered.find((d) => d._id === activeId) ?? filtered[0] ?? null
+
+  async function sendMessage() {
+    if (!message.trim() || !active) return
+    await fetch(`${API_URL}/api/v1/disputes/${active._id}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ text: message.trim() }),
+    })
     setMessage('')
+    await load()
   }
 
-  function resolve() {
-    setDisputes((prev) => prev.map((d) => (d.id === active.id ? { ...d, status: 'Resolved' } : d)))
+  async function review(decision: 'resolve' | 'reject') {
+    if (!active) return
+    if (!resolution.trim()) {
+      setActionError('A written decision reason is required — both parties will see it.')
+      return
+    }
+    setActionError('')
+    const res = await fetch(`${API_URL}/api/v1/disputes/${active._id}/review`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ decision, resolution: resolution.trim() }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setActionError(json.message || 'Review failed')
+      return
+    }
+    setResolution('')
+    await load()
   }
 
   return (
     <>
       <TopBar title="Disputes" />
-
-      <div className="flex-1 px-6 py-8 sm:px-8">
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">
-          <div className="divide-y divide-charcoal/10 rounded-lg border border-charcoal/10 bg-white">
-            {disputes.map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => setActiveId(d.id)}
-                className={`w-full p-4 text-left transition-colors ${activeId === d.id ? 'bg-rust-tint/40' : 'hover:bg-sand/30'}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-charcoal/40">{d.id}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${DISPUTE_STATUS_BADGE_CLASS[d.status]}`}>
-                    {d.status}
-                  </span>
-                </div>
-                <p className="mt-1 truncate text-sm font-medium text-charcoal">{d.title}</p>
-                <p className="truncate text-xs text-charcoal/50">{d.tenantName} vs {d.landlordName}</p>
-              </button>
-            ))}
-          </div>
-
-          <div className="rounded-lg border border-charcoal/10 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-charcoal/40">{active.id}</span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${DISPUTE_STATUS_BADGE_CLASS[active.status]}`}>
-                    {active.status}
-                  </span>
-                </div>
-                <h2 className="mt-1 font-display text-lg font-semibold text-charcoal">{active.title}</h2>
-                <p className="text-xs text-charcoal/40">Filed {active.filedOn}</p>
-              </div>
-              {active.status !== 'Resolved' ? (
-                <button
-                  type="button"
-                  onClick={resolve}
-                  className="shrink-0 rounded bg-verified px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                >
-                  Mark Resolved
-                </button>
-              ) : null}
-            </div>
-
-            <div className="mt-4 flex items-center gap-6 border-y border-charcoal/10 py-3">
-              <div className="flex items-center gap-2">
-                <span className="relative h-8 w-8 overflow-hidden rounded-full bg-sand">
-                  <Image src={active.tenantAvatar} alt={active.tenantName} fill sizes="32px" className="object-cover" />
-                </span>
-                <div>
-                  <p className="text-xs text-charcoal/40">Tenant</p>
-                  <p className="text-sm font-medium text-charcoal">{active.tenantName}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="relative h-8 w-8 overflow-hidden rounded-full bg-sand">
-                  <Image src={active.landlordAvatar} alt={active.landlordName} fill sizes="32px" className="object-cover" />
-                </span>
-                <div>
-                  <p className="text-xs text-charcoal/40">Landlord</p>
-                  <p className="text-sm font-medium text-charcoal">{active.landlordName}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-charcoal/50">Evidence</h3>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {active.evidence.map((e) => (
-                  <span key={e} className="rounded border border-charcoal/15 bg-cream px-2.5 py-1 text-xs text-charcoal/70">
-                    {e}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-charcoal/50">Communication</h3>
-              <div className="mt-2 space-y-2">
-                {active.thread.map((m, i) => (
-                  <div key={i} className="rounded bg-cream p-2.5">
-                    <p className="text-xs font-medium text-charcoal">{m.from} <span className="font-normal text-charcoal/40">· {m.time}</span></p>
-                    <p className="mt-0.5 text-sm text-charcoal/70">{m.text}</p>
-                  </div>
-                ))}
-              </div>
-
-              {active.status !== 'Resolved' ? (
-                <div className="mt-2 flex gap-2">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Message both parties…"
-                    className="flex-1 rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm text-charcoal focus:border-rust focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={sendMessage}
-                    className="rounded bg-rust px-4 py-2 text-sm font-medium text-white hover:bg-rust-dark"
-                  >
-                    Send
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
+      <main className="flex-1 space-y-5 px-6 py-8 sm:px-8">
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                filter === f
+                  ? 'bg-rust text-white'
+                  : 'border border-charcoal/10 bg-white text-charcoal/60 hover:bg-sand'
+              }`}
+            >
+              {f.replace(/_/g, ' ')}{' '}
+              {f !== 'all' && (
+                <span className="opacity-60">({disputes.filter((d) => d.status === f).length})</span>
+              )}
+            </button>
+          ))}
         </div>
-      </div>
+
+        {error && <p className="rounded bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+
+        {loading ? (
+          <SkeletonList count={3} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon="document"
+            title="No disputes"
+            description={filter === 'all' ? 'No disputes have been filed yet.' : `No ${filter.replace(/_/g, ' ')} disputes.`}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
+            {/* queue */}
+            <div className="divide-y divide-charcoal/10 rounded-lg border border-charcoal/10 bg-white">
+              {filtered.map((d) => (
+                <button
+                  key={d._id}
+                  type="button"
+                  onClick={() => setActiveId(d._id)}
+                  className={`w-full p-4 text-left transition-colors ${active?._id === d._id ? 'bg-rust-tint/40' : 'hover:bg-sand/30'}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium capitalize text-charcoal/60">
+                      {d.reason.replace(/_/g, ' ')}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[d.status]}`}>
+                      {d.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-sm font-medium text-charcoal">
+                    {d.filedBy?.firstName} {d.filedBy?.lastName} vs {d.againstUserId?.firstName || '—'}
+                  </p>
+                  <p className="truncate text-xs text-charcoal/40">{d.description}</p>
+                </button>
+              ))}
+            </div>
+
+            {/* detail */}
+            {active && (
+              <div className="rounded-lg border border-charcoal/10 bg-white p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[active.status]}`}>
+                        {active.status.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-xs capitalize text-charcoal/40">{active.filedByRole} filed</span>
+                    </div>
+                    <h2 className="mt-1 font-display text-lg font-semibold capitalize text-charcoal">
+                      {active.reason.replace(/_/g, ' ')}
+                    </h2>
+                    <p className="text-xs text-charcoal/40">
+                      Filed {new Date(active.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* parties */}
+                <div className="mt-4 grid grid-cols-1 gap-3 border-y border-charcoal/10 py-3 sm:grid-cols-2">
+                  <div className="rounded bg-cream p-3">
+                    <p className="text-xs text-charcoal/40">Filed by ({active.filedBy?.role})</p>
+                    <p className="text-sm font-medium text-charcoal">
+                      {active.filedBy?.firstName} {active.filedBy?.lastName}
+                    </p>
+                    <p className="text-xs text-charcoal/50">{active.filedBy?.email}</p>
+                  </div>
+                  <div className="rounded bg-cream p-3">
+                    <p className="text-xs text-charcoal/40">Against ({active.againstUserId?.role || '—'})</p>
+                    <p className="text-sm font-medium text-charcoal">
+                      {active.againstUserId?.firstName} {active.againstUserId?.lastName}
+                    </p>
+                    <p className="text-xs text-charcoal/50">{active.againstUserId?.email}</p>
+                  </div>
+                </div>
+
+                <p className="mt-3 rounded bg-cream p-3 text-sm text-charcoal/80">{active.description}</p>
+
+                {active.resolution && (
+                  <div className="mt-3 rounded border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Decision</p>
+                    <p className="mt-1 text-sm text-emerald-800">{active.resolution}</p>
+                  </div>
+                )}
+
+                {/* thread */}
+                <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-charcoal/50">
+                  Communication thread
+                </h3>
+                <div className="mt-2 max-h-56 space-y-2 overflow-y-auto">
+                  {active.thread.map((m, i) => (
+                    <div key={i} className="rounded bg-cream p-2.5">
+                      <p className="text-xs font-medium capitalize text-charcoal">
+                        {m.from}{' '}
+                        <span className="font-normal text-charcoal/40">{m.fromName ? `· ${m.fromName}` : ''}</span>
+                        {m.at && (
+                          <span className="ml-2 font-normal text-charcoal/30">
+                            {new Date(m.at).toLocaleString()}
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-sm text-charcoal/70">{m.text}</p>
+                    </div>
+                  ))}
+                  {active.thread.length === 0 && (
+                    <p className="text-xs text-charcoal/40">No messages yet.</p>
+                  )}
+                </div>
+
+                {/* admin actions */}
+                {!['resolved', 'rejected', 'withdrawn'].includes(active.status) ? (
+                  <div className="mt-4 space-y-3 border-t border-charcoal/10 pt-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                        placeholder="Message both parties (moves dispute to under review)…"
+                        className="flex-1 rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm focus:border-rust focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={sendMessage}
+                        className="rounded bg-charcoal px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                      >
+                        Send
+                      </button>
+                    </div>
+                    <label className="block text-sm">
+                      <span className="text-charcoal/70">Decision reason *</span>
+                      <textarea
+                        value={resolution}
+                        onChange={(e) => setResolution(e.target.value)}
+                        rows={2}
+                        placeholder="Written decision shared with both parties and recorded in the audit trail."
+                        className="mt-1 w-full rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm focus:border-rust focus:outline-none"
+                      />
+                    </label>
+                    {actionError && <p className="text-xs text-red-600">{actionError}</p>}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => review('resolve')}
+                        className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                      >
+                        Resolve dispute
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => review('reject')}
+                        className="rounded border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                      >
+                        Reject dispute
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 border-t border-charcoal/10 pt-3 text-xs text-charcoal/40">
+                    This dispute is closed — decision recorded in the audit trail.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </>
   )
 }

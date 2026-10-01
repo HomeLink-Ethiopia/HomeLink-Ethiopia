@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, use, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
+import { resolveImageUrl } from '@/lib/image-url'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -32,15 +33,6 @@ const PROPERTY_TYPES = [
   { value: 'commercial', label: 'Commercial' },
 ]
 
-const MOCK_PROPERTY = {
-  _id: 'mock-p1', title: '2 Bedroom Apartment, Bole', description: 'Modern apartment near Edna Mall', propertyType: 'apartment',
-  rentAmount: 22000, depositAmount: 44000, bedrooms: 2, bathrooms: 1, sizeM2: 65, floor: 3, furnished: false,
-  amenities: ['Parking', 'WiFi', 'Generator', 'Security Guard'],
-  location: { address: 'Bole Road, Near Edna Mall', subCity: 'Bole', woreda: '03', city: 'Addis Ababa' },
-  availableFrom: '2026-06-01', listingStatus: 'active',
-  images: [{ url: '', isPrimary: true }],
-}
-
 interface ImagePreview {
   file?: File
   preview: string
@@ -49,14 +41,15 @@ interface ImagePreview {
   url?: string
 }
 
-export default function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function EditPropertyPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [errors, setErrors] = useState<string[]>([])
+  const [loadError, setLoadError] = useState('')
   const [images, setImages] = useState<ImagePreview[]>([])
 
   const [form, setForm] = useState({
@@ -89,17 +82,17 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
           // Load existing images
           if (p.images && p.images.length > 0) {
             setImages(p.images.map((img: { url: string; isPrimary: boolean }) => ({
-              preview: img.url ? `${API_URL}${img.url}` : '',
+              preview: img.url ? resolveImageUrl(img.url) : '',
               isPrimary: img.isPrimary,
               existing: true,
               url: img.url,
             })))
           }
         } else {
-          loadMockData()
+          setLoadError('Could not load this property. It may have been deleted or you may not own it.')
         }
       } catch {
-        loadMockData()
+        setLoadError('Could not load this property. It may have been deleted or you may not own it.')
       } finally {
         setLoading(false)
       }
@@ -107,20 +100,6 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
     fetchProperty()
   }, [id])
 
-  const loadMockData = () => {
-    setForm({
-      title: MOCK_PROPERTY.title, description: MOCK_PROPERTY.description,
-      propertyType: MOCK_PROPERTY.propertyType, rentAmount: String(MOCK_PROPERTY.rentAmount),
-      depositAmount: String(MOCK_PROPERTY.depositAmount), bedrooms: String(MOCK_PROPERTY.bedrooms),
-      bathrooms: String(MOCK_PROPERTY.bathrooms), sizeM2: String(MOCK_PROPERTY.sizeM2),
-      floor: String(MOCK_PROPERTY.floor), furnished: MOCK_PROPERTY.furnished,
-      amenities: MOCK_PROPERTY.amenities, address: MOCK_PROPERTY.location.address,
-      subCity: MOCK_PROPERTY.location.subCity, woreda: MOCK_PROPERTY.location.woreda,
-      city: MOCK_PROPERTY.location.city, availableFrom: MOCK_PROPERTY.availableFrom,
-      listingStatus: MOCK_PROPERTY.listingStatus,
-    })
-    setImages([{ preview: '', isPrimary: true, existing: true }])
-  }
 
   // Image handling
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,27 +175,37 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
         body: JSON.stringify(payload),
       })
 
-      // Upload new images
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setMessage({ type: 'error', text: j.message || `Update failed (${res.status})` })
+        setSaving(false)
+        return
+      }
+
+      // Upload new images in one request (field name: images)
       const newImagesToUpload = images.filter(img => img.file)
-      for (let i = 0; i < newImagesToUpload.length; i++) {
+      if (newImagesToUpload.length > 0) {
         const formDataImg = new FormData()
-        formDataImg.append('image', newImagesToUpload[i].file!)
-        formDataImg.append('isPrimary', newImagesToUpload[i].isPrimary ? 'true' : 'false')
-        formDataImg.append('order', String(i))
-        try {
-          await fetch(`${API_URL}/api/v1/properties/${id}/images`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formDataImg,
-          })
-        } catch {}
+        newImagesToUpload.forEach(img => formDataImg.append('images', img.file!))
+        const imgRes = await fetch(`${API_URL}/api/v1/properties/${id}/images`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formDataImg,
+        })
+        if (!imgRes.ok) {
+          const j = await imgRes.json().catch(() => ({}))
+          setMessage({ type: 'error', text: j.message || `Image upload failed (${imgRes.status})` })
+          setSaving(false)
+          return
+        }
       }
 
       setMessage({ type: 'success', text: 'Property updated successfully!' })
       setTimeout(() => router.push('/landlord/properties'), 1500)
-    } catch {
-      setMessage({ type: 'success', text: 'Property updated! (Demo Mode)' })
-      setTimeout(() => router.push('/landlord/properties'), 1500)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error'
+      setMessage({ type: 'error', text: msg })
+      setSaving(false)
     } finally {
       setSaving(false)
     }
@@ -229,6 +218,20 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
         ? prev.amenities.filter(a => a !== amenity)
         : [...prev.amenities, amenity],
     }))
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <TopBar title="Edit Property" />
+        <div className="flex-1 px-6 py-8">
+          <div className="mx-auto max-w-md rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm font-medium text-red-800">{loadError}</p>
+            <a href="/landlord/properties" className="mt-4 inline-block rounded-lg bg-rust px-5 py-2 text-sm font-medium text-white hover:bg-rust/90">Back to My Properties</a>
+          </div>
+        </div>
+      </>
+    )
   }
 
   if (loading) {

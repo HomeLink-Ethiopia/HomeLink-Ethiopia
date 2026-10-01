@@ -1,11 +1,31 @@
-.env 
-
-# Python virtual environment & caches
-ai/.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-
-node_modules
+node_modules/
 .next/
-*.tsbuildinfo
+out/
+.env
+.env.local
+.env*.local
+backend/.env
+.DS_Store
+*.log
+.freebuff/
+*.tmp
+homelink-backend-temp/
+backend/
+tsconfig.tsbuildinfo
+
+# Local backend backup (contains user data snapshots) - never publish
+backend-backup-kidist/
+
+# mock-mode persisted users (demo data)
+mock-users.json
+
+# Python / Virtual Environments
+venv/
+.venv/
+__pycache__/
+
+# Ensure required ML assets are tracked
+!ai/models/rent_model.joblib
+!ai/requirements.txt
+
+ai/miniconda.exe

@@ -17,7 +17,8 @@ const {
 
 const {
     getKPIs,
-    getChartData
+    getChartData,
+    getAnalytics
 } = require('../../controller/admin/analyticsController');
 
 // All routes require authentication and strictly 'admin' role
@@ -27,6 +28,7 @@ router.use(roleMiddleware('admin'));
 // Analytics (Sprint 12 - Phase 1)
 router.get('/analytics/kpis', getKPIs);
 router.get('/analytics/charts', getChartData);
+router.get('/analytics', getAnalytics);
 
 // Admin Dashboard (Sprint 11)
 router.get('/dashboard', getDashboardOverview);

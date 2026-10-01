@@ -17,11 +17,20 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const sessionRole = request.cookies.get('session_role')?.value
 
-  // Check if accessing a protected route
-  const isProtectedRoute = 
-    pathname.startsWith('/tenant') ||
-    pathname.startsWith('/landlord') ||
-    pathname.startsWith('/admin')
+  // Bypass static files, api routes, and next internals
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/images') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next()
+  }
+
+  const isTenantRoute = pathname.startsWith('/tenant')
+  const isLandlordRoute = pathname.startsWith('/landlord')
+  const isAdminRoute = pathname.startsWith('/admin')
+  const isProtectedRoute = isTenantRoute || isLandlordRoute || isAdminRoute
 
   if (isProtectedRoute) {
     // No session - redirect to login
@@ -32,14 +41,44 @@ export function middleware(request: NextRequest) {
     }
 
     // Verify role matches route
-    if (pathname.startsWith('/tenant') && sessionRole !== 'tenant') {
+    if (isTenantRoute && sessionRole !== 'tenant') {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-    if (pathname.startsWith('/landlord') && sessionRole !== 'landlord') {
+    if (isLandlordRoute && sessionRole !== 'landlord') {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-    if (pathname.startsWith('/admin') && sessionRole !== 'admin') {
+    if (isAdminRoute && sessionRole !== 'admin') {
       return NextResponse.redirect(new URL('/login', request.url))
+    }
+  } else {
+    // Marketing/Public routes
+    const PUBLIC_PAGES = [
+      '/',
+      '/explore',
+      '/about',
+      '/how-it-works',
+      '/for-landlords',
+      '/get-started',
+      '/list-property',
+      '/support',
+      '/login',
+      '/signup',
+      '/forgot-password',
+      '/reset-password',
+      '/verify-email'
+    ]
+
+    // We also want to redirect if the exact route matches or if it's the root public area,
+    // but allow property details (/property/[id]) to be accessed.
+    const isPublicAuthPage =
+      PUBLIC_PAGES.includes(pathname) ||
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/signup')
+
+    if (sessionRole && isPublicAuthPage) {
+      if (sessionRole === 'tenant') return NextResponse.redirect(new URL('/tenant/dashboard', request.url))
+      if (sessionRole === 'landlord') return NextResponse.redirect(new URL('/landlord/dashboard', request.url))
+      if (sessionRole === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
   }
 
@@ -47,5 +86,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/tenant/:path*', '/landlord/:path*', '/admin/:path*'],
+  // Run on all paths so we can intercept public pages too
+  matcher: ['/((?!api|_next/static|_next/image|images|favicon.ico).*)'],
 }

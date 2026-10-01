@@ -1,15 +1,13 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import type { Landlord } from '@/lib/propertyDetails'
+import InitialsAvatar from '@/components/shared/InitialsAvatar'
 
 export default function LandlordCard({ landlord }: { landlord: Landlord }) {
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-6">
       <h3 className="font-display text-lg font-semibold text-charcoal">Landlord</h3>
       <div className="mt-4 flex items-center gap-4">
-        <div className="relative h-16 w-16 overflow-hidden rounded-full ring-2 ring-charcoal/5">
-          <Image src={landlord.avatar} alt={landlord.name} fill sizes="64px" className="object-cover" />
-        </div>
+        <InitialsAvatar name={landlord.name} size={64} />
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <p className="font-semibold text-charcoal">{landlord.name}</p>

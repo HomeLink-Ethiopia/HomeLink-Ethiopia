@@ -1,14 +1,30 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { VERIFICATION_QUEUE, RISK_BADGE_CLASS, RISK_LABEL } from '@/lib/admin'
+import InitialsAvatar from '@/components/shared/InitialsAvatar'
 
 const RISK_ORDER = { high: 0, medium: 1, low: 2 } as const
 
-export default function VerificationQueue() {
-  const sorted = [...VERIFICATION_QUEUE].sort((a, b) => RISK_ORDER[a.risk] - RISK_ORDER[b.risk])
+export interface QueueItem {
+  id: string
+  title: string
+  subtitle: string
+  avatar: string
+  risk: 'high' | 'medium' | 'low'
+  timeAgo: string
+  type: string
+}
+
+/**
+ * Top of the verification queue, sorted high → medium → low risk.
+ * `items` (live rows) overrides the static demo constants; the demo list
+ * renders when no live data is passed.
+ */
+export default function VerificationQueue({ items }: { items?: QueueItem[] }) {
+  const source = items && items.length > 0 ? items : VERIFICATION_QUEUE
+  const sorted = [...source].sort((a, b) => RISK_ORDER[a.risk] - RISK_ORDER[b.risk])
 
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-stamp">
@@ -27,9 +43,7 @@ export default function VerificationQueue() {
             animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.3 } }}
             className="flex items-center gap-3 py-3"
           >
-            <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-sand">
-              <Image src={item.avatar} alt={item.title} fill sizes="40px" className="object-cover" />
-            </span>
+            <InitialsAvatar name={item.title} size={40} className="bg-sand" />
 
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">

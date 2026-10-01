@@ -1,9 +1,22 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import TopBar from '@/components/landlord/TopBar'
+import { mapApiProperty } from '@/services/api'
+import { resolveImageUrl } from '@/lib/image-url'
+
+// Real Leaflet map (same component as the public property page) — client-only
+const PropertyMap = dynamic(() => import('@/components/discovery/PropertyMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-charcoal/5 text-xs text-charcoal/40">
+      Loading map…
+    </div>
+  ),
+})
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -31,21 +44,13 @@ interface Property {
     subCity?: string
     woreda?: string
     city?: string
+    coordinates?: { coordinates?: number[] }
   }
   listingStatus: string
   verificationStatus: string
   images?: PropertyImage[]
   availableFrom?: string
   createdAt: string
-}
-
-const MOCK_PROPERTY: Property = {
-  _id: 'mock-p1', title: '2 Bedroom Apartment, Bole', description: 'Modern 2-bedroom apartment located in the heart of Bole, near Edna Mall. Features a spacious living area, fitted kitchen, and great city views. The apartment is in a secure compound with 24/7 security guard, backup generator, and covered parking. Perfect for professionals or small families looking for a comfortable home in Addis Ababa\'s most vibrant neighborhood.',
-  propertyType: 'apartment', rentAmount: 22000, depositAmount: 44000, bedrooms: 2, bathrooms: 1, sizeM2: 65, floor: 3, furnished: false,
-  amenities: ['Parking', 'WiFi', 'Generator', 'Security Guard', 'Water Tank', 'Elevator'],
-  location: { address: 'Bole Road, Near Edna Mall', subCity: 'Bole', woreda: '03', city: 'Addis Ababa' },
-  listingStatus: 'active', verificationStatus: 'verified', images: [{ url: '', isPrimary: true }],
-  availableFrom: '2026-06-01', createdAt: '2026-03-15T10:00:00Z',
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -67,10 +72,11 @@ const VERIFICATION_MAP: Record<string, { label: string; color: string; bg: strin
   rejected: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
 }
 
-export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const [property, setProperty] = useState<Property | null>(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -81,6 +87,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     const fetchProperty = async () => {
       try {
         setLoading(true)
+        setError('')
         const token = localStorage.getItem('hl_token')
         const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -88,11 +95,15 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
           const data = await res.json()
           setProperty(data.data || data)
+        } else if (res.status === 401) {
+          setError('Please log in as a landlord to view this property.')
+        } else if (res.status === 404) {
+          setError('Property not found. It may have been deleted.')
         } else {
-          setProperty(MOCK_PROPERTY)
+          setError(`Could not load this property (${res.status}).`)
         }
       } catch {
-        setProperty(MOCK_PROPERTY)
+        setError('Cannot reach the server. Make sure the backend is running on port 5000.')
       } finally {
         setLoading(false)
       }
@@ -105,14 +116,19 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     try {
       setActionLoading(true)
       const token = localStorage.getItem('hl_token')
-      await fetch(`${API_URL}/api/v1/properties/${id}`, {
+      const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ listingStatus: newStatus }),
       })
-      setProperty(prev => prev ? { ...prev, listingStatus: newStatus } : null)
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.message || `Status change failed (${res.status})`)
+      } else {
+        setProperty(prev => prev ? { ...prev, listingStatus: newStatus } : null)
+      }
     } catch {
-      setProperty(prev => prev ? { ...prev, listingStatus: newStatus } : null)
+      setError('Status change failed — network error')
     } finally {
       setActionLoading(false)
       setStatusMenu(false)
@@ -142,6 +158,22 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
           <div className="h-64 animate-pulse rounded-xl bg-charcoal/5" />
           <div className="h-8 animate-pulse rounded bg-charcoal/5 w-1/3" />
           <div className="h-4 animate-pulse rounded bg-charcoal/5 w-1/2" />
+        </div>
+      </>
+    )
+  }
+
+  if (error && !property) {
+    return (
+      <>
+        <TopBar title="Property Details" />
+        <div className="flex-1 px-6 py-8">
+          <div className="mx-auto max-w-md rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm font-medium text-red-800">{error}</p>
+            <a href="/landlord/properties" className="mt-4 inline-block rounded-lg bg-rust px-5 py-2 text-sm font-medium text-white hover:bg-rust/90">
+              Back to My Properties
+            </a>
+          </div>
         </div>
       </>
     )
@@ -185,7 +217,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
               {/* Main Image */}
               <div className="relative aspect-[16/9] sm:aspect-[21/9] bg-charcoal/5">
                 <img
-                  src={`${API_URL}${images[activeImageIndex]?.url}`}
+                  src={resolveImageUrl(images[activeImageIndex]?.url)}
                   alt={property.title}
                   className="w-full h-full object-cover"
                 />
@@ -227,7 +259,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                         i === activeImageIndex ? 'border-rust' : 'border-transparent hover:border-charcoal/20'
                       }`}
                     >
-                      <img src={`${API_URL}${img.url}`} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                      <img src={resolveImageUrl(img.url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -320,10 +352,24 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                 {loc.woreda && <p className="text-charcoal/50">Woreda: <span className="font-medium text-charcoal/70">{loc.woreda}</span></p>}
                 <p className="text-charcoal/50">City: <span className="font-medium text-charcoal/70">{loc.city || 'Addis Ababa'}</span></p>
               </div>
-              {/* Map placeholder */}
-              <div className="mt-4 rounded-lg bg-charcoal/5 h-40 flex items-center justify-center">
-                <p className="text-xs text-charcoal/30">Map view (coming soon)</p>
+              {/* Real map — property coordinates from the DB (OpenStreetMap) */}
+              <div className="mt-4 h-56 overflow-hidden rounded-lg border border-charcoal/10">
+                <PropertyMap properties={[mapApiProperty(property)]} />
               </div>
+              {(() => {
+                const c = property.location?.coordinates?.coordinates
+                if (!c || c.length < 2) return null
+                return (
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${c[1]}&mlon=${c[0]}#map=16/${c[1]}/${c[0]}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-xs font-medium text-rust hover:text-rust-dark"
+                  >
+                    Open larger map ↗
+                  </a>
+                )
+              })()}
             </div>
           </div>
 
@@ -422,7 +468,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
             </div>
             <div className="relative">
               <img
-                src={`${API_URL}${images[activeImageIndex]?.url}`}
+                src={resolveImageUrl(images[activeImageIndex]?.url)}
                 alt={`Photo ${activeImageIndex + 1}`}
                 className="w-full rounded-lg max-h-[70vh] object-contain"
               />
@@ -451,7 +497,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                     i === activeImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <img src={`${API_URL}${img.url}`} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <img src={resolveImageUrl(img.url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

@@ -524,6 +524,7 @@ def predict_rent(request: RentPredictionRequest) -> RentPredictionResponse:
     )
 
 
+@app.post("/predict", response_model=RentEstimateResponse, tags=["ml"])
 @app.post("/api/v1/estimate-rent", response_model=RentEstimateResponse, tags=["ml"])
 def estimate_rent(request: RentEstimateRequest) -> RentEstimateResponse:
     """Predict the monthly rent in ETB for a residential property.

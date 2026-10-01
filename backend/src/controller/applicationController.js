@@ -2,9 +2,11 @@ const Application = require('../models/Application');
 const Property = require('../models/Property');
 const LandlordProfile = require('../models/LandlordProfile');
 const Notification = require('../models/Notification');
+const { isMockMode, mockStore } = require('../config/db');
 
 const createNotification = async (userId, type, title, body, entityType, entityId) => {
     try {
+        if (isMockMode()) return;
         await Notification.create({
             userId,
             type,
@@ -36,40 +38,83 @@ const applyForProperty = async (req, res) => {
             fileKey: file.path
         })) : [];
 
-        const property = await Property.findById(propertyId);
+        let property;
+        if (isMockMode()) {
+            property = Array.from(mockStore.properties || []).find(p => String(p._id) === String(propertyId));
+        } else {
+            property = await Property.findById(propertyId);
+        }
+
         if (!property) {
             return res.status(404).json({ message: "Property not found" });
         }
 
-        const landlordProfile = await LandlordProfile.findById(property.landlordId);
+        let landlordProfile;
+        if (isMockMode()) {
+            landlordProfile = Array.from(mockStore.landlordProfiles.values() || []).find(l => String(l._id) === String(property.landlordId)) || { accountId: 'mock-landlord-1' };
+        } else {
+            landlordProfile = await LandlordProfile.findById(property.landlordId);
+        }
+
         if (!landlordProfile) {
             return res.status(404).json({ message: "Landlord profile not found for this property" });
         }
 
-        const existingApplication = await Application.findOne({ propertyId, tenantId });
-        if (existingApplication && existingApplication.status !== 'withdrawn' && existingApplication.status !== 'rejected') {
-            return res.status(400).json({ message: "You already have an active application for this property" });
+        if (isMockMode()) {
+            if (!mockStore.applications) mockStore.applications = [];
+            const existing = mockStore.applications.find(a => String(a.propertyId) === String(propertyId) && String(a.tenantId) === String(tenantId));
+            if (existing && existing.status !== 'withdrawn' && existing.status !== 'rejected') {
+                return res.status(400).json({ message: "You already have an active application for this property" });
+            }
+        } else {
+            const existingApplication = await Application.findOne({ propertyId, tenantId });
+            if (existingApplication && existingApplication.status !== 'withdrawn' && existingApplication.status !== 'rejected') {
+                return res.status(400).json({ message: "You already have an active application for this property" });
+            }
         }
 
-        const application = await Application.create({
-            propertyId,
-            tenantId,
-            landlordId: landlordProfile.accountId,
-            viewingAppointmentId,
-            message,
-            moveInDate,
-            durationMonths,
-            numberOfOccupants,
-            hasPets,
-            monthlyIncome,
-            employmentStatus,
-            supportingDocuments,
-            history: [{
+        let application;
+        if (isMockMode()) {
+            application = {
+                _id: "mock-app-" + Date.now(),
+                propertyId,
+                tenantId,
+                landlordId: landlordProfile.accountId,
+                viewingAppointmentId,
+                message,
+                moveInDate,
+                durationMonths,
+                numberOfOccupants,
+                hasPets,
+                monthlyIncome,
+                employmentStatus,
+                supportingDocuments,
                 status: 'submitted',
-                changedBy: tenantId,
-                note: 'Application submitted'
-            }]
-        });
+                history: [{ status: 'submitted', changedBy: tenantId, note: 'Application submitted', date: new Date() }],
+                createdAt: new Date()
+            };
+            mockStore.applications.push(application);
+        } else {
+            application = await Application.create({
+                propertyId,
+                tenantId,
+                landlordId: landlordProfile.accountId,
+                viewingAppointmentId,
+                message,
+                moveInDate,
+                durationMonths,
+                numberOfOccupants,
+                hasPets,
+                monthlyIncome,
+                employmentStatus,
+                supportingDocuments,
+                history: [{
+                    status: 'submitted',
+                    changedBy: tenantId,
+                    note: 'Application submitted'
+                }]
+            });
+        }
 
         await createNotification(
             landlordProfile.accountId,
@@ -92,6 +137,16 @@ const applyForProperty = async (req, res) => {
 
 const getTenantApplications = async (req, res) => {
     try {
+        if (isMockMode()) {
+            if (!mockStore.applications) mockStore.applications = [];
+            let apps = mockStore.applications.filter(a => String(a.tenantId) === String(req.user.id));
+            apps = apps.map(a => ({
+                ...a,
+                propertyId: Array.from(mockStore.properties || []).find(p => String(p._id) === String(a.propertyId)) || { title: "Mock Property", location: {}, rentAmount: 0 }
+            }));
+            return res.status(200).json(apps);
+        }
+
         const applications = await Application.find({ tenantId: req.user.id })
             .populate('propertyId', 'title location rentAmount images')
             .sort({ createdAt: -1 });
@@ -105,6 +160,16 @@ const getTenantApplications = async (req, res) => {
 const getLandlordApplications = async (req, res) => {
     try {
         const { propertyId } = req.params;
+
+        if (isMockMode()) {
+            let apps = (mockStore.applications || []).filter(a => String(a.landlordId) === String(req.user.id) && String(a.propertyId) === String(propertyId));
+            apps = apps.map(a => ({
+                ...a,
+                tenantId: { firstName: "Mock", lastName: "Tenant", email: "mock@test.com", phone: "0911223344" }
+            }));
+            return res.status(200).json(apps);
+        }
+
         const applications = await Application.find({ landlordId: req.user.id, propertyId })
             .populate('tenantId', 'firstName lastName email phone')
             .sort({ createdAt: -1 });

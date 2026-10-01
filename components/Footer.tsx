@@ -13,7 +13,7 @@ export default function Footer() {
       title: t.footer.company,
       links: [
         { label: t.footer.aboutUs, href: '/about' },
-        { label: t.footer.careers, href: '/careers' },
+        { label: t.footer.careers, href: '/about#careers' },
         { label: t.footer.blog, href: '/about#blog' },
         { label: t.footer.press, href: '/about#press' },
       ],
@@ -33,6 +33,7 @@ export default function Footer() {
         { label: t.footer.termsOfService, href: '/legal/terms' },
         { label: t.footer.privacyPolicy, href: '/legal/privacy' },
         { label: t.footer.cookiePolicy, href: '/legal/cookies' },
+        { label: 'How we use AI', href: '/ai-transparency' },
       ],
     },
   ]

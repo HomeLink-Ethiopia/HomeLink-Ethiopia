@@ -45,7 +45,7 @@ export interface PropertyFilters {
 }
 
 // Map API response (MongoDB) to frontend Property type
-function mapApiProperty(raw: any): Property {
+export function mapApiProperty(raw: any): Property {
   const loc = raw.location || {}
   const subCity = loc.subCity || 'Unknown'
   return {
@@ -473,30 +473,41 @@ export interface RentEstimateResult {
 }
 
 export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentEstimateResult> {
-  try {
-    const response = await post<{ data: any }>('/api/v1/properties/estimate-rent', input)
-    const data = response.data.data
-    const fair = Math.round(data.estimated_rent_etb || data.estimate?.fair || 25000)
-    const low = Math.round(data.low_etb || data.estimate?.low || fair * 0.88)
-    const high = Math.round(data.high_etb || data.estimate?.high || fair * 1.15)
-    return {
-      low,
-      fair,
-      high,
-      confidence: data.confidence || 0.85,
-      model_used: data.model_used || 'XGBoost Rent Model'
-    }
-  } catch (error) {
-    console.warn('API Rent Estimation fallback:', error)
-    const area = input.area_sqm || input.sizeM2 || (input.bedrooms ? input.bedrooms * 40 : 75)
-    const fair = Math.round(area * 280)
+  if (MOCK_MODE) {
+    await delay(null, 500); // Simulate network latency
+    const fair = (input.sizeM2 || 50) * 350 + (input.bedrooms * 2000);
     return {
       low: Math.round(fair * 0.85),
-      fair,
+      fair: Math.round(fair),
       high: Math.round(fair * 1.15),
-      confidence: 0.6,
-      model_used: 'Heuristic Fallback'
-    }
+      confidence: 0.95,
+      model_used: 'Mock AI Engine'
+    };
+  }
+
+  const response = await post<any>('/api/v1/properties/estimate-rent', {
+    subCity: input.subCity,
+    bedrooms: input.bedrooms,
+    bathrooms: input.bathrooms || 1,
+    sizeM2: input.sizeM2 || 50,
+    is_furnished: input.is_furnished || false,
+    has_water_tank: input.has_water_tank || false,
+    has_generator: input.has_generator || false,
+  })
+
+  const data = response.data?.data || response.data;
+  
+  // Handle different response structures gracefully
+  const fair = Math.round(data.estimated_market_rent || data.estimated_rent_etb || data.estimate?.fair || 25000)
+  const low = Math.round(data.range_low || data.estimate?.low || fair * 0.88)
+  const high = Math.round(data.range_high || data.estimate?.high || fair * 1.15)
+  
+  return {
+    low,
+    fair,
+    high,
+    confidence: data.confidence || 0.95,
+    model_used: data.model_used || data.model_version || 'XGBoost Rent Model'
   }
 }
 
@@ -517,4 +528,80 @@ export async function fetchAIRecommendations(
   }
   return []
 }
+
+export { fetchProperties as searchProperties };
+
+export interface AiMatch {
+  propertyId: string;
+  score: number;
+  title: string;
+  location?: { subCity?: string; city?: string };
+  rentAmount: number;
+  bedrooms: number;
+  bathrooms: number;
+  verificationStatus: string;
+  images?: { url: string }[];
+  matchReasons: string[];
+}
+
+export interface AiMatchResponse {
+  matches: AiMatch[];
+  meta: any;
+}
+
+export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
+  try {
+    const prefsPayload = {
+      budget: params.budget || { min: 0, max: 100000 },
+      location: { subCity: params.location?.subCity || 'Bole' },
+      propertyType: params.propertyType || 'any',
+      bedrooms: params.bedrooms || 1,
+      bathrooms: params.bathrooms || 1,
+      amenities: params.amenities || [],
+      furnished: params.amenities?.includes('Furnished') || false
+    };
+    await post('/api/v1/properties/preferences', prefsPayload);
+  } catch (e) {
+    console.warn('Failed to save preferences to backend:', e);
+  }
+
+  const response = await get<{ data: any[] }>('/api/v1/properties/recommendations');
+  const items = response.data?.data || [];
+  
+  return {
+    matches: items.map((p: any) => ({
+      propertyId: p._id || p.id,
+      score: p.matchScore || 0,
+      title: p.title,
+      location: p.location,
+      rentAmount: p.rentAmount || p.priceEtb || 0,
+      bedrooms: p.bedrooms || 0,
+      bathrooms: p.bathrooms || 0,
+      verificationStatus: p.verificationStatus || 'unverified',
+      images: p.images || (p.image ? [{url: p.image}] : []),
+      matchReasons: p.matchReasons || []
+    })),
+    meta: { total: items.length }
+  };
+}
+
+
+export interface AiFraudPriorityItem {
+  propertyId: string;
+  title: string;
+  riskScore: number;
+  riskLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+  signals: string[];
+  verificationStatus: string;
+}
+
+export async function fetchFraudPriority(): Promise<{ queue: AiFraudPriorityItem[], summary: { note: string } }> {
+  try {
+    const response = await get<any>('/api/v1/fraud-reports/priority-queue');
+    return response.data?.data || { queue: [], summary: { note: 'No data' } };
+  } catch (error) {
+    return { queue: [], summary: { note: 'Priority queue unavailable' } };
+  }
+}
+
 

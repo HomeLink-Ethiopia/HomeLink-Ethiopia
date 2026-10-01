@@ -170,7 +170,12 @@ const getLandlordApplications = async (req, res) => {
             return res.status(200).json(apps);
         }
 
-        const applications = await Application.find({ landlordId: req.user.id, propertyId })
+        const query = { landlordId: req.user.id };
+        if (propertyId) {
+            query.propertyId = propertyId;
+        }
+
+        const applications = await Application.find(query)
             .populate('tenantId', 'firstName lastName email phone')
             .sort({ createdAt: -1 });
             

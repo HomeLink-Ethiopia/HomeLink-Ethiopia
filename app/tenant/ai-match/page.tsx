@@ -336,7 +336,7 @@ export default function AIMatchPage() {
                 </p>
                 {meta && meta.weights && (
                   <p className="mt-0.5 text-xs text-charcoal/40">
-                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${w >= 1 ? Math.round(w as number) : Math.round((w as number) * 100)}%`).join(', ')}
+                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${(w as number) >= 1 ? Math.round(w as number) : Math.round((w as number) * 100)}%`).join(', ')}
                   </p>
                 )}
               </div>

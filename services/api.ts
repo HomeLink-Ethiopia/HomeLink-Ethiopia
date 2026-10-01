@@ -485,25 +485,17 @@ export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentE
     };
   }
 
-  const response = await fetch('http://localhost:8000/predict', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      subcity: input.subCity,
-      bedrooms: input.bedrooms,
-      bathrooms: input.bathrooms || 1,
-      area_sqm: input.sizeM2 || 50,
-      is_furnished: input.is_furnished || false,
-      has_water_tank: input.has_water_tank || false,
-      has_generator: input.has_generator || false,
-    })
+  const response = await post<any>('/api/v1/properties/estimate-rent', {
+    subCity: input.subCity,
+    bedrooms: input.bedrooms,
+    bathrooms: input.bathrooms || 1,
+    sizeM2: input.sizeM2 || 50,
+    is_furnished: input.is_furnished || false,
+    has_water_tank: input.has_water_tank || false,
+    has_generator: input.has_generator || false,
   })
 
-  if (!response.ok) {
-    throw new Error(`AI Engine error: ${response.status} - Ensure FastAPI is running on port 8000`)
-  }
-
-  const data = await response.json()
+  const data = response.data?.data || response.data;
   
   // Handle different response structures gracefully
   const fair = Math.round(data.estimated_market_rent || data.estimated_rent_etb || data.estimate?.fair || 25000)
@@ -611,4 +603,5 @@ export async function fetchFraudPriority(): Promise<{ queue: AiFraudPriorityItem
     return { queue: [], summary: { note: 'Priority queue unavailable' } };
   }
 }
+
 

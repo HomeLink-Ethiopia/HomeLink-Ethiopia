@@ -675,6 +675,17 @@ const savePreferences = async (req, res) => {
             });
         }
 
+        if (isMockMode()) {
+            let preferences = mockStore.tenantPreferences.get(tenantId);
+            if (preferences) {
+                preferences = { ...preferences, budget, location, propertyType, bedrooms, bathrooms, amenities, furnished, moveInDate };
+            } else {
+                preferences = { tenantId, budget, location, propertyType, bedrooms, bathrooms, amenities, furnished, moveInDate };
+            }
+            mockStore.tenantPreferences.set(tenantId, preferences);
+            return res.status(200).json({ message: 'Preferences saved successfully', data: preferences });
+        }
+
         // ─── CHECK IF PREFERENCES EXIST ───
         let preferences = await TenantPreference.findOne({ tenantId });
 
@@ -732,11 +743,20 @@ const savePreferences = async (req, res) => {
 const getPreferences = async (req, res) => {
     try{
         const tenantId = req.user.id;
+
+        if (isMockMode()) {
+            const preferences = mockStore.tenantPreferences.get(tenantId);
+            if (!preferences) {
+                return res.status(404).json({ message: 'No preferences found. Please set your preferences' });
+            }
+            return res.status(200).json({ data: preferences });
+        }
+
         const preferences = await TenantPreference.findOne({ tenantId });
 
         if(!preferences){
             return res.status(404).json({
-                message: 'No preferences found. Plese set your preferences'
+                message: 'No preferences found. Please set your preferences'
             });
         }
 
@@ -756,6 +776,16 @@ const updatePreferences = async (req,res) =>{
     try{
         const tenantId = req.user.id;
         const updates = req.body;
+
+        if (isMockMode()) {
+            let existing = mockStore.tenantPreferences.get(tenantId);
+            if (!existing) {
+                return res.status(404).json({ message:'No preference found. Please save preference first.' });
+            }
+            const updated = { ...existing, ...updates, updatedAt: new Date() };
+            mockStore.tenantPreferences.set(tenantId, updated);
+            return res.status(200).json({ message:'Preference update successfully', data: updated });
+        }
 
         //find existing preference
 
@@ -782,7 +812,7 @@ const updatePreferences = async (req,res) =>{
     } catch(error){
         console.error('Update Preference error: ', error);
         res.status(500).json({
-            message:'Seerver error'
+            message:'Server error'
         });
     }
 

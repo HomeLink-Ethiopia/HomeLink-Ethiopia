@@ -11,7 +11,15 @@ router.get('/landlord', authMiddleware, (req, res) => {
     res.json({ data: [] });
 });
 
+router.get('/landlord/tenants', authMiddleware, (req, res) => {
+    res.json({ data: [] });
+});
+
 router.get('/tenant', authMiddleware, (req, res) => {
+    res.json({ data: [] });
+});
+
+router.get('/my', authMiddleware, (req, res) => {
     res.json({ data: [] });
 });
 

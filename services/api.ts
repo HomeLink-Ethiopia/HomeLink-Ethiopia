@@ -542,6 +542,8 @@ export interface AiMatch {
   verificationStatus: string;
   images?: { url: string }[];
   matchReasons: string[];
+  reasons?: any[];
+  breakdown?: Record<string, number>;
   grade?: 'A+' | 'A' | 'B+' | 'B' | 'C' | 'D';
 }
 

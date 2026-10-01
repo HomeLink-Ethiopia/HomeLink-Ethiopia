@@ -427,7 +427,7 @@ export default function AIMatchPage() {
                         {/* Score Breakdown Bar */}
                         {result.breakdown && (
                           <div className="grid grid-cols-6 gap-2 mb-4">
-                            {Object.entries(result.breakdown).map(([key, score]) => (
+                            {Object.entries(result.breakdown as Record<string, number>).map(([key, score]) => (
                               <div key={key} className="text-center">
                                 <div className="h-20 bg-sand rounded relative overflow-hidden">
                                   <div

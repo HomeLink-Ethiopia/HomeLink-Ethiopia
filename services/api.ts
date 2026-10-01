@@ -542,6 +542,7 @@ export interface AiMatch {
   verificationStatus: string;
   images?: { url: string }[];
   matchReasons: string[];
+  grade?: 'A+' | 'A' | 'B+' | 'B' | 'C' | 'D';
 }
 
 export interface AiMatchResponse {

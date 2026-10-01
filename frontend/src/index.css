@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ─────────────────────────────────────────────────────────
    HomeLink AI Dashboard — Global Styles
    ───────────────────────────────────────────────────────── */

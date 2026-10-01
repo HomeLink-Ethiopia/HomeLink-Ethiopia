@@ -14,13 +14,16 @@ export default function Sidebar() {
     { label: t.sidebar.home, href: '/', icon: 'home' },
     { label: t.sidebar.dashboard, href: '/admin/dashboard', icon: 'grid' },
     { label: t.sidebar.verificationQueue, href: '/admin/verification-queue', icon: 'check' },
-    { label: t.sidebar.landlordVerification, href: '/admin/verification-queue', icon: 'user' },
-    { label: t.sidebar.propertyVerification, href: '/admin/verification-queue', icon: 'house' },
+    { label: t.sidebar.landlordVerification, href: '/admin/landlord-verification', icon: 'user' },
+    { label: t.sidebar.propertyVerification, href: '/admin/property-verification', icon: 'house' },
     { label: t.sidebar.fraudReports, href: '/admin/fraud-reports', icon: 'flag' },
     { label: t.sidebar.disputes, href: '/admin/disputes', icon: 'scale' },
+    { label: t.sidebar.users, href: '/admin/users', icon: 'user' },
+    { label: t.sidebar.analytics || 'Analytics', href: '/admin/analytics', icon: 'chart' },
     { label: t.sidebar.riskMonitoring, href: '/admin/risk-monitoring', icon: 'chart' },
     { label: t.sidebar.marketInsights, href: '/admin/market-insights', icon: 'trend' },
     { label: t.sidebar.auditLogs, href: '/admin/audit-logs', icon: 'log' },
+    { label: t.sidebar.supportRequests || 'Support Requests', href: '/admin/support-requests', icon: 'mail' },
   ]
 
 const ICON_PATH: Record<string, string> = {
@@ -34,6 +37,7 @@ const ICON_PATH: Record<string, string> = {
   chart: 'M4 16V9M10 16V4M16 16v-6',
   trend: 'M3 14l5-5 3 3 6-6M13 6h4v4',
   log: 'M5 2h7l3 3v13a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1zM6 8h8M6 11h8M6 14h5',
+  mail: 'M3 5h14v10H3zM3 5l7 6 7-6',
   settings: 'M10 13a3 3 0 100-6 3 3 0 000 6zM3 10h1M16 10h1M10 3v1M10 16v1M5 5l.7.7M14.3 14.3l.7.7M5 15l.7-.7M14.3 5.7l.7-.7',
   logout: 'M11 16l4-4m0 0l-4-4m4 4H5m0-8v16',
 }
@@ -114,7 +118,7 @@ function NavIcon({ name }: { name: string }) {
         </nav>
 
         <div className="border-t border-white/10 pt-3">
-          <Link href="#" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
+          <Link href="/admin/settings" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="settings" />
             {t.sidebar.settings}
           </Link>

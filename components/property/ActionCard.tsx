@@ -7,9 +7,19 @@ interface ActionCardProps {
   propertyTitle: string
   priceEtb: number
   depositEtb: number
+  /** Landlord's User account id (property.landlord.accountId) — enables the Message button */
+  landlordAccountId?: string
+  landlordName?: string
 }
 
-export default function ActionCard({ propertyId, propertyTitle, priceEtb, depositEtb }: ActionCardProps) {
+export default function ActionCard({
+  propertyId,
+  propertyTitle,
+  priceEtb,
+  depositEtb,
+  landlordAccountId,
+  landlordName,
+}: ActionCardProps) {
   const openModal = useUIStore((s) => s.openModal)
   const saved = useFavoritesStore((s) => s.favorites.has(propertyId))
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
@@ -42,6 +52,18 @@ export default function ActionCard({ propertyId, propertyTitle, priceEtb, deposi
         >
           Schedule Viewing
         </button>
+
+        {landlordAccountId && (
+          <button
+            type="button"
+            onClick={() =>
+              openModal('message', { propertyId, propertyTitle, receiverId: landlordAccountId, receiverName: landlordName })
+            }
+            className="w-full rounded-lg border-2 border-rust/60 px-5 py-3 text-sm font-bold text-rust transition-all hover:bg-rust hover:text-white active:scale-[0.98]"
+          >
+            Message Landlord
+          </button>
+        )}
 
         <button
           type="button"

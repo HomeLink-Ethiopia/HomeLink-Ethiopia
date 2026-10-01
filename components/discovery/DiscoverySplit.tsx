@@ -5,8 +5,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { NEIGHBORHOOD_COLOR, PROPERTIES, formatEtb, type Property } from '@/lib/properties'
-import { fetchProperties } from '@/services/api'
-import { SearchFilters, filterProperties } from '@/lib/search'
+import { searchProperties } from '@/services/api'
+import { SearchFilters } from '@/lib/search'
+import { matchProperty as matchPropertyFull, loadPreferences, type TenantPreferences } from '@/lib/ai-matching'
+import { saveSearch, type SavedSearch } from '@/lib/saved-searches'
 import { useLanguage } from '@/lib/language-context'
 
 const PropertyMap = dynamic(() => import('./PropertyMap'), {
@@ -68,7 +70,7 @@ function FilterDropdown<T extends string>({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
+        <div className="absolute left-0 top-full z-[1100] mt-1 w-56 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
           {options.map((opt) => (
             <button
               key={opt.value || '__all__'}
@@ -138,7 +140,7 @@ function RangeFilter({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
+        <div className="absolute left-0 top-full z-[1100] mt-1 w-52 rounded-xl border border-charcoal/10 bg-white py-1.5 shadow-lg">
           {ranges.map((r) => (
             <button
               key={r.value || '__all__'}
@@ -164,6 +166,8 @@ function RangeFilter({
 
 /* ─── MORE FILTERS PANEL ──────────────────────────────────────────────── */
 
+const AMENITY_OPTIONS = ['WiFi', 'Parking', 'Water 24/7', 'Security', 'Balcony', 'Generator', 'Elevator', 'Furnished']
+
 function MoreFiltersPanel({
   open,
   onClose,
@@ -171,6 +175,8 @@ function MoreFiltersPanel({
   setFurnished,
   verifiedOnly,
   setVerifiedOnly,
+  amenities,
+  setAmenities,
 }: {
   open: boolean
   onClose: () => void
@@ -178,6 +184,8 @@ function MoreFiltersPanel({
   setFurnished: (v: boolean) => void
   verifiedOnly: boolean
   setVerifiedOnly: (v: boolean) => void
+  amenities: string[]
+  setAmenities: (v: string[]) => void
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -192,7 +200,7 @@ function MoreFiltersPanel({
   if (!open) return null
 
   return (
-    <div ref={panelRef} className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-charcoal/10 bg-white p-5 shadow-lg">
+    <div ref={panelRef} className="absolute left-0 top-full z-[1100] mt-1 w-72 rounded-xl border border-charcoal/10 bg-white p-5 shadow-lg">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold text-charcoal">More Filters</h3>
         <button onClick={onClose} className="text-charcoal/40 hover:text-charcoal">
@@ -226,6 +234,31 @@ function MoreFiltersPanel({
             <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${verifiedOnly ? 'translate-x-5' : ''}`} />
           </button>
         </label>
+
+        {/* Amenities */}
+        <div>
+          <p className="mb-2 text-sm text-charcoal/70">Amenities</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {AMENITY_OPTIONS.map((a) => {
+              const checked = amenities.includes(a)
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setAmenities(checked ? amenities.filter((x) => x !== a) : [...amenities, a])}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    checked ? 'border-rust bg-rust/5 text-rust' : 'border-charcoal/15 text-charcoal/60 hover:border-rust'
+                  }`}
+                >
+                  <svg viewBox="0 0 20 20" fill={checked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className="h-3.5 w-3.5 shrink-0">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  {a}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       <button
@@ -307,115 +340,118 @@ function AiMatchCard({ property, score, reasons }: { property: Property; score: 
 
 /* ─── AI MATCHING ALGORITHM ─────────────────────────────────────────── */
 
-function matchProperty(p: Property, prefs: { budget: number; beds: number; neighborhoods: string[] }) {
-  let score = 0
-  const reasons: string[] = []
-
-  if (p.priceEtb <= prefs.budget) { score += 30; reasons.push('Within your budget') }
-  else if (p.priceEtb <= prefs.budget * 1.15) { score += 20; reasons.push('Slightly above budget') }
-  else { score += 8 }
-
-  if (p.beds === prefs.beds) { score += 20; reasons.push(`${p.beds} bedrooms — perfect match`) }
-  else if (Math.abs(p.beds - prefs.beds) === 1) { score += 12; reasons.push(`${p.beds} bedrooms — close`) }
-  else { score += 4 }
-
-  if (prefs.neighborhoods.includes(p.neighborhood)) { score += 25; reasons.push(`In ${p.neighborhood}`) }
-  else { score += 8 }
-
-  if (p.verified) { score += 15; reasons.push('Verified listing') } else { score += 5 }
-
-  if (p.rating >= 4.5) { score += 10; reasons.push(`Highly rated (${p.rating}★)`) }
-  else if (p.rating >= 4.0) { score += 7 } else { score += 3 }
-
-  return { property: p, score: Math.min(score, 99), reasons: reasons.slice(0, 3) }
+function matchProperty(p: Property, prefs: TenantPreferences) {
+  const result = matchPropertyFull(p, prefs)
+  return {
+    property: p,
+    score: result.score,
+    reasons: result.reasons.filter(r => r.icon !== 'close').slice(0, 3).map(r => r.text),
+  }
 }
 
 /* ─── MAIN COMPONENT ────────────────────────────────────────────────── */
 
 export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   const { t } = useLanguage()
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [view, setView] = useState<'list' | 'split' | 'map'>('split')
-  const [currentPage, setCurrentPage] = useState(1)
   const [showAiPanel, setShowAiPanel] = useState(false)
-  const itemsPerPage = 5
+  const itemsPerPage = 6
 
-  // Real API properties
+  // ─── Server-side search (Sprint 5): filters, sort and pagination run on
+  // the backend so we never load the whole collection into the browser.
   const [apiProperties, setApiProperties] = useState<Property[]>([])
-  useEffect(() => {
-    let cancelled = false
-    fetchProperties({}).then((props) => {
-      if (!cancelled && props.length > 0) setApiProperties(props)
-    }).catch(() => {})
-    return () => { cancelled = true }
-  }, [])
+  const [totalResults, setTotalResults] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [isSearching, setIsSearching] = useState(true)
+  const [searchError, setSearchError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [view, setView] = useState<'list' | 'split' | 'map'>('split')
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
-  const PROPERTIES_DATA = apiProperties.length > 0 ? apiProperties : PROPERTIES
-
-  // Filter state
-  const [neighborhood, setNeighborhood] = useState('')
-  const [propertyType, setPropertyType] = useState('')
-  const [priceRange, setPriceRange] = useState('')
-  const [bedsRange, setBedsRange] = useState('')
+  // Initialize toolbar state from URL-level filters so deep links like
+  // /explore?neighborhood=Bole&type=apartment actually filter the results
+  // (and are captured by Save Search).
+  const f0 = (filters || {}) as Record<string, unknown>
+  const initPrice = f0.minPrice || f0.maxPrice ? `${f0.minPrice || 0}-${f0.maxPrice || 999999}` : ''
+  const [neighborhood, setNeighborhood] = useState((f0.neighborhood as string) || '')
+  const [propertyType, setPropertyType] = useState((f0.propertyType as string) || '')
+  const [priceRange, setPriceRange] = useState(initPrice)
+  const [bedsRange, setBedsRange] = useState(f0.beds ? String(f0.beds) : '')
+  const [bathsRange, setBathsRange] = useState(f0.baths ? String(f0.baths) : '')
+  const [amenitiesFilter, setAmenitiesFilter] = useState<string[]>((f0.amenities as string[]) || [])
   const [showMoreFilters, setShowMoreFilters] = useState(false)
-  const [furnished, setFurnished] = useState(false)
-  const [verifiedOnly, setVerifiedOnly] = useState(false)
+  const [furnished, setFurnished] = useState(!!f0.furnished)
+  const [verifiedOnly, setVerifiedOnly] = useState(!!f0.verifiedOnly)
   const [sortBy, setSortBy] = useState('best')
 
-  const activeFilterCount = [neighborhood, propertyType, priceRange, bedsRange, furnished, verifiedOnly].filter(Boolean).length
+  const activeFilterCount = [neighborhood, propertyType, priceRange, bedsRange, bathsRange, furnished, verifiedOnly].filter(Boolean).length + amenitiesFilter.length
 
-  // Build filters object
-  const dynamicFilters: SearchFilters = useMemo(() => {
-    const f: SearchFilters = { ...filters }
-    if (neighborhood) f.neighborhood = neighborhood as any
-    if (propertyType) f.propertyType = propertyType as any
-    if (priceRange) {
-      const [min, max] = priceRange.split('-').map(Number)
-      if (min) f.minPrice = min
-      if (max) f.maxPrice = max
-    }
-    if (bedsRange) {
-      f.beds = parseInt(bedsRange, 10)
-    }
-    return f
-  }, [filters, neighborhood, propertyType, priceRange, bedsRange])
+  const priceBounds = useMemo(() => {
+    if (!priceRange) return { min: undefined, max: undefined }
+    const [min, max] = priceRange.split('-').map(Number)
+    return { min: min || undefined, max: max && max < 999999 ? max : undefined }
+  }, [priceRange])
 
-  // Apply filters
-  const allFiltered = useMemo(() => {
-    let result = filterProperties(PROPERTIES_DATA, dynamicFilters)
-    if (verifiedOnly) result = result.filter((p) => p.verified)
-    if (furnished) result = result.filter((p) => p.furnished)
-
-    // Sort
-    if (sortBy === 'price-asc') {
-      result = [...result].sort((a, b) => a.priceEtb - b.priceEtb)
-    } else if (sortBy === 'price-desc') {
-      result = [...result].sort((a, b) => b.priceEtb - a.priceEtb)
-    } else if (sortBy === 'newest') {
-      result = [...result].sort((a, b) => {
-        const dateA = (a as any).createdAt ? new Date((a as any).createdAt).getTime() : 0
-        const dateB = (b as any).createdAt ? new Date((b as any).createdAt).getTime() : 0
-        return dateB - dateA
+  // Debounced server query — re-runs whenever any filter/sort/page changes.
+  useEffect(() => {
+    let cancelled = false
+    setIsSearching(true)
+    setSearchError('')
+    const timer = setTimeout(() => {
+      searchProperties({
+        query: (filters as any)?.query,
+        city: (filters as any)?.city,
+        neighborhood: (neighborhood || undefined) as any,
+        propertyType: (propertyType || undefined) as any,
+        minPrice: priceBounds.min,
+        maxPrice: priceBounds.max,
+        beds: bedsRange ? parseInt(bedsRange, 10) : undefined,
+        baths: bathsRange ? parseInt(bathsRange, 10) : undefined,
+        amenities: amenitiesFilter.length > 0 ? amenitiesFilter : undefined,
+        furnished: furnished || undefined,
+        verifiedOnly: verifiedOnly || undefined,
+        sort: sortBy,
+        page: currentPage,
+        limit: itemsPerPage,
       })
-    }
+        .then((result) => {
+          if (cancelled) return
+          setApiProperties(result.properties)
+          setTotalResults(result.total)
+          setTotalPages(Math.max(1, result.pages))
+          setIsSearching(false)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setApiProperties([])
+          setTotalResults(0)
+          setTotalPages(1)
+          setSearchError('Could not reach the server. Please check your connection and try again.')
+          setIsSearching(false)
+        })
+    }, 300)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [filters, neighborhood, propertyType, priceBounds, bedsRange, bathsRange, amenitiesFilter, furnished, verifiedOnly, sortBy, currentPage])
 
-    return result
-  }, [dynamicFilters, verifiedOnly, furnished, sortBy])
-
-  // AI matches for the top 3
+  // AI matches for the top 3 (computed from the current result page using
+  // the tenant's saved preferences when they exist)
   const aiMatches = useMemo(() => {
-    const prefs = { budget: 20000, beds: 2, neighborhoods: ['Bole', 'Kazanchis'] }
-    return PROPERTIES_DATA
+    const saved = loadPreferences()
+    const prefs: TenantPreferences = saved || {
+      budget: { min: 5000, max: 25000 },
+      location: [],
+      propertyType: 'any',
+      bedrooms: 2,
+      amenities: [],
+      moveInDate: new Date().toISOString().split('T')[0],
+      furnished: false,
+    }
+    return apiProperties
       .map((p) => matchProperty(p, prefs))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
-  }, [])
+  }, [apiProperties])
 
-  // Pagination
-  const totalPages = Math.ceil(allFiltered.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentProperties = allFiltered.slice(startIndex, endIndex)
+  const currentProperties = apiProperties
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = []
@@ -442,13 +478,83 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
     setPropertyType('')
     setPriceRange('')
     setBedsRange('')
+    setBathsRange('')
+    setAmenitiesFilter([])
     setFurnished(false)
     setVerifiedOnly(false)
     setCurrentPage(1)
   }, [])
 
+  // ─── Saved searches: serialize current filters into a named preset ───
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [saveToast, setSaveToast] = useState('')
+
+  const currentSearchParams = useCallback((): string => {
+    // Start from URL-level filters (deep links like /explore?neighborhood=Bole),
+    // then let the live toolbar state override them.
+    const f = (filters || {}) as Record<string, unknown>
+    const p = new URLSearchParams()
+    const nb = neighborhood || (f.neighborhood as string) || ''
+    const pt = propertyType || (f.propertyType as string) || ''
+    const price = priceRange || (f.minPrice || f.maxPrice ? `${f.minPrice || 0}-${f.maxPrice || 999999}` : '')
+    const beds = bedsRange || (f.beds ? String(f.beds) : '')
+    const baths = bathsRange || (f.baths ? String(f.baths) : '')
+    const city = (f.city as string) || ''
+    if (city) p.set('city', city)
+    if (nb) p.set('neighborhood', nb)
+    if (pt) p.set('type', pt)
+    if (price) {
+      p.set('minPrice', price.split('-')[0])
+      p.set('maxPrice', price.split('-')[1] || '')
+    }
+    if (beds) p.set('beds', beds)
+    if (baths) p.set('baths', baths)
+    if (furnished) p.set('furnished', 'true')
+    if (verifiedOnly) p.set('verifiedOnly', 'true')
+    const ams = amenitiesFilter.length > 0 ? amenitiesFilter : ((f.amenities as string[]) || [])
+    ams.forEach((a) => p.append('amenities', a))
+    return p.toString()
+  }, [filters, neighborhood, propertyType, priceRange, bedsRange, bathsRange, amenitiesFilter, furnished, verifiedOnly])
+
+  const autoSearchName = useCallback((): string => {
+    const f = (filters || {}) as Record<string, unknown>
+    const parts: string[] = []
+    const nb = neighborhood || (f.neighborhood as string) || ''
+    const pt = propertyType || (f.propertyType as string) || ''
+    const beds = bedsRange || (f.beds ? String(f.beds) : '')
+    if (nb) parts.push(nb)
+    if (pt) parts.push(pt.charAt(0).toUpperCase() + pt.slice(1))
+    if (beds) parts.push(`${beds}+ bed`)
+    const price = priceRange || (f.minPrice || f.maxPrice ? `${f.minPrice || 0}-${f.maxPrice || 999999}` : '')
+    if (price) {
+      const [min, max] = price.split('-').map(Number)
+      if (max && max < 999999) parts.push(`≤ ${Number(max).toLocaleString()} ETB`)
+      else if (min) parts.push(`≥ ${Number(min).toLocaleString()} ETB`)
+    }
+    if (furnished) parts.push('furnished')
+    if (verifiedOnly) parts.push('verified')
+    return parts.length ? parts.join(' · ') : 'All properties'
+  }, [filters, neighborhood, propertyType, bedsRange, priceRange, furnished, verifiedOnly])
+
+  const handleSaveSearch = useCallback(() => {
+    const name = saveName.trim() || autoSearchName()
+    const entry: SavedSearch = saveSearch(name, currentSearchParams())
+    setShowSaveDialog(false)
+    setSaveName('')
+    setSaveToast(`Saved "${entry.name}" — find it under Saved Searches`)
+    setTimeout(() => setSaveToast(''), 4000)
+  }, [saveName, autoSearchName, currentSearchParams])
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="relative flex flex-col h-[calc(100vh-4rem)]">
+      {/* Saved-search toast */}
+      {saveToast && (
+        <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full bg-charcoal px-5 py-2.5 text-sm font-medium text-cream shadow-lg">
+          {saveToast}
+        </div>
+      )}
+
       {/* Filter Bar */}
       <div className="border-b border-charcoal/10 bg-white px-4 py-3 sm:px-6">
         <div className="mx-auto max-w-7xl">
@@ -534,13 +640,27 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                 ]}
               />
 
+              {/* Bathrooms Filter */}
+              <RangeFilter
+                label="Bathrooms"
+                value={bathsRange}
+                active={!!bathsRange}
+                onChange={(v) => { setBathsRange(v); setCurrentPage(1) }}
+                ranges={[
+                  { label: 'Any', value: '' },
+                  { label: '1 Bathroom', value: '1' },
+                  { label: '2 Bathrooms', value: '2' },
+                  { label: '3+ Bathrooms', value: '3' },
+                ]}
+              />
+
               {/* More Filters */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowMoreFilters(!showMoreFilters)}
                   className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                    (furnished || verifiedOnly)
+                    (furnished || verifiedOnly || amenitiesFilter.length > 0)
                       ? 'border-rust bg-rust/5 text-rust'
                       : 'border-charcoal/15 bg-white text-charcoal/60 hover:border-rust'
                   }`}
@@ -549,9 +669,9 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                     <path d="M3 4h14M6 8h8M9 12h2" strokeLinecap="round" />
                   </svg>
                   <span>More Filters</span>
-                  {(furnished || verifiedOnly) && (
+                  {(furnished || verifiedOnly || amenitiesFilter.length > 0) && (
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rust text-[10px] font-bold text-white">
-                      {(furnished ? 1 : 0) + (verifiedOnly ? 1 : 0)}
+                      {(furnished ? 1 : 0) + (verifiedOnly ? 1 : 0) + amenitiesFilter.length}
                     </span>
                   )}
                 </button>
@@ -562,6 +682,8 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                   setFurnished={setFurnished}
                   verifiedOnly={verifiedOnly}
                   setVerifiedOnly={setVerifiedOnly}
+                  amenities={amenitiesFilter}
+                  setAmenities={setAmenitiesFilter}
                 />
               </div>
 
@@ -575,6 +697,55 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                   Clear all ({activeFilterCount})
                 </button>
               )}
+
+              {/* Save this search */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveDialog(!showSaveDialog)}
+                  className="flex items-center gap-1 rounded-lg border border-charcoal/15 px-3 py-2 text-xs font-medium text-charcoal/70 transition-colors hover:border-rust hover:text-rust"
+                >
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3.5 w-3.5">
+                    <path d="M5 3h8l3 3v11H5V3z" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M7 3v4h6V3M7 13h6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Save search
+                </button>
+                {showSaveDialog && (
+                  <div className="absolute left-0 top-full z-30 mt-1 w-72 rounded-lg border border-charcoal/10 bg-white p-3 shadow-lg">
+                    <label className="mb-2 block text-xs font-medium text-charcoal/70">
+                      Name this search (optional)
+                    </label>
+                    <input
+                      autoFocus
+                      value={saveName}
+                      onChange={(e) => setSaveName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveSearch() }}
+                      placeholder={autoSearchName()}
+                      className="mb-2 w-full rounded-md border border-charcoal/15 px-2.5 py-1.5 text-sm outline-none focus:border-rust"
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[11px] text-charcoal/40">{autoSearchName()}</span>
+                      <div className="flex shrink-0 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => { setShowSaveDialog(false); setSaveName('') }}
+                          className="rounded-md px-2.5 py-1 text-xs text-charcoal/60 hover:bg-sand"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveSearch}
+                          className="rounded-md bg-rust px-3 py-1 text-xs font-medium text-white hover:bg-rust/90"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right: Actions */}
@@ -649,7 +820,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
       <div className="border-b border-charcoal/10 bg-cream/50 px-4 py-2 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm text-charcoal/70">
-            <span className="font-semibold text-charcoal">{allFiltered.length} verified homes</span> found · Showing {allFiltered.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, allFiltered.length)}
+            <span className="font-semibold text-charcoal">{totalResults} verified homes</span> found · Showing {totalResults > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, totalResults)}
           </p>
         </div>
       </div>
@@ -657,9 +828,10 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
         <div className="mx-auto h-full max-w-7xl px-4 sm:px-6">
-          <div className="grid h-full grid-cols-1 gap-0 lg:grid-cols-2">
-            {/* Property List */}
-            <div className="flex flex-col gap-3 overflow-y-auto py-4 pr-3" data-property-list>
+          <div className={`grid h-full grid-cols-1 gap-0 ${view === 'split' ? 'lg:grid-cols-2' : ''}`}>
+            {/* Property List (hidden in Map view, full-width in List view) */}
+            {view !== 'map' && (
+            <div className={`flex flex-col gap-3 overflow-y-auto py-4 ${view === 'split' ? 'pr-3' : 'pr-1'}`} data-property-list>
 
               {/* AI Match Panel (collapsible) */}
               {showAiPanel && (
@@ -690,8 +862,32 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                 </div>
               )}
 
+              {/* Loading state */}
+              {isSearching && (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex animate-pulse gap-4 rounded-xl border border-charcoal/10 bg-white p-3">
+                      <div className="h-32 w-40 shrink-0 rounded-lg bg-charcoal/5" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 w-3/4 rounded bg-charcoal/5" />
+                        <div className="h-3 w-1/2 rounded bg-charcoal/5" />
+                        <div className="h-3 w-1/3 rounded bg-charcoal/5" />
+                        <div className="h-5 w-1/4 rounded bg-charcoal/5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Server error */}
+              {!isSearching && searchError && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+                  <p className="text-sm font-medium text-amber-800">{searchError}</p>
+                </div>
+              )}
+
               {/* No results */}
-              {currentProperties.length === 0 && (
+              {!isSearching && !searchError && currentProperties.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="h-16 w-16 rounded-full bg-sand flex items-center justify-center mb-4">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8 text-charcoal/30">
@@ -765,14 +961,16 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                         </span>
                       </div>
 
-                      {/* Rating */}
-                      <div className="mt-2 flex items-center gap-1">
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-rust">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="text-xs font-semibold text-charcoal">{property.rating}</span>
-                        <span className="text-xs text-charcoal/50">({property.reviewCount})</span>
-                      </div>
+                      {/* Rating (hidden until the property has reviews) */}
+                      {property.reviewCount > 0 && (
+                        <div className="mt-2 flex items-center gap-1">
+                          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-rust">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="text-xs font-semibold text-charcoal">{property.rating.toFixed(1)}</span>
+                          <span className="text-xs text-charcoal/50">({property.reviewCount})</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -823,11 +1021,14 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Map */}
-            <div className="relative h-full overflow-hidden border-l border-charcoal/10">
-              <PropertyMap properties={currentProperties} hoveredId={hoveredId} onHoverChange={setHoveredId} />
-            </div>
+            {/* Map (hidden in List view, full-width in Map view) */}
+            {view !== 'list' && (
+              <div className={`relative h-full overflow-hidden ${view === 'split' ? 'border-l border-charcoal/10' : ''}`}>
+                <PropertyMap properties={currentProperties} hoveredId={hoveredId} onHoverChange={setHoveredId} />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -65,6 +65,12 @@ export default function NewPropertyPage() {
     const sizeM2 = Number(formData.sizeM2) || 0
 
     if (subCity && bedrooms > 0) {
+      if (sizeM2 <= 0) {
+        setRentEstimate(null)
+        setEstimating(false)
+        return
+      }
+
       const timer = setTimeout(async () => {
         setEstimating(true)
         try {
@@ -72,15 +78,16 @@ export default function NewPropertyPage() {
             subCity,
             bedrooms,
             bathrooms,
-            sizeM2: sizeM2 > 0 ? sizeM2 : bedrooms * 35,
+            sizeM2,
             is_furnished: formData.furnished,
             has_water_tank: formData.amenities.some(a => a.toLowerCase().includes('water')),
             has_generator: formData.amenities.some(a => a.toLowerCase().includes('generator')),
             amenities: formData.amenities,
           })
           setRentEstimate({ low: res.low, fair: res.fair, high: res.high })
-        } catch {
-          // Keep prior estimate or fallback
+        } catch (error) {
+          console.error("AI Estimation failed - ensure Python FastAPI is running on port 8000:", error)
+          setRentEstimate(null)
         } finally {
           setEstimating(false)
         }
@@ -222,14 +229,22 @@ export default function NewPropertyPage() {
       try {
         if (res.headers.get('content-type')?.includes('application/json')) {
           const data = await res.json()
+          
+          if (!res.ok) {
+            setErrors([data.message || 'Failed to create property'])
+            return
+          }
           propertyId = data.data?._id || data._id || ''
         }
-      } catch {}
+      } catch (e) {
+        if (!res.ok) {
+           setErrors(['Failed to create property: Server returned an error'])
+           return
+        }
+      }
 
       if (!res.ok) {
-        // Demo mode — show success anyway
-        setSuccess(true)
-        setTimeout(() => router.push('/landlord/properties'), 2000)
+        setErrors(['Failed to create property'])
         return
       }
 
@@ -242,9 +257,7 @@ export default function NewPropertyPage() {
       setTimeout(() => router.push('/landlord/properties'), 2000)
     } catch (err) {
       console.error('Create property error:', err)
-      // Demo mode — show success
-      setSuccess(true)
-      setTimeout(() => router.push('/landlord/properties'), 2000)
+      setErrors(['An unexpected error occurred while creating the property. Please ensure you have completed your Landlord Registration.'])
     } finally {
       setSubmitting(false)
     }
@@ -561,27 +574,42 @@ export default function NewPropertyPage() {
                 </div>
 
                 {/* ─── AI FAIR RENT ESTIMATE GAUGE ─── */}
-                {rentEstimate && (
-                  <div className="mt-4 rounded-xl border border-rust/20 bg-cream/30 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-semibold text-charcoal">AI Fair Market Rent Guidance (XGBoost)</span>
-                      </div>
-                      {estimating && <span className="text-[11px] text-charcoal/50">Recalculating...</span>}
+                <div className="mt-4 rounded-xl border border-rust/20 bg-cream/30 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-semibold text-charcoal">AI Fair Market Rent Guidance (XGBoost)</span>
                     </div>
-                    <RentEstimateGauge estimate={rentEstimate} />
-                    <div className="mt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, rentAmount: String(rentEstimate.fair) }))}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-rust hover:text-rust-dark transition-colors"
-                      >
-                        Apply Fair Rent ({rentEstimate.fair.toLocaleString()} ETB) →
-                      </button>
-                    </div>
+                    {estimating && <span className="text-[11px] text-charcoal/50">Recalculating...</span>}
                   </div>
-                )}
+                  {!formData.sizeM2 || Number(formData.sizeM2) <= 0 ? (
+                    <div className="py-6 text-center">
+                      <p className="text-sm font-medium text-charcoal/60">Please enter property size (m²) for an accurate AI estimate</p>
+                    </div>
+                  ) : rentEstimate ? (
+                    <>
+                      <RentEstimateGauge estimate={rentEstimate} />
+                      <div className="mt-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, rentAmount: String(rentEstimate.fair) }))}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-rust hover:text-rust-dark transition-colors"
+                        >
+                          Apply Fair Rent ({rentEstimate.fair.toLocaleString()} ETB) →
+                        </button>
+                      </div>
+                    </>
+                  ) : formData.subCity && Number(formData.bedrooms) > 0 ? (
+                    <div className="py-6 text-center">
+                      <p className="text-sm font-medium text-red-600">AI Engine is offline or failed to connect.</p>
+                      <p className="text-xs text-charcoal/50 mt-1">Make sure the Python FastAPI server is running on port 8000.</p>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center">
+                      <p className="text-sm font-medium text-charcoal/60">Fill in property details to generate estimate</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

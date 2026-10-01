@@ -5,7 +5,8 @@ import Link from 'next/link'
 import TopBar from '@/components/tenant/TopBar'
 import { useLanguage } from '@/lib/language-context'
 import { fetchProperties, type Property } from '@/services/api'
-import { matchAllProperties, matchPropertiesViaAI, matchProperty, getGradeColor, type TenantPreferences, type MatchResult } from '@/lib/ai-matching'
+import { getGradeColor, savePreferences, loadPreferences, type TenantPreferences } from '@/lib/ai-matching'
+import { fetchAiMatches, type AiMatch, type AiMatchResponse } from '@/services/api'
 
 const NEIGHBORHOODS = [
   // Addis Ababa
@@ -16,24 +17,35 @@ const NEIGHBORHOODS = [
 const AMENITIES = ['Parking', 'WiFi', 'Generator', 'Security Guard', 'CCTV', 'Water Tank', 'Elevator', 'Furnished', 'Air Conditioning', 'Balcony', 'Garden', 'Gym']
 const PROPERTY_TYPES = ['any', 'apartment', 'house', 'studio', 'villa', 'room']
 
+const DEFAULT_PREFERENCES: TenantPreferences = {
+  budget: { min: 5000, max: 25000 },
+  location: [],
+  propertyType: 'any',
+  bedrooms: 2,
+  amenities: [],
+  moveInDate: new Date().toISOString().split('T')[0],
+  furnished: false,
+}
+
 export default function AIMatchPage() {
   const { t } = useLanguage()
   const [step, setStep] = useState<'preferences' | 'results'>('preferences')
   const [loading, setLoading] = useState(false)
   const [allProperties, setAllProperties] = useState<Property[]>([])
-  const [results, setResults] = useState<(MatchResult & { property: Property })[]>([])
+  const [results, setResults] = useState<(AiMatch & { property: Property })[]>([])
+  const [meta, setMeta] = useState<AiMatchResponse['meta'] | null>(null)
+  const [matchError, setMatchError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  // Preferences state
-  const [preferences, setPreferences] = useState<TenantPreferences>({
-    budget: { min: 5000, max: 25000 },
-    location: [],
-    propertyType: 'any',
-    bedrooms: 2,
-    amenities: [],
-    moveInDate: new Date().toISOString().split('T')[0],
-    furnished: false,
-  })
+  // Preferences state — restored from the tenant's last saved preferences
+  const [preferences, setPreferences] = useState<TenantPreferences>(DEFAULT_PREFERENCES)
+  const [prefsLoaded, setPrefsLoaded] = useState(false)
+
+  useEffect(() => {
+    const saved = loadPreferences()
+    if (saved) setPreferences({ ...DEFAULT_PREFERENCES, ...saved })
+    setPrefsLoaded(true)
+  }, [])
 
   useEffect(() => {
     fetchProperties({}).then(props => setAllProperties(props)).catch(() => {})
@@ -41,31 +53,44 @@ export default function AIMatchPage() {
 
   const handleFindMatches = async () => {
     setLoading(true)
+    setMatchError('')
+    savePreferences(preferences)
+    // Sprint 13: scoring runs on the backend against live MongoDB listings —
+    // same weights, but server-side so every client sees consistent results.
     try {
-      const matched = await matchPropertiesViaAI(allProperties, preferences)
-      const resultsWithProperties = matched
+      const response = await fetchAiMatches({
+        budget: { min: preferences.budget.min, max: preferences.budget.max },
+        location: { subCity: preferences.location[0] || '' },
+        propertyType: preferences.propertyType === 'any' ? '' : preferences.propertyType,
+        bedrooms: preferences.bedrooms,
+        amenities: preferences.amenities,
+      })
+      const resultsWithProperties = response.matches
         .map(m => {
           const property = allProperties.find(p => (p.id || (p as any)._id) === m.propertyId)
-          if (!property) return null
-          return { ...m, property }
+          return { ...m, property: property || ({
+            id: m.propertyId,
+            title: m.title,
+            neighborhood: (m.location?.subCity || m.location?.city || 'Unknown') as any,
+            priceEtb: m.rentAmount,
+            beds: m.bedrooms,
+            baths: m.bathrooms,
+            verified: m.verificationStatus === 'verified',
+            image: m.images?.[0]?.url || '/images/placeholder.svg',
+          } as any) }
         })
-        .filter(Boolean) as (MatchResult & { property: Property })[]
-      setResults(resultsWithProperties)
-      setStep('results')
-    } catch (err) {
-      console.warn('AI Match fallback:', err)
-      const matched = matchAllProperties(allProperties, preferences)
-      const resultsWithProperties = matched
-        .map(m => {
-          const property = allProperties.find(p => (p.id || (p as any)._id) === m.propertyId)
-          if (!property) return null
-          return { ...m, property }
-        })
-        .filter(Boolean) as (MatchResult & { property: Property })[]
-      setResults(resultsWithProperties)
-      setStep('results')
+      // Grade mirrors the score band (same scale as the pre-Sprint-13 UI)
+      const withGrade = resultsWithProperties.map(m => ({
+        ...m,
+        grade: (m.score >= 90 ? 'A+' : m.score >= 80 ? 'A' : m.score >= 70 ? 'B+' : m.score >= 60 ? 'B' : m.score >= 45 ? 'C' : 'D') as AiMatch['grade'],
+      }))
+      setResults(withGrade as (AiMatch & { property: Property })[])
+      setMeta(response.meta)
+    } catch {
+      setMatchError('Could not reach the matching service. Is the backend running?')
     } finally {
       setLoading(false)
+      setStep('results')
     }
   }
 
@@ -91,7 +116,7 @@ export default function AIMatchPage() {
   if (step === 'preferences') {
     return (
       <>
-        <TopBar title="AI Property Match" subtitle="Tell us what you're looking for" />
+        <TopBar tenantName="Tenant" />
         <main className="flex-1 px-6 py-8 sm:px-8">
           <div className="max-w-2xl mx-auto">
             {/* Header */}
@@ -282,7 +307,7 @@ export default function AIMatchPage() {
   // Results Page
   return (
     <>
-      <TopBar title="AI Property Match" subtitle={`${results.length} properties matched your preferences`} />
+      <TopBar tenantName="Tenant" />
       <main className="flex-1 px-6 py-8 sm:px-8">
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
@@ -307,8 +332,13 @@ export default function AIMatchPage() {
               <div>
                 <h2 className="font-semibold text-charcoal">AI Analysis Complete</h2>
                 <p className="text-sm text-charcoal/60">
-                  Matched {results.length} of {allProperties.length} properties • Budget: ETB {preferences.budget.min.toLocaleString()} – {preferences.budget.max.toLocaleString()}
+                  Top {results.length} matches from {meta?.candidatesConsidered ?? allProperties.length} live listings • Budget: ETB {preferences.budget.min.toLocaleString()} – {preferences.budget.max.toLocaleString()}
                 </p>
+                {meta && meta.weights && (
+                  <p className="mt-0.5 text-xs text-charcoal/40">
+                    Confidence: {meta.confidence} • How it scores: {Object.entries(meta.weights).map(([k, w]) => `${k} ${w >= 1 ? Math.round(w as number) : Math.round((w as number) * 100)}%`).join(', ')}
+                  </p>
+                )}
               </div>
             </div>
             <button
@@ -320,7 +350,14 @@ export default function AIMatchPage() {
           </div>
 
           {/* Results */}
-          {results.length === 0 ? (
+          {matchError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+              <p className="text-sm text-red-700">{matchError}</p>
+              <button onClick={() => setStep('preferences')} className="mt-3 text-rust hover:text-rust-dark font-medium text-sm">
+                Try again
+              </button>
+            </div>
+          ) : results.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-lg border border-sand">
               <svg className="w-16 h-16 text-charcoal/20 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -388,11 +425,12 @@ export default function AIMatchPage() {
                         <h4 className="text-sm font-semibold text-charcoal mb-3">WHY THIS HOME MATCHES YOU</h4>
 
                         {/* Score Breakdown Bar */}
-                        <div className="grid grid-cols-6 gap-2 mb-4">
-                          {Object.entries(result.breakdown).map(([key, score]) => (
-                            <div key={key} className="text-center">
-                              <div className="h-20 bg-sand rounded relative overflow-hidden">
-                                <div
+                        {result.breakdown && (
+                          <div className="grid grid-cols-6 gap-2 mb-4">
+                            {Object.entries(result.breakdown).map(([key, score]) => (
+                              <div key={key} className="text-center">
+                                <div className="h-20 bg-sand rounded relative overflow-hidden">
+                                  <div
                                   className="absolute bottom-0 left-0 right-0 rounded transition-all"
                                   style={{
                                     height: `${score}%`,
@@ -409,10 +447,11 @@ export default function AIMatchPage() {
                             </div>
                           ))}
                         </div>
+                        )}
 
                         {/* Reason List */}
                         <div className="space-y-2">
-                          {result.reasons.map((reason, i) => (
+                          {(result.reasons || (result.matchReasons || []).map(r => ({ icon: 'check', text: r }))).map((reason: any, i: number) => (
                             <div key={i} className="flex items-center gap-2 text-sm">
                               {reason.icon === 'check' && (
                                 <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -439,7 +478,7 @@ export default function AIMatchPage() {
                         {/* Action Buttons */}
                         <div className="flex gap-2 mt-4 pt-4 border-t border-sand">
                           <Link
-                            href={`/explore/${result.propertyId}`}
+                            href={`/property/${result.propertyId}`}
                             className="bg-rust text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-rust-dark transition-colors"
                           >
                             View Details

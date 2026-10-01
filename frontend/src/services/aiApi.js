@@ -7,7 +7,7 @@
  * Set VITE_BACKEND_URL in .env for non-localhost deployments.
  */
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 async function _post(path, body) {
   const res = await fetch(`${BACKEND_URL}${path}`, {
@@ -24,23 +24,23 @@ async function _post(path, body) {
 
 /** Estimate monthly rent for a property. */
 export async function estimateRent(params) {
-  return _post("/api/ai/estimate-rent", params);
+  return _post("/api/v1/estimate-rent", params);
 }
 
 /** Analyse a listing for fraud risk. */
 export async function detectFraud(params) {
-  return _post("/api/ai/detect-fraud", params);
+  return _post("/api/v1/detect-fraud", params);
 }
 
 /** Get ranked property recommendations. */
 export async function getRecommendations(params) {
-  return _post("/api/ai/recommend", params);
+  return _post("/api/v1/recommend", params);
 }
 
 /** Check if the AI service is reachable. */
 export async function checkAiHealth() {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/ai/health`);
+    const res = await fetch(`${BACKEND_URL}/health`);
     return res.ok;
   } catch {
     return false;

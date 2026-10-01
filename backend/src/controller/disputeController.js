@@ -2,6 +2,7 @@ const Dispute = require('../models/Dispute');
 const Notification = require('../models/Notification');
 const RentalAgreement = require('../models/RentalAgreement');
 const User = require('../models/User');
+const { isMockMode, mockStore } = require('../config/db');
 
 const createDispute = async (req, res) => {
     try {
@@ -16,28 +17,59 @@ const createDispute = async (req, res) => {
         }
 
         // Create the dispute
-        const dispute = await Dispute.create({
-            raisedBy,
-            againstUserId,
-            agreementId,
-            propertyId,
-            category,
-            description,
-            evidenceKeys,
-            history: [{
-                status: 'open',
-                note: 'Dispute opened by user.'
-            }]
-        });
+        let dispute = null;
+        try {
+            dispute = await Dispute.create({
+                raisedBy,
+                againstUserId,
+                agreementId,
+                propertyId,
+                category,
+                description,
+                evidenceKeys,
+                history: [{
+                    status: 'open',
+                    note: 'Dispute opened by user.'
+                }]
+            });
+        } catch (createErr) {
+            if (isMockMode()) {
+                dispute = {
+                    _id: "mock-dispute-" + Date.now(),
+                    raisedBy,
+                    againstUserId,
+                    agreementId,
+                    propertyId,
+                    category,
+                    description,
+                    evidenceKeys,
+                    history: [{
+                        status: 'open',
+                        note: 'Dispute opened by user.',
+                        at: new Date()
+                    }],
+                    createdAt: new Date(),
+                    status: 'open'
+                };
+                if (!mockStore.disputes) mockStore.disputes = [];
+                mockStore.disputes.unshift(dispute);
+            } else {
+                throw createErr;
+            }
+        }
 
         // Notify the user being disputed
-        await Notification.create({
-            userId: againstUserId,
-            title: "New Dispute Filed Against You",
-            message: `A dispute regarding '${category}' has been filed against you. Please review and respond in the Resolution Center.`,
-            type: "system",
-            metadata: { disputeId: dispute._id }
-        });
+        try {
+            await Notification.create({
+                userId: againstUserId,
+                title: "New Dispute Filed Against You",
+                message: `A dispute regarding '${category}' has been filed against you. Please review and respond in the Resolution Center.`,
+                type: "system",
+                metadata: { disputeId: dispute._id }
+            });
+        } catch (notifErr) {
+            // Non-fatal, especially in mock mode
+        }
 
         res.status(201).json({
             message: "Dispute submitted successfully.",
@@ -53,6 +85,13 @@ const createDispute = async (req, res) => {
 const getMyDisputes = async (req, res) => {
     try {
         const userId = req.user.id;
+
+        if (isMockMode()) {
+            const disputes = Array.from(mockStore.disputes || []).filter(d => 
+                String(d.raisedBy) === String(userId) || String(d.againstUserId) === String(userId)
+            );
+            return res.status(200).json({ data: disputes });
+        }
 
         // Find disputes where user is either the creator or the defendant
         const disputes = await Dispute.find({

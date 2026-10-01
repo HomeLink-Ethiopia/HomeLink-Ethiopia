@@ -15,21 +15,25 @@ export default function Sidebar() {
     { label: t.sidebar.search, href: '/explore', icon: 'search' },
     { label: t.sidebar.dashboard, href: '/tenant/dashboard', icon: 'house' },
     { label: t.sidebar.applications, href: '/tenant/applications', icon: 'file' },
+    { label: t.sidebar.viewings, href: '/tenant/viewings', icon: 'calendar' },
     { label: t.sidebar.payments, href: '/tenant/payments', icon: 'card' },
     { label: t.sidebar.agreements, href: '/tenant/agreements', icon: 'book' },
     { label: t.sidebar.messages, href: '/tenant/messages', icon: 'mail' },
     { label: t.sidebar.maintenance, href: '/tenant/maintenance', icon: 'wrench' },
+    { label: t.sidebar.reviews, href: '/tenant/reviews', icon: 'star' },
+    { label: t.sidebar.disputes, href: '/tenant/disputes', icon: 'scale' },
     { label: t.sidebar.aiMatch, href: '/tenant/ai-match', icon: 'match' },
+    { label: 'Neighborhoods', href: '/tenant/neighborhoods', icon: 'map' },
   ]
 
   const SECONDARY_NAV = [
     { label: t.sidebar.favorites, href: '/tenant/favorites', icon: 'heart' },
-    { label: t.sidebar.savedSearches, href: '#', icon: 'bookmark' },
+    { label: t.sidebar.savedSearches, href: '/tenant/saved-searches', icon: 'bookmark' },
   ]
 
   const FOOTER_NAV = [
-    { label: t.sidebar.profile, href: '#', icon: 'user' },
-    { label: t.sidebar.settings, href: '#', icon: 'settings' },
+    { label: t.sidebar.profile, href: '/tenant/profile', icon: 'user' },
+    { label: t.sidebar.settings, href: '/tenant/settings', icon: 'settings' },
     { label: t.sidebar.logout, href: '/logout', icon: 'logout' },
   ]
 
@@ -39,6 +43,7 @@ const ICON_PATH: Record<string, string> = {
   file: 'M6 2h6l3 3v11a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1zM12 2v3h3',
   house: 'M3 9.5L10 4l7 5.5V17a1 1 0 01-1 1h-3v-5H7v5H4a1 1 0 01-1-1V9.5z',
   card: 'M3 5h14v10H3zM3 8h14M6 12h3',
+  calendar: 'M4 5h12v12H4zM4 9h12M7 3v4M13 3v4M7 12h2',
   mail: 'M3 5h14v10H3zM3 5l7 6 7-6',
   wrench: 'M12 4a4 4 0 00-5 5l-6 6 3 3 6-6a4 4 0 005-5l-3 3-2-2 3-3z',
   heart: 'M10 17.3s-6.5-3.9-8.5-8.1C.4 6.2 2 3.3 5 3c1.8-.2 3.6.7 5 2.4C11.4 3.7 13.2 2.8 15 3c3 .3 4.6 3.2 3.5 6.2-2 4.2-8.5 8.1-8.5 8.1z',
@@ -49,6 +54,9 @@ const ICON_PATH: Record<string, string> = {
   book: 'M4 3h9a2 2 0 012 2v11a1.5 1.5 0 00-1.5-1.5H4V3zM4 14.5V3',
   logout: 'M11 16l4-4m0 0l-4-4m4 4H5m0-8v16',
   match: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+  map: 'M9 3L3 5v14l6-2 6 2 6-2V3l-6 2-6-2zM9 3v14M15 5v14',
+  star: 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.51.91-5.33-3.87-3.77 5.34-.78L10 1z',
+  scale: 'M10 2v16M4 6l-3 6a3 3 0 006 0l-3-6zM16 6l-3 6a3 3 0 006 0l-3-6zM4 6h12',
 }
 
 function NavIcon({ name }: { name: string }) {
@@ -147,10 +155,6 @@ function NavIcon({ name }: { name: string }) {
         <div className="space-y-1 border-t border-white/10 pt-3">
           <Link href="/support" className={itemClass('#')}>
             <NavIcon name="help" />
-            {t.sidebar.needHelp}
-          </Link>
-          <Link href="/support" className={itemClass('#')}>
-            <NavIcon name="book" />
             {t.sidebar.helpCenter}
           </Link>
         </div>

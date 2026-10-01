@@ -1,4 +1,4 @@
-import { stockPhoto } from './images'
+import { homePhoto } from './images'
 
 export type Neighborhood =
   // Addis Ababa
@@ -27,10 +27,9 @@ export interface Property {
   images?: string[] // Additional interior photos
   landlordId?: string
   furnished?: boolean
-  status?: 'active' | 'inactive' // For filtering from search results
-  fraudRiskScore?: number
-  riskLevel?: 'low' | 'medium' | 'high'
-  redFlags?: string[]
+  status?: 'active' | 'inactive' | 'draft' | 'rented' | 'suspended' // Availability (from API listingStatus)
+  availability?: string // same as status — explicit Sprint 5 field name
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected' | 'suspended'
   createdAt?: string
   updatedAt?: string
 }
@@ -87,6 +86,10 @@ export const NEIGHBORHOOD_COLOR: Partial<Record<Neighborhood, string>> = {
   Yeka: '#3D6B4F', // verified green
 }
 
+export function neighborhoodColor(n: Neighborhood): string {
+  return NEIGHBORHOOD_COLOR[n] || '#B8451F'
+}
+
 const RAW: Omit<Property, 'lat' | 'lng' | 'image'>[] = [
   { id: 'p1', title: '2 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 18000, beds: 2, baths: 1, sizeSqm: 65, rating: 4.8, reviewCount: 34, verified: true, propertyType: 'apartment', furnished: false },
   { id: 'p2', title: '3 Bedroom Apartment', neighborhood: 'Kazanchis', priceEtb: 22000, beds: 3, baths: 2, sizeSqm: 100, rating: 4.7, reviewCount: 28, verified: true, propertyType: 'apartment', furnished: true },
@@ -106,7 +109,7 @@ export const PROPERTIES: Property[] = RAW.map((p, i) => {
     ...p,
     lat,
     lng,
-    image: stockPhoto(`${p.id}-${p.neighborhood}`, 640, 480),
+    image: homePhoto(`${p.id}-${p.neighborhood}`, p.propertyType),
   }
 })
 

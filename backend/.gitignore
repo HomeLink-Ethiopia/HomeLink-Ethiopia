@@ -1,1 +1,5 @@
 .env
+homelink_backup/
+json_backup/
+export-to-json.js
+migrate-to-atlas.js

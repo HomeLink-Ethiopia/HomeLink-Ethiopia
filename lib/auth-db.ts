@@ -220,6 +220,31 @@ export function initializeDemoUsers() {
       role: 'admin',
       verificationStatus: 'verified',
     },
+    // DEV role switcher accounts
+    {
+      email: 'dev.tenant@homelink.test',
+      password: 'Password123!',
+      fullName: 'Dev Tenant',
+      phone: '+251 911 000001',
+      role: 'tenant',
+      verificationStatus: 'verified',
+    },
+    {
+      email: 'dev.landlord@homelink.test',
+      password: 'Password123!',
+      fullName: 'Dev Landlord',
+      phone: '+251 911 000002',
+      role: 'landlord',
+      verificationStatus: 'verified',
+    },
+    {
+      email: 'dev.admin@homelink.test',
+      password: 'Password123!',
+      fullName: 'Dev Admin',
+      phone: '+251 911 000003',
+      role: 'admin',
+      verificationStatus: 'verified',
+    }
   ]
 
   demoUsers.forEach((userData) => {

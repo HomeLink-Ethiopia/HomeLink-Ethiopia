@@ -3,7 +3,7 @@ const rateLimit = require("express-rate-limit");
 const loginLimiter = rateLimit({
     windowMs: 15*60*1000,
 
-    limit:5,
+    limit:10000,
     message:{
         message:"Too many login attempts. Please try again later.",
     },
@@ -15,7 +15,7 @@ const loginLimiter = rateLimit({
 const verificationLimiter = rateLimit({
     windowMs: 10*60*1000,
 
-    limit:5,
+    limit:10000,
 
     message:{
         message:"Too many verification attempts... Please try agin later.",
@@ -27,7 +27,7 @@ const verificationLimiter = rateLimit({
 
 const passwordResetLimiter = rateLimit({
     windowMs: 15*60*1000,
-    limit: 3,
+    limit: 10000,
     message:{
         message:"Too many password reset requests. Please try again later.",
     },

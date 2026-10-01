@@ -5,6 +5,7 @@ const RentalAgreement = require('../../models/RentalAgreement');
 const Application = require('../../models/Application');
 const FraudReport = require('../../models/FraudReport');
 const Dispute = require('../../models/Dispute');
+const { isMockMode } = require('../../config/db');
 
 const getKPIs = async (req, res) => {
     try {
@@ -118,7 +119,78 @@ const getChartData = async (req, res) => {
     }
 };
 
+const getAnalytics = async (req, res) => {
+    try {
+        if (isMockMode()) {
+            return res.status(200).json({
+                data: {
+                    kpis: {
+                        totalUsers: 15, totalLandlords: 3, totalTenants: 10, totalProperties: 10,
+                        verifiedProperties: 5, pendingVerifications: 2, activeRentals: 4,
+                        totalApplications: 12, openFraudReports: 1, openDisputes: 0
+                    },
+                    charts: {
+                        propertiesByCity: [{label: 'Bole', value: 5}, {label: 'Kazanchis', value: 3}],
+                        usersByRole: [{label: 'tenant', value: 10}, {label: 'landlord', value: 3}, {label: 'admin', value: 2}],
+                        propertiesByPriceRange: [{label: '10000', value: 2}, {label: '20000', value: 8}],
+                        verificationStats: [{label: 'verified', value: 5}, {label: 'pending', value: 2}],
+                        fraudByType: [{label: 'fake_listing', value: 1}],
+                        applicationTrend: [{label: '2023-09', value: 12}]
+                    }
+                }
+            });
+        }
+
+        const [
+            totalUsers, totalLandlords, totalTenants, totalProperties,
+            verifiedProperties, pendingVerifications, activeRentals,
+            totalApplications, openFraudReports, openDisputes
+        ] = await Promise.all([
+            User.countDocuments(), User.countDocuments({ role: 'landlord' }), User.countDocuments({ role: 'tenant' }),
+            Property.countDocuments(), Property.countDocuments({ verificationStatus: 'verified' }),
+            LandlordProfile.countDocuments({ verificationStatus: 'pending' }), RentalAgreement.countDocuments({ status: 'active' }),
+            Application.countDocuments(), FraudReport.countDocuments({ status: { $in: ['open', 'under_review'] } }),
+            Dispute.countDocuments({ status: { $in: ['open', 'under_review', 'mediation'] } })
+        ]);
+
+        const propertiesByLocation = await Property.aggregate([{ $group: { _id: { city: "$location.city", subCity: "$location.subCity" }, count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 10 }]);
+        const usersByRole = await User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]);
+        const propertiesByPrice = await Property.aggregate([{ $bucket: { groupBy: "$rentAmount", boundaries: [0, 10000, 20000, 30000, 50000, 100000, 500000], default: "500000+", output: { count: { $sum: 1 } } } }]);
+        const verificationStats = await LandlordProfile.aggregate([{ $group: { _id: "$verificationStatus", count: { $sum: 1 } } }]);
+        const fraudByCategory = await FraudReport.aggregate([{ $group: { _id: "$category", count: { $sum: 1 } } }]);
+        const applicationTrends = await Application.aggregate([{ $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } }, { $sort: { "_id": 1 } }, { $limit: 12 }]);
+
+        const formatLabel = (val) => {
+            if (val && typeof val === 'object' && val.subCity) return val.subCity;
+            if (val === null || val === undefined) return 'Unknown';
+            return String(val);
+        };
+
+        res.status(200).json({
+            data: {
+                kpis: {
+                    totalUsers, totalLandlords, totalTenants, totalProperties,
+                    verifiedProperties, pendingVerifications, activeRentals,
+                    totalApplications, openFraudReports, openDisputes
+                },
+                charts: {
+                    propertiesByCity: propertiesByLocation.map(x => ({ label: formatLabel(x._id), value: x.count })),
+                    usersByRole: usersByRole.map(x => ({ label: formatLabel(x._id), value: x.count })),
+                    propertiesByPriceRange: propertiesByPrice.map(x => ({ label: formatLabel(x._id), value: x.count })),
+                    verificationStats: verificationStats.map(x => ({ label: formatLabel(x._id), value: x.count })),
+                    fraudByType: fraudByCategory.map(x => ({ label: formatLabel(x._id), value: x.count })),
+                    applicationTrend: applicationTrends.map(x => ({ label: formatLabel(x._id), value: x.count }))
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Analytics generation error:", error);
+        res.status(500).json({ message: "Server error generating analytics" });
+    }
+};
+
 module.exports = {
     getKPIs,
-    getChartData
+    getChartData,
+    getAnalytics
 };

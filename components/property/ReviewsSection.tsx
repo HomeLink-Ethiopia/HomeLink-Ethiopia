@@ -1,9 +1,20 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MOCK_REVIEWS, getPropertyRating, type Review } from '@/lib/reviews'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+interface Review {
+  _id: string
+  rating: number
+  title?: string
+  comment?: string
+  text?: string
+  helpfulCount?: number
+  createdAt?: string
+  authorId?: { firstName?: string; lastName?: string } | string
+}
 
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
   const sz = size === 'lg' ? 'h-5 w-5' : 'h-3.5 w-3.5'
@@ -49,35 +60,51 @@ function RatingBar({ stars, count, total }: { stars: number; count: number; tota
 
 export default function ReviewsSection({ propertyId }: { propertyId: string }) {
   const [showAll, setShowAll] = useState(false)
-  const [sortBy, setSortBy] = useState<'recent' | 'helpful' | 'highest'>('recent')
-  const summary = getPropertyRating(propertyId)
-  const reviews = MOCK_REVIEWS[propertyId] || []
+  const [sortBy, setSortBy] = useState<'recent' | 'highest'>('recent')
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_URL}/api/v1/reviews/property/${propertyId}`)
+      .then((r) => (r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : { data: [] }))
+      .then((d) => { if (!cancelled) setReviews(d.data || d.reviews || []) })
+      .catch(() => { if (!cancelled) setReviews([]) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [propertyId])
+
+  if (loading || reviews.length === 0) return null
+
+  const total = reviews.length
+  const averageRating = reviews.reduce((s, rv) => s + rv.rating, 0) / total
+  const breakdown = [5, 4, 3, 2, 1].map((s) => reviews.filter((rv) => rv.rating === s).length)
+
+  const authorName = (rv: Review) =>
+    typeof rv.authorId === 'object' ? `${rv.authorId?.firstName || ''} ${rv.authorId?.lastName || ''}`.trim() : 'Tenant'
 
   const sorted = [...reviews].sort((a, b) => {
-    if (sortBy === 'helpful') return b.helpful - a.helpful
     if (sortBy === 'highest') return b.rating - a.rating
-    return new Date(b.date).getTime() - new Date(a.date).getTime()
+    return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
   })
 
   const displayed = showAll ? sorted : sorted.slice(0, 3)
 
-  if (reviews.length === 0) return null
-
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-stamp">
-      <h2 className="font-display text-lg font-semibold text-charcoal">Reviews & Ratings</h2>
+      <h2 className="font-display text-lg font-semibold text-charcoal">Reviews &amp; Ratings</h2>
 
       {/* Summary */}
       <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-start">
         <div className="flex flex-col items-center">
-          <span className="font-display text-4xl font-bold text-charcoal">{summary.averageRating}</span>
-          <StarRating rating={Math.round(summary.averageRating)} size="lg" />
-          <span className="mt-1 text-xs text-charcoal/50">{summary.totalReviews} reviews</span>
+          <span className="font-display text-4xl font-bold text-charcoal">{averageRating.toFixed(1)}</span>
+          <StarRating rating={Math.round(averageRating)} size="lg" />
+          <span className="mt-1 text-xs text-charcoal/50">{total} {total === 1 ? 'review' : 'reviews'}</span>
         </div>
 
         <div className="flex-1 space-y-1.5">
           {[5, 4, 3, 2, 1].map((s) => (
-            <RatingBar key={s} stars={s} count={summary.breakdown[s as keyof typeof summary.breakdown]} total={summary.totalReviews} />
+            <RatingBar key={s} stars={s} count={breakdown[5 - s]} total={total} />
           ))}
         </div>
       </div>
@@ -85,7 +112,7 @@ export default function ReviewsSection({ propertyId }: { propertyId: string }) {
       {/* Sort */}
       <div className="mt-6 flex items-center gap-2 border-t border-charcoal/10 pt-4">
         <span className="text-xs text-charcoal/50">Sort by:</span>
-        {(['recent', 'helpful', 'highest'] as const).map((s) => (
+        {(['recent', 'highest'] as const).map((s) => (
           <button
             key={s}
             type="button"
@@ -103,44 +130,45 @@ export default function ReviewsSection({ propertyId }: { propertyId: string }) {
       <div className="mt-4 space-y-4">
         {displayed.map((review) => (
           <motion.div
-            key={review.id}
+            key={review._id}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="border-b border-charcoal/5 pb-4 last:border-0"
           >
             <div className="flex items-start gap-3">
-              <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-sand">
-                <Image src={review.authorAvatar} alt={review.authorName} fill sizes="36px" className="object-cover" />
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-xs font-semibold text-charcoal/70">
+                {authorName(review).charAt(0).toUpperCase()}
               </span>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-charcoal">{review.authorName}</p>
+                    <p className="text-sm font-medium text-charcoal">{authorName(review)}</p>
                     <StarRating rating={review.rating} />
                   </div>
-                  <span className="text-[11px] text-charcoal/40">{review.date}</span>
+                  {review.createdAt && (
+                    <span className="text-[11px] text-charcoal/40">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
-                <p className="mt-1 text-sm font-medium text-charcoal">{review.title}</p>
-                <p className="mt-1 text-sm text-charcoal/70 leading-relaxed">{review.text}</p>
-                <button type="button" className="mt-2 flex items-center gap-1 text-[11px] text-charcoal/40 hover:text-rust transition-colors">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.2} className="h-3.5 w-3.5">
-                    <path d="M5 14V7l3-5a1 1 0 011 1v3h4.5a1 1 0 01.9.6l1.5 4a1 1 0 01-1 1.4H5z" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Helpful ({review.helpful})
-                </button>
+                {review.title && <p className="mt-1 text-sm font-medium text-charcoal">{review.title}</p>}
+                <p className="mt-1 text-sm text-charcoal/70 leading-relaxed">{review.comment || review.text}</p>
+                {typeof review.helpfulCount === 'number' && review.helpfulCount > 0 && (
+                  <p className="mt-2 text-[11px] text-charcoal/40">Helpful ({review.helpfulCount})</p>
+                )}
               </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {reviews.length > 3 && (
+      {total > 3 && (
         <button
           type="button"
           onClick={() => setShowAll(!showAll)}
           className="mt-4 text-sm font-medium text-rust hover:text-rust-dark transition-colors"
         >
-          {showAll ? 'Show fewer reviews' : `Show all ${reviews.length} reviews`}
+          {showAll ? 'Show fewer reviews' : `Show all ${total} reviews`}
         </button>
       )}
     </div>

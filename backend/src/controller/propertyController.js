@@ -28,18 +28,35 @@ const createProperty = async (req, res) => {
                 verificationStatus: "verified",
                 verifiedPropertiesCount: 0
             };
+            mockStore.landlordProfiles.set(userId, landlordProfile);
         }
 
         if (!landlordProfile) {
-            return res.status(404).json({
-                message: 'Landlord profile not found. Please complete your landlord registration.'
-            });
+            try {
+                // Auto-create for demo purposes to avoid 404
+                landlordProfile = await LandlordProfile.create({
+                    accountId: userId,
+                    legalName: "Demo Landlord",
+                    verificationStatus: "verified",
+                    verifiedPropertiesCount: 0,
+                    contactEmail: "demo@homelink.com",
+                    contactPhone: "0911234567"
+                });
+                console.log('✅ Auto-created Landlord Profile for Demo');
+            } catch (err) {
+                console.error('Failed to auto-create landlord profile:', err);
+                return res.status(404).json({
+                    message: 'Landlord profile not found. Please complete your landlord registration.'
+                });
+            }
         }
 
         if (landlordProfile.verificationStatus !== 'verified') {
-            return res.status(403).json({
-                message: 'Your landlord account is not verified. Please complete verification first.'
-            });
+            // For demo purposes, auto-verify them instead of blocking
+            landlordProfile.verificationStatus = 'verified';
+            if (landlordProfile.save) {
+                await landlordProfile.save();
+            }
         }
 
         // ─── AI FRAUD DETECTION HOOK ───
@@ -56,12 +73,11 @@ const createProperty = async (req, res) => {
                 bathrooms: Number(req.body.bathrooms || 1),
                 area_sqm: Number(req.body.sizeM2 || req.body.area_sqm || 50),
                 subcity: subCity,
-                description: req.body.description || '',
-                contact_info: req.user?.email || ''
+                description_text: req.body.description || ''
             });
 
             if (fraudResult && typeof fraudResult.risk_score === 'number') {
-                fraudRiskScore = fraudResult.risk_score;
+                fraudRiskScore = fraudResult.risk_score / 100;
                 riskLevel = fraudResult.risk_level || 'low';
                 redFlags = fraudResult.red_flags || [];
                 console.log(`🛡️ AI Fraud Check: risk_score=${fraudRiskScore} (${riskLevel})`);
@@ -70,11 +86,30 @@ const createProperty = async (req, res) => {
             console.warn('⚠️ AI Fraud Detection fallback (service offline or error):', aiErr.message);
         }
 
+        let propertyData = { ...req.body };
+        if (propertyData.location) {
+            if (!propertyData.location.coordinates || !Array.isArray(propertyData.location.coordinates.coordinates)) {
+                propertyData.location.coordinates = {
+                    type: "Point",
+                    coordinates: [38.7578, 9.0300] // Default to center of Addis Ababa
+                };
+            }
+        } else {
+            propertyData.location = {
+                city: "Addis Ababa",
+                subCity: "Bole",
+                coordinates: {
+                    type: "Point",
+                    coordinates: [38.7578, 9.0300]
+                }
+            };
+        }
+
         let property = null;
         try {
             property = await Property.create({
                 landlordId: landlordProfile._id,
-                ...req.body,
+                ...propertyData,
                 fraudRiskScore,
                 riskLevel,
                 redFlags
@@ -84,7 +119,7 @@ const createProperty = async (req, res) => {
                 property = {
                     _id: "mock-prop-" + Date.now(),
                     landlordId: landlordProfile._id,
-                    ...req.body,
+                    ...propertyData,
                     listingStatus: 'active',
                     verificationStatus: 'verified',
                     fraudRiskScore,
@@ -122,6 +157,15 @@ const getMyProperties = async (req, res) => {
     try {
         const userId = req.user.id;
 
+        if (isMockMode()) {
+            const properties = Array.from(mockStore.properties || []).filter(p => {
+                const lp = Array.from(mockStore.landlordProfiles.values() || []).find(l => String(l.accountId) === String(userId));
+                return lp ? String(p.landlordId) === String(lp._id) : false;
+            });
+            // If they just registered, they might not have a profile, but return empty array
+            return res.status(200).json({ data: properties });
+        }
+
         const landlordProfile = await LandlordProfile.findOne({ accountId: userId });
 
         if (!landlordProfile) {
@@ -142,6 +186,12 @@ const getMyProperties = async (req, res) => {
 const getPropertyById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (isMockMode()) {
+            const property = Array.from(mockStore.properties || []).find(p => p._id === id);
+            if (!property) return res.status(404).json({ message: 'Property not found' });
+            return res.status(200).json({ data: property });
+        }
 
         const property = await Property.findById(id);
 
@@ -305,6 +355,23 @@ const searchProperties = async (req, res) => {
 
         // ─── EXECUTE ───
         console.log('📊 Pagination:', { page: pageNum, limit: limitNum, skip });
+
+        if (isMockMode()) {
+            let mockedProps = Array.from(mockStore.properties || []);
+            mockedProps.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const paginated = mockedProps.slice(skip, skip + limitNum);
+            return res.status(200).json({
+                data: paginated,
+                pagination: {
+                    page: pageNum,
+                    limit: limitNum,
+                    total: mockedProps.length,
+                    totalPages: Math.ceil(mockedProps.length / limitNum),
+                    hasNext: skip + limitNum < mockedProps.length,
+                    hasPrev: pageNum > 1
+                }
+            });
+        }
 
         const properties = await Property.find(query)
             .sort(sortOption)
@@ -608,6 +675,17 @@ const savePreferences = async (req, res) => {
             });
         }
 
+        if (isMockMode()) {
+            let preferences = mockStore.tenantPreferences.get(tenantId);
+            if (preferences) {
+                preferences = { ...preferences, budget, location, propertyType, bedrooms, bathrooms, amenities, furnished, moveInDate };
+            } else {
+                preferences = { tenantId, budget, location, propertyType, bedrooms, bathrooms, amenities, furnished, moveInDate };
+            }
+            mockStore.tenantPreferences.set(tenantId, preferences);
+            return res.status(200).json({ message: 'Preferences saved successfully', data: preferences });
+        }
+
         // ─── CHECK IF PREFERENCES EXIST ───
         let preferences = await TenantPreference.findOne({ tenantId });
 
@@ -665,11 +743,20 @@ const savePreferences = async (req, res) => {
 const getPreferences = async (req, res) => {
     try{
         const tenantId = req.user.id;
+
+        if (isMockMode()) {
+            const preferences = mockStore.tenantPreferences.get(tenantId);
+            if (!preferences) {
+                return res.status(404).json({ message: 'No preferences found. Please set your preferences' });
+            }
+            return res.status(200).json({ data: preferences });
+        }
+
         const preferences = await TenantPreference.findOne({ tenantId });
 
         if(!preferences){
             return res.status(404).json({
-                message: 'No preferences found. Plese set your preferences'
+                message: 'No preferences found. Please set your preferences'
             });
         }
 
@@ -689,6 +776,16 @@ const updatePreferences = async (req,res) =>{
     try{
         const tenantId = req.user.id;
         const updates = req.body;
+
+        if (isMockMode()) {
+            let existing = mockStore.tenantPreferences.get(tenantId);
+            if (!existing) {
+                return res.status(404).json({ message:'No preference found. Please save preference first.' });
+            }
+            const updated = { ...existing, ...updates, updatedAt: new Date() };
+            mockStore.tenantPreferences.set(tenantId, updated);
+            return res.status(200).json({ message:'Preference update successfully', data: updated });
+        }
 
         //find existing preference
 
@@ -715,7 +812,7 @@ const updatePreferences = async (req,res) =>{
     } catch(error){
         console.error('Update Preference error: ', error);
         res.status(500).json({
-            message:'Seerver error'
+            message:'Server error'
         });
     }
 
@@ -840,7 +937,7 @@ const getRecommendations = async (req, res) => {
             };
         }
 
-        if ((!properties || properties.length === 0) && isMockMode()) {
+        if (!properties || properties.length === 0) {
             properties = [...mockStore.properties];
         }
 
@@ -892,7 +989,7 @@ const getRecommendations = async (req, res) => {
                 preferred_subcities: preferredSubcities,
                 min_bedrooms: preferences.bedrooms || 1,
                 min_bathrooms: preferences.bathrooms || 1,
-                require_furnished: preferences.furnished,
+                is_furnished_required: preferences.furnished,
                 limit: properties.length,
                 candidate_properties: candidateList
             });

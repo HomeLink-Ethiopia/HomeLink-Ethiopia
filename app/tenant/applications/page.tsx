@@ -1,68 +1,84 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import TopBar from '@/components/tenant/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/LoadingSkeleton'
 import { useLanguage } from '@/lib/language-context'
 
-// Mock applications data - in production this would come from a database
-const MOCK_APPLICATIONS = [
-  {
-    id: '1',
-    propertyTitle: 'Modern 2BR in Bole',
-    propertyNeighborhood: 'Bole',
-    appliedDate: '2024-01-15',
-    status: 'pending' as const,
-    landlordName: 'Abebe Tekle',
-  },
-  {
-    id: '2',
-    propertyTitle: 'Cozy Studio in Kazanchis',
-    propertyNeighborhood: 'Kazanchis',
-    appliedDate: '2024-01-10',
-    status: 'approved' as const,
-    landlordName: 'Selam Haile',
-  },
-  {
-    id: '3',
-    propertyTitle: 'Spacious 3BR in CMC',
-    propertyNeighborhood: 'CMC',
-    appliedDate: '2024-01-05',
-    status: 'rejected' as const,
-    landlordName: 'Dawit Gebru',
-  },
-]
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+interface Application {
+  _id: string
+  propertyId?: { title?: string; location?: { subCity?: string } } | string
+  status: 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn'
+  createdAt: string
+  landlordName?: string
+  landlordProfileId?: { legalName?: string }
+  message?: string
+}
+
+const STATUS_STYLE: Record<string, string> = {
+  submitted: 'bg-gold text-charcoal',
+  under_review: 'bg-gold text-charcoal',
+  approved: 'bg-verified text-white',
+  rejected: 'bg-rust text-white',
+  withdrawn: 'bg-charcoal/20 text-charcoal',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  submitted: 'Pending',
+  under_review: 'Under Review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  withdrawn: 'Withdrawn',
+}
 
 export default function ApplicationsPage() {
   const { t } = useLanguage()
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [applications, setApplications] = useState<Application[]>([])
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 600)
-    return () => clearTimeout(timer)
+  const fetchApplications = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const token = localStorage.getItem('hl_token')
+      const res = await fetch(`${API_URL}/api/v1/applications/my`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : { Authorization: '' },
+      })
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+        const data = await res.json()
+        setApplications(data.data || data.applications || [])
+      } else if (res.status === 401) {
+        setError('Please log in as a tenant to see your applications.')
+      } else {
+        setError(`Could not load applications (${res.status}). Please try again later.`)
+      }
+    } catch {
+      setError('Cannot reach the server. Please check your connection and try again.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'bg-verified text-white'
-      case 'rejected':
-        return 'bg-rust text-white'
-      default:
-        return 'bg-gold text-charcoal'
-    }
-  }
+  useEffect(() => { fetchApplications() }, [fetchApplications])
+
+  const propertyName = (a: Application) =>
+    (typeof a.propertyId === 'object' ? a.propertyId?.title : null) || 'Property'
+
+  const propertyArea = (a: Application) =>
+    (typeof a.propertyId === 'object' ? a.propertyId?.location?.subCity : null) || ''
+
+  const landlord = (a: Application) =>
+    a.landlordName || a.landlordProfileId?.legalName || 'Landlord'
 
   const getStatusText = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return t.dashboard.tenant.applications.approved
-      case 'rejected':
-        return t.dashboard.tenant.applications.rejected
-      default:
-        return t.dashboard.tenant.applications.pending
-    }
+    if (status === 'approved') return t.dashboard.tenant.applications.approved
+    if (status === 'rejected') return t.dashboard.tenant.applications.rejected
+    if (status === 'under_review') return 'Under Review'
+    return t.dashboard.tenant.applications.pending
   }
 
   return (
@@ -73,9 +89,16 @@ export default function ApplicationsPage() {
           <h1 className="font-display text-2xl font-semibold text-charcoal">{t.dashboard.tenant.applications.title}</h1>
           <p className="mt-1 text-sm text-charcoal/60">{t.dashboard.tenant.applications.subtitle}</p>
         </div>
+
+        {error && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm text-amber-800">{error}</p>
+          </div>
+        )}
+
         {loading ? (
           <SkeletonList count={3} />
-        ) : MOCK_APPLICATIONS.length === 0 ? (
+        ) : applications.length === 0 ? (
           <EmptyState
             icon="document"
             title="No applications yet"
@@ -85,33 +108,37 @@ export default function ApplicationsPage() {
           />
         ) : (
           <div className="space-y-4">
-            {MOCK_APPLICATIONS.map((application) => (
+            {applications.map((application) => (
               <div
-                key={application.id}
+                key={application._id}
                 className="bg-white rounded-lg border border-sand p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-charcoal">
-                      {application.propertyTitle}
+                      {propertyName(application)}
                     </h3>
+                    {propertyArea(application) && (
+                      <p className="text-sm text-charcoal/60 mt-1">
+                        {propertyArea(application)}
+                      </p>
+                    )}
                     <p className="text-sm text-charcoal/60 mt-1">
-                      {application.propertyNeighborhood}
-                    </p>
-                    <p className="text-sm text-charcoal/60 mt-1">
-                      Landlord: {application.landlordName}
+                      Landlord: {landlord(application)}
                     </p>
                     <p className="text-xs text-charcoal/40 mt-2">
-                      Applied on {new Date(application.appliedDate).toLocaleDateString()}
+                      Applied on {new Date(application.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div>
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                        application.status
-                      )}`}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        STATUS_STYLE[application.status] || STATUS_STYLE.submitted
+                      }`}
                     >
-                      {getStatusText(application.status)}
+                      {STATUS_LABEL[application.status]
+                        ? getStatusText(application.status)
+                        : application.status}
                     </span>
                   </div>
                 </div>

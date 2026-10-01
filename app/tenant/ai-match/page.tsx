@@ -371,7 +371,7 @@ export default function AIMatchPage() {
           ) : (
             <div className="space-y-4">
               {results.map((result, index) => {
-                const gradeColor = getGradeColor(result.grade)
+                const gradeColor = getGradeColor(result.grade || 'C')
                 const isExpanded = expandedId === result.propertyId
                 const neighborhood = result.property.neighborhood || (result.property as any).location?.subCity || 'Unknown'
 

@@ -412,12 +412,18 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
         sort: sortBy,
         page: currentPage,
         limit: itemsPerPage,
-      })
-        .then((result) => {
+      } as any)
+        .then((result: any) => {
           if (cancelled) return
-          setApiProperties(result.properties)
-          setTotalResults(result.total)
-          setTotalPages(Math.max(1, result.pages))
+          if (Array.isArray(result)) {
+            setApiProperties(result)
+            setTotalResults(result.length)
+            setTotalPages(1)
+          } else {
+            setApiProperties(result.properties || [])
+            setTotalResults(result.total || 0)
+            setTotalPages(Math.max(1, result.pages || 1))
+          }
           setIsSearching(false)
         })
         .catch(() => {

@@ -30,6 +30,9 @@ export interface Property {
   status?: 'active' | 'inactive' | 'draft' | 'rented' | 'suspended' // Availability (from API listingStatus)
   availability?: string // same as status — explicit Sprint 5 field name
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected' | 'suspended'
+  fraudRiskScore?: number
+  riskLevel?: string
+  redFlags?: string[]
   createdAt?: string
   updatedAt?: string
 }

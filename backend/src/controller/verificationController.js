@@ -3,10 +3,64 @@ const Property = require('../models/Property');
 const LandlordProfile = require('../models/LandlordProfile');
 const Account = require('../models/Account');
 
+const submitIdentityVerification = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { docTypes } = req.body;
+        const files = req.files || [];
+
+        let landlordProfile = await LandlordProfile.findOne({ accountId: userId });
+        if (!landlordProfile) {
+            return res.status(404).json({ message: 'Landlord profile not found' });
+        }
+
+        let parsedDocTypes = [];
+        if (typeof docTypes === 'string') {
+            try {
+                parsedDocTypes = JSON.parse(docTypes);
+            } catch (e) {
+                return res.status(400).json({ message: 'Invalid docTypes format' });
+            }
+        } else {
+            parsedDocTypes = docTypes || [];
+        }
+
+        const submittedDocuments = files.map((file, index) => ({
+            docType: parsedDocTypes[index] || 'unknown',
+            fileKey: '/uploads/' + file.filename,
+            originalName: file.originalname,
+            mimeType: file.mimetype,
+            uploadedAt: new Date()
+        }));
+
+        landlordProfile.submittedDocuments = submittedDocuments;
+        landlordProfile.verificationStatus = 'pending';
+        landlordProfile.auditTrail.push({
+            action: 'IDENTITY_SUBMITTED',
+            performedBy: userId,
+            notes: 'Landlord submitted identity documents for verification'
+        });
+
+        await landlordProfile.save();
+
+        res.status(200).json({
+            message: 'Identity documents submitted successfully. Awaiting admin review.',
+            data: {
+                status: landlordProfile.verificationStatus,
+                submittedAt: new Date()
+            }
+        });
+
+    } catch (error) {
+        console.error('Submit identity verification error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 const submitVerification = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { propertyId, documents } = req.body;
+        const { propertyId } = req.body;
 
         const property = await Property.findById(propertyId);
         if (!property) {
@@ -29,22 +83,26 @@ const submitVerification = async (req, res) => {
             });
         }
 
-        let parsedDocuments = documents;
-        if (typeof documents === 'string') {
+        let parsedDocTypes = [];
+        if (typeof req.body.docTypes === 'string') {
             try {
-                parsedDocuments = JSON.parse(documents);
+                parsedDocTypes = JSON.parse(req.body.docTypes);
             } catch (e) {
-                return res.status(400).json({ message: 'Invalid documents format' });
+                return res.status(400).json({ message: 'Invalid docTypes format' });
             }
+        } else {
+            parsedDocTypes = req.body.docTypes || [];
         }
+
+        const files = req.files || [];
 
         const verification = await PropertyVerification.create({
             propertyId,
             landlordProfileId: landlordProfile._id,
             status: 'submitted',
-            submittedDocuments: parsedDocuments.map(doc => ({
-                docType: doc.docType,
-                fileKey: doc.fileKey || '',
+            submittedDocuments: files.map((file, index) => ({
+                docType: parsedDocTypes[index] || 'unknown',
+                fileKey: '/uploads/' + file.filename,
                 uploadedAt: new Date()
             })),
             auditTrail: [{
@@ -264,6 +322,7 @@ const getVerificationDetails = async (req, res) => {
 
 module.exports = {
     submitVerification,
+    submitIdentityVerification,
     getVerificationStatus,
     getPendingVerifications,
     reviewVerification,

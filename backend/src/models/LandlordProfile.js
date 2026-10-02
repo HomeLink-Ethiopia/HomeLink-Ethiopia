@@ -29,7 +29,21 @@ const landlordProfileSchema = new Schema({
         enum: ["unverified", "pending", "verified", "suspended"],
         default: "unverified"
     },
-    verifiedPropertiesCount: { type: Number, default: 0 }
+    verifiedPropertiesCount: { type: Number, default: 0 },
+    submittedDocuments: [{
+        docType: { type: String },
+        fileKey: { type: String },
+        originalName: { type: String },
+        mimeType: { type: String },
+        uploadedAt: { type: Date, default: Date.now }
+    }],
+    rejectionReason: { type: String },
+    auditTrail: [{
+        action: { type: String },
+        performedBy: { type: Schema.Types.ObjectId, ref: 'Account' },
+        notes: { type: String },
+        timestamp: { type: Date, default: Date.now }
+    }]
 }, { timestamps: true });
 
 landlordProfileSchema.index({ accountId: 1 }, { unique: true });

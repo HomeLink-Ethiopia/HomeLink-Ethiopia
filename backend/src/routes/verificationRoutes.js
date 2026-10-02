@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
+const documentUpload = require('../middleware/documentUpload');
 const {
     submitVerification,
+    submitIdentityVerification,
     getVerificationStatus,
     getPendingVerifications,
     reviewVerification,
@@ -11,9 +13,18 @@ const {
 } = require('../controller/verificationController');
 
 router.post(
+    '/submit-identity',
+    authMiddleware,
+    roleMiddleware('landlord'),
+    documentUpload.array('files'),
+    submitIdentityVerification
+);
+
+router.post(
     '/submit',
     authMiddleware,
     roleMiddleware('landlord'),
+    documentUpload.array('files'),
     submitVerification
 );
 

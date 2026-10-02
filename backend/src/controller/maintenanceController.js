@@ -2,6 +2,7 @@ const MaintenanceRequest = require('../models/MaintenanceRequest');
 const RentalAgreement = require('../models/RentalAgreement');
 const Property = require('../models/Property');
 const Notification = require('../models/Notification');
+const { isMockMode, mockStore } = require('../config/db');
 
 const createNotification = async (userId, type, title, body, entityType, entityId) => {
     try {
@@ -22,6 +23,20 @@ const createTicket = async (req, res) => {
         
         // Use Kidist's standard upload logic for multiple images
         const mediaKeys = req.files ? req.files.map(file => file.path) : [];
+
+        if (isMockMode()) {
+            const ticket = {
+                _id: "mock-ticket-" + Date.now(),
+                agreementId, propertyId, tenantId,
+                landlordId: "mock-landlord-1",
+                title, description, category, priority, mediaKeys,
+                status: 'submitted',
+                updates: [{ status: 'submitted', note: 'Ticket created', updatedBy: tenantId }],
+                createdAt: new Date()
+            };
+            mockStore.maintenanceRequests.unshift(ticket);
+            return res.status(201).json({ message: "Maintenance request submitted", ticket });
+        }
 
         const property = await Property.findById(propertyId);
         if (!property) return res.status(404).json({ message: "Property not found" });
@@ -71,6 +86,14 @@ const updateTicketStatus = async (req, res) => {
         const userId = req.user.id;
         const { status, assignedTo, scheduledDate, resolutionNote } = req.body;
 
+        if (isMockMode()) {
+            const ticket = mockStore.maintenanceRequests.find(t => t._id === id);
+            if (!ticket) return res.status(404).json({ message: "Ticket not found or unauthorized" });
+            ticket.status = status;
+            ticket.updates.push({ status, note: resolutionNote || `Status updated to ${status}`, updatedBy: userId });
+            return res.status(200).json({ message: "Ticket updated", ticket });
+        }
+
         const ticket = await MaintenanceRequest.findOne({ _id: id, landlordId: userId }).populate('propertyId', 'title');
         if (!ticket) return res.status(404).json({ message: "Ticket not found or unauthorized" });
 
@@ -114,6 +137,13 @@ const addUpdateNote = async (req, res) => {
         const userId = req.user.id;
         const { note } = req.body;
 
+        if (isMockMode()) {
+            const ticket = mockStore.maintenanceRequests.find(t => t._id === id);
+            if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+            ticket.updates.push({ status: ticket.status, note, updatedBy: userId });
+            return res.status(200).json({ message: "Note added to ticket", ticket });
+        }
+
         const ticket = await MaintenanceRequest.findById(id).populate('propertyId', 'title');
         if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
@@ -149,6 +179,15 @@ const getTickets = async (req, res) => {
         const userId = req.user.id;
         const role = req.user.role;
         
+        if (isMockMode()) {
+            const filterUserId = userId; 
+            const tickets = mockStore.maintenanceRequests.filter(t => 
+                (role === 'tenant' && t.tenantId === filterUserId) || 
+                (role === 'landlord' && t.landlordId === filterUserId)
+            );
+            return res.status(200).json(tickets);
+        }
+
         const filter = role === 'tenant' ? { tenantId: userId } : { landlordId: userId };
         const tickets = await MaintenanceRequest.find(filter)
             .populate('propertyId', 'title location')
@@ -165,6 +204,12 @@ const getTicketById = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
         const role = req.user.role;
+
+        if (isMockMode()) {
+            const ticket = mockStore.maintenanceRequests.find(t => t._id === id);
+            if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+            return res.status(200).json(ticket);
+        }
 
         const ticket = await MaintenanceRequest.findById(id)
             .populate('propertyId', 'title location images')
@@ -188,6 +233,15 @@ const confirmResolution = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
+
+        if (isMockMode()) {
+            const ticket = mockStore.maintenanceRequests.find(t => t._id === id);
+            if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+            ticket.tenantConfirmedResolution = true;
+            ticket.status = 'closed';
+            ticket.updates.push({ status: 'closed', note: 'Tenant confirmed the resolution', updatedBy: userId });
+            return res.status(200).json({ message: "Resolution confirmed and ticket closed", ticket });
+        }
 
         const ticket = await MaintenanceRequest.findOne({ _id: id, tenantId: userId });
         if (!ticket) return res.status(404).json({ message: "Ticket not found or unauthorized" });

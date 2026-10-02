@@ -513,6 +513,33 @@ const uploadPropertyImages = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
+        if (isMockMode()) {
+            const property = Array.from(mockStore.properties || []).find(p => p._id === id);
+            if (!property) return res.status(404).json({ message: 'Property not found' });
+            
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({ message: 'No images uploaded' });
+            }
+
+            const imageEntries = req.files.map((file, index) => ({
+                key: file.filename,
+                url: `/uploads/${file.filename}`,
+                isPrimary: (property.images || []).length === 0 && index === 0,
+                uploadedAt: new Date()
+            }));
+
+            property.images = [...(property.images || []), ...imageEntries];
+            
+            return res.status(200).json({
+                message: `${req.files.length} image(s) uploaded successfully`,
+                data: {
+                    propertyId: property._id,
+                    images: property.images,
+                    totalImages: property.images.length
+                }
+            });
+        }
+
         const property = await Property.findById(id);
         if (!property) {
             return res.status(404).json({ message: 'Property not found' });
@@ -561,6 +588,24 @@ const deletePropertyImage = async (req, res) => {
         const { id, imageId } = req.params;
         const userId = req.user.id;
 
+        if (isMockMode()) {
+            const property = Array.from(mockStore.properties || []).find(p => p._id === id);
+            if (!property) return res.status(404).json({ message: 'Property not found' });
+
+            const imageIndex = property.images.findIndex(img => String(img._id) === imageId || img.key === imageId);
+            if (imageIndex === -1) return res.status(404).json({ message: 'Image not found' });
+
+            property.images.splice(imageIndex, 1);
+            if (property.images.length > 0 && !property.images.some(img => img.isPrimary)) {
+                property.images[0].isPrimary = true;
+            }
+
+            return res.status(200).json({
+                message: 'Image deleted successfully',
+                data: { propertyId: property._id, images: property.images, totalImages: property.images.length }
+            });
+        }
+
         const property = await Property.findById(id);
         if (!property) {
             return res.status(404).json({ message: 'Property not found' });
@@ -607,6 +652,22 @@ const setPrimaryImage = async (req, res) => {
     try {
         const { id, imageId } = req.params;
         const userId = req.user.id;
+
+        if (isMockMode()) {
+            const property = Array.from(mockStore.properties || []).find(p => p._id === id);
+            if (!property) return res.status(404).json({ message: 'Property not found' });
+
+            const image = property.images.find(img => String(img._id) === imageId || img.key === imageId);
+            if (!image) return res.status(404).json({ message: 'Image not found' });
+
+            property.images.forEach(img => img.isPrimary = false);
+            image.isPrimary = true;
+
+            return res.status(200).json({
+                message: 'Primary image updated successfully',
+                data: { propertyId: property._id, primaryImage: image.url, images: property.images }
+            });
+        }
 
         const property = await Property.findById(id);
         if (!property) {

@@ -213,6 +213,14 @@ const updateProperty = async (req, res) => {
         const userId = req.user.id;
         const updateData = req.body;
 
+        if (isMockMode()) {
+            const propertyIndex = mockStore.properties.findIndex(p => p._id === id);
+            if (propertyIndex === -1) return res.status(404).json({ message: 'Property not found' });
+            
+            mockStore.properties[propertyIndex] = { ...mockStore.properties[propertyIndex], ...updateData, updatedAt: new Date() };
+            return res.status(200).json({ message: 'Property updated successfully', data: mockStore.properties[propertyIndex] });
+        }
+
         const property = await Property.findById(id);
         if (!property) {
             return res.status(404).json({ message: 'Property not found' });
@@ -248,6 +256,14 @@ const deleteProperty = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
+
+        if (isMockMode()) {
+            const propertyIndex = mockStore.properties.findIndex(p => p._id === id);
+            if (propertyIndex === -1) return res.status(404).json({ message: 'Property not found' });
+            
+            mockStore.properties.splice(propertyIndex, 1);
+            return res.status(200).json({ message: 'Property deleted successfully' });
+        }
 
         const property = await Property.findById(id);
         if (!property) {
@@ -409,6 +425,14 @@ const favouriteProperty = async (req, res) => {
         const {id }= req.params;
         const tenantId = req.user.id;
 
+        if (isMockMode()) {
+            if (!mockStore.favourites) mockStore.favourites = [];
+            const exists = mockStore.favourites.find(f => f.tenantId === tenantId && f.propertyId === id);
+            if (exists) return res.status(400).json({ message: 'Property already exists in favorites' });
+            mockStore.favourites.push({ tenantId, propertyId: id, createdAt: new Date() });
+            return res.status(201).json({ message: 'Property added to favorites', data: { propertyId: id } });
+        }
+
         //check if the property exists
 
         const property = await Property.findById(id);
@@ -457,6 +481,14 @@ const unfavouriteProperty = async (req, res) => {
         const { id } = req.params;
         const tenantId = req.user.id;
 
+        if (isMockMode()) {
+            if (!mockStore.favourites) mockStore.favourites = [];
+            const index = mockStore.favourites.findIndex(f => f.tenantId === tenantId && f.propertyId === id);
+            if (index === -1) return res.status(404).json({ message: 'Favourite not found' });
+            mockStore.favourites.splice(index, 1);
+            return res.status(200).json({ message: 'Property unfavourited successfully', data: { propertyId: id } });
+        }
+
         // ─── VALIDATE ID ───
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ message: 'Invalid property ID format' });
@@ -488,6 +520,13 @@ const unfavouriteProperty = async (req, res) => {
 const getMyFavourite = async (req, res) => {
     try{
         const tenantId = req.user.id;
+
+        if (isMockMode()) {
+            if (!mockStore.favourites) mockStore.favourites = [];
+            const faves = mockStore.favourites.filter(f => f.tenantId === tenantId);
+            const properties = faves.map(f => mockStore.properties.find(p => p._id === f.propertyId)).filter(Boolean);
+            return res.status(200).json({ data: properties, total: properties.length });
+        }
 
         const favourites = await Favourite.find({tenantId})
             .populate('propertyId')

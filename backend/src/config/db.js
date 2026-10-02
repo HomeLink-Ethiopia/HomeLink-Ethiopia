@@ -121,7 +121,7 @@ const connectDB = async () => {
   try {
     // Disable operation buffering so queries don't hang if disconnected
     mongoose.set('bufferCommands', false);
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 2500 });
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
     mockMode = false;
     console.log("✅ MongoDB connected successfully to:", uri);
   } catch (error) {

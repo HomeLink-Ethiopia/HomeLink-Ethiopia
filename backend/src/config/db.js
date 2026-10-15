@@ -9,6 +9,29 @@ const mockStore = {
   tenantPreferences: new Map(),
   disputes: [],
   maintenanceRequests: [],
+  applications: [],
+  viewings: [
+    {
+      _id: "66d1f801e12a4b001a555555",
+      propertyId: {
+        _id: "66d1f801e12a4b001a111111",
+        title: "Modern 2BR Apartment in Bole",
+        location: { city: "Addis Ababa", subCity: "Bole", neighborhood: "Edna Mall Area" },
+        rentAmount: 42000,
+        images: [{ url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800" }]
+      },
+      tenantId: "mock-tenant-1",
+      landlordId: "mock-landlord-1",
+      requestedSlots: [
+        { date: new Date(Date.now() + 86400000).toISOString(), startTime: "10:00", endTime: "11:00" }
+      ],
+      confirmedSlot: { date: new Date(Date.now() + 86400000).toISOString(), startTime: "10:00", endTime: "11:00" },
+      status: "confirmed",
+      tenantNote: "Looking forward to seeing the apartment in Bole.",
+      landlordNote: "Confirmed. See you tomorrow at 10 AM.",
+      createdAt: new Date().toISOString()
+    }
+  ],
   properties: [
     {
       _id: "66d1f801e12a4b001a111111",

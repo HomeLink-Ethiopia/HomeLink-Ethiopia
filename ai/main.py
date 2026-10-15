@@ -118,13 +118,28 @@ def get_baseline_model() -> Any:
 
 @app.on_event("startup")
 def startup_model_load() -> None:
-    """Load the baseline rent pipeline at startup and keep any failure contained."""
+    """Load all ML models at startup and verify readiness."""
     try:
         get_baseline_model()
     except Exception:
         app.state.baseline_model_error = "baseline model unavailable"
     else:
         app.state.baseline_model_error = None
+
+    try:
+        get_rent_estimator()
+    except Exception as exc:
+        app.state.rent_estimator_error = str(exc)
+
+    try:
+        get_fraud_detector()
+    except Exception as exc:
+        app.state.fraud_detector_error = str(exc)
+
+    try:
+        get_recommender()
+    except Exception as exc:
+        app.state.recommender_error = str(exc)
 
 
 # ---------------------------------------------------------------------------

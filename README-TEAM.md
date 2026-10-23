@@ -1,23 +1,30 @@
 # HomeLink Ethiopia — Team Handoff
 
-Full-stack rental platform: **Next.js 14 frontend** + **Express/Mongoose backend** (runs in mock-DB mode without MongoDB) + optional Python AI microservice.
+Full-stack rental platform organized into clean, dedicated folders:
+- **`frontend/`**: Next.js 14 App Router UI (Tenant, Landlord, Admin portals)
+- **`backend/`**: Express / Mongoose REST API (in-memory mock DB fallback, offline-ready)
+- **`ai-service/`**: Python FastAPI microservice (matching & rent estimation)
+- **`backups/`**: Teammates' historical backup snapshots
+- **`docs/`**: Architecture & API documentation
 
 ## Run it (Windows)
 
 ```bash
-# 1. Frontend deps
+# 1. Frontend deps & start — http://localhost:3000
+cd frontend
 npm install
+npm run dev
 
-# 2. Backend deps
+# 2. Backend deps & start (separate terminal) — http://localhost:5000
 cd backend
 npm install
-cd ..
+set PORT=5000 && node server.js
+```
 
-# 3. Start backend  (terminal 1) — http://localhost:5000
-set PORT=5000 && node backend/server.js
-
-# 4. Start frontend (terminal 2) — http://localhost:3000
-npm run dev
+Or from the root directory:
+```bash
+npm run dev          # starts the frontend
+npm run dev:backend  # starts the backend
 ```
 
 No MongoDB needed — the backend auto-falls back to an in-memory mock DB and prints `⚡ [MOCK DB ACTIVATED]`.
@@ -32,9 +39,8 @@ No MongoDB needed — the backend auto-falls back to an in-memory mock DB and pr
 
 ## Notes for teammates
 
-- `.env.local` is included (`NEXT_PUBLIC_MOCK_MODE=false`, API on :5000). Real emails are NOT configured — verification/reset codes are returned in the API response and shown on screen by design (dev convenience).
-- Registered accounts persist to `backend/mock-users.json` so they survive backend restarts. It's git-ignored demo data — delete it to reset.
-- Property photos live in `public/homes/` (frontend cards) and `backend/uploads/homes/` (API-served listing images).
-- `lib/images.ts` is the single source of photo pools (property cards, interiors, city photos).
-- Typecheck: `npx tsc --noEmit`
-- `backend-backup-kidist/` is an old backup — safe to ignore/delete.
+- `frontend/.env.local` is included (`NEXT_PUBLIC_MOCK_MODE=false`, API on :5000).
+- Registered accounts persist to `backend/mock-users.json` so they survive backend restarts.
+- Property photos live in `frontend/public/homes/` and `backend/uploads/homes/`.
+- Typecheck frontend: `cd frontend && npx tsc --noEmit`
+

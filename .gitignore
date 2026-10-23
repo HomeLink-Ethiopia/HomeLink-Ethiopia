@@ -5,16 +5,27 @@ out/
 .env.local
 .env*.local
 backend/.env
+frontend/.env.local
 .DS_Store
 *.log
 .freebuff/
 *.tmp
 homelink-backend-temp/
-backend/
 tsconfig.tsbuildinfo
 
-# Local backend backup (contains user data snapshots) - never publish
+# Local backups
+backups/
 backend-backup-kidist/
+backend/backups/
+
+# Local test uploads & tools
+/uploads/
+.tools/
+
+# Python cache
+__pycache__/
+*.pyc
 
 # mock-mode persisted users (demo data)
 mock-users.json
+backend/mock-users.json

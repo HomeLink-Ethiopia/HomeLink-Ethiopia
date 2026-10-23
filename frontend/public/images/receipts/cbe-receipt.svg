@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 840" width="100%" height="100%">
+  <defs>
+    <style>
+      .title { font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; fill: #52184B; }
+      .amharic { font-family: 'Segoe UI', Arial, sans-serif; fill: #4B4B4B; }
+      .bold { font-family: 'Segoe UI', Arial, sans-serif; font-weight: 600; fill: #222222; }
+      .label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; fill: #777777; font-weight: 500; }
+      .val { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; fill: #111111; font-weight: 600; }
+      .amount { font-family: 'Segoe UI', Arial, sans-serif; font-size: 32px; font-weight: 800; fill: #52184B; }
+      .stamp-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; font-weight: 700; fill: #1b6e4a; }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Paper background -->
+  <rect width="600" height="840" fill="#FBFBFD" rx="16"/>
+  <rect x="24" y="24" width="552" height="792" rx="12" fill="#FFFFFF" stroke="#E5E5EB" stroke-width="1.5"/>
+
+  <!-- Bank Top Bar Banner (CBE Purple & Gold Accent) -->
+  <path d="M 24 36 Q 24 24 36 24 L 564 24 Q 576 24 576 36 L 576 100 L 24 100 Z" fill="#52184B"/>
+  <rect x="24" y="96" width="552" height="4" fill="#E8B038"/>
+
+  <!-- CBE Logo Representation & Headers -->
+  <g transform="translate(48, 42)">
+    <!-- Bank Emblem -->
+    <rect x="0" y="2" width="44" height="44" rx="8" fill="#E8B038"/>
+    <text x="22" y="32" text-anchor="middle" font-size="24" font-weight="900" fill="#52184B">CBE</text>
+    
+    <!-- Title English & Amharic -->
+    <text x="56" y="22" font-size="18" font-weight="800" fill="#FFFFFF">Commercial Bank of Ethiopia</text>
+    <text x="56" y="40" font-size="13" font-weight="500" fill="#E8D1E6">የኢትዮጵያ ንግድ ባንክ • Mobile Banking Receipt</text>
+  </g>
+
+  <!-- Official Transaction Slip Badge -->
+  <g transform="translate(48, 126)">
+    <rect x="0" y="0" width="160" height="24" rx="12" fill="#F3E9F2"/>
+    <text x="80" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="#52184B">OFFICIAL TRANSFER SLIP</text>
+  </g>
+
+  <g transform="translate(430, 136)">
+    <circle cx="0" cy="0" r="5" fill="#1b6e4a"/>
+    <text x="10" y="4" font-size="12" font-weight="700" fill="#1b6e4a">COMPLETED</text>
+  </g>
+
+  <!-- Amount Highlight Box -->
+  <g transform="translate(48, 168)">
+    <rect x="0" y="0" width="504" height="100" rx="12" fill="#FAF5F9" stroke="#E8D2E5" stroke-width="1"/>
+    <text x="24" y="34" font-size="12" font-weight="600" fill="#7C4673" letter-spacing="1">AMOUNT TRANSFERRED (በኢትዮጵያ ብር)</text>
+    <text x="24" y="76" class="amount">42,000.00 <tspan font-size="20" font-weight="600">ETB</tspan></text>
+    <text x="480" y="70" text-anchor="end" font-size="12" font-weight="500" fill="#777">Forty-Two Thousand Birr</text>
+  </g>
+
+  <!-- Transaction Details Grid -->
+  <g transform="translate(48, 300)">
+    <!-- Reference Number -->
+    <text x="0" y="0" class="label">Transaction Reference / FT No</text>
+    <text x="0" y="22" class="val" font-family="monospace">FT261005X891047</text>
+
+    <text x="280" y="0" class="label">Transaction Date &amp; Time</text>
+    <text x="280" y="22" class="val">October 04, 2026 • 10:30 AM EAT</text>
+
+    <!-- Divider -->
+    <line x1="0" y1="44" x2="504" y2="44" stroke="#EEEEEE" stroke-width="1"/>
+
+    <!-- Payer / Tenant -->
+    <text x="0" y="72" class="label">Payer (Tenant)</text>
+    <text x="0" y="94" class="val">Hanna Tesfaye</text>
+    <text x="0" y="112" font-size="12" fill="#888">Debited: 1000****4519 • Commercial Bank</text>
+
+    <!-- Payee / Landlord -->
+    <text x="280" y="72" class="label">Beneficiary (Landlord)</text>
+    <text x="280" y="94" class="val">HomeLink Landlord (Dev Landlord)</text>
+    <text x="280" y="112" font-size="12" fill="#888">Credited: 1000****7721 • CBE Main Branch</text>
+
+    <!-- Divider -->
+    <line x1="0" y1="134" x2="504" y2="134" stroke="#EEEEEE" stroke-width="1"/>
+
+    <!-- Property Details -->
+    <text x="0" y="162" class="label">Payment Description / Purpose</text>
+    <text x="0" y="184" class="val">Monthly Rent Payment — Bole 2BR Residence</text>
+
+    <text x="280" y="162" class="label">Rental Period</text>
+    <text x="280" y="184" class="val">October 2026</text>
+
+    <!-- Divider -->
+    <line x1="0" y1="210" x2="504" y2="210" stroke="#EEEEEE" stroke-width="1"/>
+
+    <!-- Verification & Platform Note -->
+    <text x="0" y="238" class="label">Authorized Rental Platform</text>
+    <text x="0" y="258" class="val" fill="#B8451F">HomeLink Verified Lease Platform</text>
+
+    <text x="280" y="238" class="label">Payment Channel</text>
+    <text x="280" y="258" class="val">CBE Mobile Banking / Internet</text>
+  </g>
+
+  <!-- Official Bank Digital Stamp Seal -->
+  <g transform="translate(360, 620)">
+    <rect x="0" y="0" width="190" height="84" rx="8" fill="#F0F9F4" stroke="#2D8A5E" stroke-width="1.5" stroke-dasharray="4 2"/>
+    <circle cx="28" cy="42" r="16" fill="#2D8A5E"/>
+    <text x="28" y="47" text-anchor="middle" font-size="16" font-weight="900" fill="#FFFFFF">✓</text>
+    <text x="56" y="32" font-size="11" font-weight="800" fill="#1C5E3F">CBE VERIFIED</text>
+    <text x="56" y="48" font-size="10" font-weight="600" fill="#2D8A5E">DIRECT SETTLEMENT</text>
+    <text x="56" y="64" font-size="9" fill="#555555">DIGITALLY CERTIFIED</text>
+  </g>
+
+  <!-- QR Code representation -->
+  <g transform="translate(48, 620)">
+    <rect x="0" y="0" width="80" height="80" rx="8" fill="#F7F7FA" stroke="#DDD" stroke-width="1"/>
+    <!-- Mock QR pattern -->
+    <rect x="10" y="10" width="22" height="22" fill="#333"/>
+    <rect x="14" y="14" width="14" height="14" fill="#FFF"/>
+    <rect x="17" y="17" width="8" height="8" fill="#333"/>
+
+    <rect x="48" y="10" width="22" height="22" fill="#333"/>
+    <rect x="52" y="14" width="14" height="14" fill="#FFF"/>
+    <rect x="55" y="17" width="8" height="8" fill="#333"/>
+
+    <rect x="10" y="48" width="22" height="22" fill="#333"/>
+    <rect x="14" y="52" width="14" height="14" fill="#FFF"/>
+    <rect x="17" y="55" width="8" height="8" fill="#333"/>
+
+    <rect x="40" y="40" width="10" height="10" fill="#333"/>
+    <rect x="56" y="52" width="14" height="8" fill="#333"/>
+    <rect x="40" y="60" width="10" height="10" fill="#333"/>
+
+    <text x="96" y="36" font-size="11" font-weight="600" fill="#444">Scan to Verify Transaction</text>
+    <text x="96" y="54" font-size="10" fill="#888">cbe.com.et/verify?ref=FT261005X891047</text>
+  </g>
+
+  <!-- Bottom Legal Footer -->
+  <g transform="translate(48, 770)">
+    <line x1="0" y1="0" x2="504" y2="0" stroke="#E5E5EB" stroke-width="1"/>
+    <text x="252" y="24" text-anchor="middle" font-size="10" fill="#999999">
+      This is a system generated receipt acknowledged by HomeLink Ethiopia under lease terms. No physical signature required.
+    </text>
+  </g>
+</svg>

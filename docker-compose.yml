@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   ai-service:
-    build: ./ai-service
+    build: ./ai
     ports:
       - "8000:8000"
     environment:

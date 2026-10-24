@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const { sendVerificationEmail } = require("./src/config/utils/emailService");
+const { sendVerificationEmail } = require("./src/utils/emailService");
 
 const testEmail = async () =>{
     const result = await sendVerificationEmail(

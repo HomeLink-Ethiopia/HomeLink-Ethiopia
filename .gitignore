@@ -10,7 +10,7 @@ backend/.env
 .freebuff/
 *.tmp
 homelink-backend-temp/
-backend/
+*.lnk
 tsconfig.tsbuildinfo
 
 # Local backend backup (contains user data snapshots) - never publish

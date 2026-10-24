@@ -2,17 +2,13 @@ const PropertyVerification = require('../models/PropertyVerification');
 const Property = require('../models/Property');
 const LandlordProfile = require('../models/LandlordProfile');
 const Account = require('../models/Account');
+const { isMockMode, mockStore } = require('../config/db');
 
 const submitIdentityVerification = async (req, res) => {
     try {
         const userId = req.user.id;
         const { docTypes } = req.body;
         const files = req.files || [];
-
-        let landlordProfile = await LandlordProfile.findOne({ accountId: userId });
-        if (!landlordProfile) {
-            return res.status(404).json({ message: 'Landlord profile not found' });
-        }
 
         let parsedDocTypes = [];
         if (typeof docTypes === 'string') {
@@ -32,6 +28,38 @@ const submitIdentityVerification = async (req, res) => {
             mimeType: file.mimetype,
             uploadedAt: new Date()
         }));
+
+        if (isMockMode()) {
+            let mockProfile = (mockStore.landlordProfiles && mockStore.landlordProfiles.get(userId)) || {
+                accountId: userId,
+                submittedDocuments: [],
+                verificationStatus: 'pending',
+                auditTrail: []
+            };
+            mockProfile.submittedDocuments = submittedDocuments;
+            mockProfile.verificationStatus = 'pending';
+            if (mockStore.landlordProfiles) {
+                mockStore.landlordProfiles.set(userId, mockProfile);
+            }
+            return res.status(200).json({
+                message: 'Identity documents submitted successfully. Awaiting admin review.',
+                data: {
+                    status: 'pending',
+                    submittedAt: new Date()
+                }
+            });
+        }
+
+        let landlordProfile = await LandlordProfile.findOne({ accountId: userId });
+        if (!landlordProfile) {
+            landlordProfile = new LandlordProfile({
+                accountId: userId,
+                legalName: req.body.legalName || req.user?.name || req.user?.email || 'HomeLink Landlord',
+                submittedDocuments: [],
+                verificationStatus: 'pending',
+                auditTrail: []
+            });
+        }
 
         landlordProfile.submittedDocuments = submittedDocuments;
         landlordProfile.verificationStatus = 'pending';

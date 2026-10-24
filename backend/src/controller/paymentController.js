@@ -1,8 +1,12 @@
+const { isMockMode, mockStore, persistMockData } = require('../config/db');
 const TenantPayment = require('../models/TenantPayment');
 const RentalAgreement = require('../models/RentalAgreement');
 const Notification = require('../models/Notification');
+const { generateRentScheduleForAgreement } = require('../utils/rentScheduleHelper');
 
+const { isMockMode: s89IsMock, mockCreateNotification: s89Notify } = require('../config/db'); // sprint89-notify-bridge
 const createNotification = async (userId, type, title, body, entityType, entityId) => {
+    if (s89IsMock && s89IsMock()) { s89Notify(userId, type, title, body, entityType, entityId); return; }
     try {
         await Notification.create({
             userId, type, title, body,
@@ -53,20 +57,38 @@ const recordPayment = async (req, res) => {
     try {
         const { id } = req.params;
         const tenantId = req.user.id;
-        const { paymentMethod, transactionReference } = req.body;
-        const receiptFile = req.file ? req.file.path : null;
+        const { paymentMethod, transactionReference, receiptUrl } = req.body;
+        const path = require('path');
+        const receiptFile = req.file ? `/uploads/${path.basename(req.file.path)}` : null;
+        const finalReceipt = receiptFile || receiptUrl || req.body.receiptKey;
 
-        if (!transactionReference && !receiptFile) {
+        if (!transactionReference && !finalReceipt) {
             return res.status(400).json({ message: "Must provide either a transaction reference code or a receipt image" });
         }
 
+        // Sprint 15: mock-mode payment recording.
+        if (isMockMode()) {
+            const pay2 = (mockStore.payments || []).find((x) => x._id === id);
+            if (!pay2) return res.status(404).json({ message: "Payment not found" });
+            pay2.status = "pending";
+            pay2.paymentMethod = paymentMethod || "bank_transfer";
+            pay2.transactionReference = transactionReference;
+            if (finalReceipt) {
+                pay2.receiptKey = finalReceipt;
+                pay2.receiptUrl = finalReceipt;
+            }
+            pay2.paidAt = new Date().toISOString();
+            pay2.receiptNumber = pay2.receiptNumber || `RCPT-${pay2._id.slice(-6).toUpperCase()}`;
+            if (typeof persistMockData === 'function') persistMockData();
+            return res.status(200).json({ message: "Payment recorded, awaiting landlord verification", data: pay2 });
+        }
         const payment = await TenantPayment.findOneAndUpdate(
             { _id: id, tenantId },
             { 
                 status: 'pending', // Still pending until landlord verifies, unless it's Chapa (handled separately)
-                paymentMethod,
+                paymentMethod: paymentMethod || "bank_transfer",
                 transactionReference,
-                receiptKey: receiptFile
+                receiptKey: finalReceipt
             },
             { new: true }
         ).populate('propertyId', 'title');
@@ -90,30 +112,80 @@ const verifyPayment = async (req, res) => {
     try {
         const { id } = req.params;
         const landlordId = req.user.id;
-        const { amountPaid, paymentMethod } = req.body; // Landlord confirms the actual amount they received
+        const { amountPaid, paymentMethod, status, receiptKey, notes } = req.body;
 
+        const targetStatus = status === 'collected' ? 'paid' : (status || 'paid');
+
+        // Sprint 15: mock-mode landlord verification & status change.
+        if (isMockMode()) {
+            const pay3 = (mockStore.payments || []).find((x) => x._id === id);
+            if (!pay3) return res.status(404).json({ message: "Payment not found" });
+            pay3.status = targetStatus;
+            if (targetStatus === 'paid') {
+                pay3.amountPaid = amountPaid || pay3.amountDue || pay3.amount;
+                pay3.balance = 0;
+                pay3.paidAt = pay3.paidAt || new Date().toISOString();
+                pay3.receiptNumber = pay3.receiptNumber || `RCPT-${pay3._id.slice(-6).toUpperCase()}`;
+            } else if (targetStatus === 'pending' || targetStatus === 'overdue') {
+                pay3.amountPaid = 0;
+                pay3.balance = pay3.amountDue || pay3.amount;
+                pay3.paidAt = null;
+            }
+            if (paymentMethod) pay3.paymentMethod = paymentMethod;
+            if (receiptKey) {
+                pay3.receiptKey = receiptKey;
+                pay3.receiptUrl = receiptKey;
+            }
+            if (notes !== undefined) pay3.notes = notes;
+            if (typeof persistMockData === 'function') persistMockData();
+            return res.status(200).json({ message: "Payment status updated", data: pay3 });
+        }
         const payment = await TenantPayment.findOne({ _id: id, landlordId }).populate('propertyId', 'title');
         if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-        payment.amountPaid = amountPaid || payment.amountDue;
-        payment.balance = payment.amountDue - payment.amountPaid;
-        payment.status = payment.balance <= 0 ? 'paid' : 'partial';
-        payment.paidAt = new Date();
-        
-        // If landlord manually specifies it was cash, update it. Otherwise keep the tenant's chosen method (e.g. cbe)
-        if (paymentMethod) {
-            payment.paymentMethod = paymentMethod;
+        payment.status = targetStatus;
+        if (targetStatus === 'paid') {
+            payment.amountPaid = amountPaid || payment.amountDue;
+            payment.balance = 0;
+            payment.paidAt = payment.paidAt || new Date();
+        } else if (targetStatus === 'pending' || targetStatus === 'overdue') {
+            payment.amountPaid = 0;
+            payment.balance = payment.amountDue;
+            payment.paidAt = null;
         }
+        if (paymentMethod) payment.paymentMethod = paymentMethod;
+        if (receiptKey) payment.receiptKey = receiptKey;
+        if (notes !== undefined) payment.notes = notes;
 
         await payment.save();
+        res.status(200).json({ message: "Payment updated successfully", payment });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
 
-        await createNotification(
-            payment.tenantId, 'payment_received', 'Payment Verified',
-            `Your payment of ${payment.amountPaid} ETB for ${payment.propertyId.title} has been verified by the landlord!`,
-            'TenantPayment', payment._id
-        );
+const uploadPaymentReceipt = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const path = require('path');
+        if (!req.file) {
+            return res.status(400).json({ message: "No receipt file uploaded" });
+        }
+        const fileUrl = `/uploads/${path.basename(req.file.path)}`;
 
-        res.status(200).json({ message: "Payment verified successfully", payment });
+        if (isMockMode()) {
+            const pay = (mockStore.payments || []).find((x) => x._id === id);
+            if (!pay) return res.status(404).json({ message: "Payment not found" });
+            pay.receiptKey = fileUrl;
+            pay.receiptUrl = fileUrl;
+            return res.status(200).json({ message: "Receipt uploaded successfully", receiptUrl: fileUrl, data: pay });
+        }
+
+        const payment = await TenantPayment.findById(id);
+        if (!payment) return res.status(404).json({ message: "Payment not found" });
+        payment.receiptKey = fileUrl;
+        await payment.save();
+        res.status(200).json({ message: "Receipt uploaded successfully", receiptUrl: fileUrl, payment });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -227,18 +299,75 @@ const verifyChapaPayment = async (req, res) => {
 
 const getPayments = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = String(req.user.id || '');
         const role = req.user.role;
-        
+        const now = new Date();
+
+        if (isMockMode()) {
+            const foundUser = [...mockStore.users.values()].find(u => u._id === userId);
+            const userEmail = req.user?.email || foundUser?.email;
+            const isSeedLandlord = userEmail === 'dev.landlord@homelink.test';
+            const isSeedTenant = userEmail === 'dev.tenant@homelink.test' || userEmail === 'hanna@example.com';
+
+            // Ensure active agreements have their rent schedules generated
+            for (const agr of (mockStore.agreements || [])) {
+                if (agr.status === 'active') {
+                    const tId = String((agr.tenantId && typeof agr.tenantId === 'object' ? agr.tenantId._id : agr.tenantId) || '');
+                    const lId = String((agr.landlordId && typeof agr.landlordId === 'object' ? agr.landlordId._id : agr.landlordId) || '');
+                    const belongs = role === 'tenant' ? (tId === userId || isSeedTenant) : (lId === userId || isSeedLandlord);
+                    if (belongs) {
+                        const hasPayments = (mockStore.payments || []).some(p => String(p.agreementId) === String(agr._id));
+                        if (!hasPayments) {
+                            await generateRentScheduleForAgreement(agr);
+                        }
+                    }
+                }
+            }
+
+            const mine = (mockStore.payments || []).filter((p) => {
+                const tId = String((typeof p.tenantId === 'object' ? p.tenantId?._id : p.tenantId) || '');
+                const lId = String((typeof p.landlordId === 'object' ? p.landlordId?._id : p.landlordId) || '');
+                if (role === 'tenant') {
+                    return tId === userId || (isSeedTenant && (tId === 'mock-user-seed-1' || !tId));
+                }
+                return lId === userId || (isSeedLandlord && (lId === 'mock-landlord-1' || !lId));
+            });
+
+            // Dynamically mark overdue payments if due date passed and not paid
+            mine.forEach(p => {
+                if (p.status === 'pending' && p.dueDate && new Date(p.dueDate) < now) {
+                    p.status = 'overdue';
+                }
+            });
+
+            const shape2 = (p) => ({
+                ...p,
+                amount: p.amountDue,
+                amountDueEtb: p.amountDue,
+                paidDate: p.paidAt,
+                receiptNumber: p.receiptNumber || (['paid', 'collected'].includes(p.status) ? `RCPT-${String(p._id).slice(-6).toUpperCase()}` : undefined),
+            });
+            return res.status(200).json(mine.map(shape2));
+        }
+
+        // Dynamic update of overdue payments in MongoDB
+        await TenantPayment.updateMany(
+            { status: 'pending', dueDate: { $lt: now } },
+            { $set: { status: 'overdue' } }
+        );
+
         const filter = role === 'tenant' ? { tenantId: userId } : { landlordId: userId };
         const payments = await TenantPayment.find(filter)
-            .populate('propertyId', 'title')
-            .populate('agreementId', 'startDate endDate')
+            .populate('propertyId', 'title location images')
+            .populate('agreementId', 'startDate endDate rentAmount depositAmount terms status')
+            .populate('tenantId', 'firstName lastName email phone')
+            .populate('landlordId', 'firstName lastName email phone')
             .sort({ dueDate: -1 });
 
         res.status(200).json(payments);
     } catch (error) {
-        res.status(500).json({ message: "Server error" });
+        console.error("getPayments error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
@@ -270,6 +399,18 @@ const sendReminder = async (req, res) => {
     try {
         const { id } = req.params;
         const landlordId = req.user.id;
+
+        // (sprintproposal-remind) FR-08: rent reminders work in mock mode too
+        if (isMockMode()) {
+            const payR = (mockStore.payments || []).find((x) => x._id === id);
+            if (!payR) return res.status(404).json({ message: "Payment not found or unauthorized" });
+            if (payR.status === "paid") return res.status(400).json({ message: "Payment is already paid" });
+            payR.remindersSent = payR.remindersSent || [];
+            payR.remindersSent.push({ sentAt: new Date().toISOString(), channel: "in_app" });
+            const tenantIdR = typeof payR.tenantId === "object" ? payR.tenantId._id : payR.tenantId;
+            createNotification(tenantIdR, "rent_overdue", "Payment Reminder", "Friendly reminder: you have an outstanding balance of " + (payR.balance || payR.amountDue) + " ETB.", "TenantPayment", payR._id);
+            return res.status(200).json({ message: "Reminder sent successfully", data: payR });
+        }
 
         const payment = await TenantPayment.findOne({ _id: id, landlordId }).populate('propertyId', 'title');
         if (!payment) return res.status(404).json({ message: "Payment not found or unauthorized" });
@@ -304,5 +445,6 @@ module.exports = {
     verifyChapaPayment,
     getPayments,
     getPaymentById,
-    sendReminder
+    sendReminder,
+    uploadPaymentReceipt
 };

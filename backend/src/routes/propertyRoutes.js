@@ -72,7 +72,7 @@ router.delete('/:id/favourite', authMiddleware, roleMiddleware('tenant'), unfavo
 
 
 router.post('/', authMiddleware, roleMiddleware('landlord'), createProperty);
-router.get('/:id', authMiddleware, getPropertyById);
+router.get('/:id', getPropertyById);
 router.put('/:id', authMiddleware, roleMiddleware('landlord'), updateProperty);
 router.delete('/:id', authMiddleware, roleMiddleware('landlord'), deleteProperty);
 

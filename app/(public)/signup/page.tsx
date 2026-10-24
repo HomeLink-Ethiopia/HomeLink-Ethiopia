@@ -48,7 +48,7 @@ function SignupContent() {
       if (emailParam) {
         setFormData((f) => ({ ...f, email: emailParam }))
         setStep('otp')
-        setResendNotice("Click \u201CResend code\u201D below \u2014 the new code will appear right here on screen.")
+        setResendNotice("Click \u201CResend code\u201D below to receive a new code in your email.")
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,18 +121,12 @@ function SignupContent() {
         return
       }
 
-      // The account is saved in MongoDB at this point. When Resend could not
-      // deliver (free tier only reaches @resend.dev), the backend still
-      // returns the code for development — show it instead of a scary error.
-      // Mock mode returns it as `verificationCode`; MongoDB mode as
-      // `devVerificationCode` (sprint-otp-on-screen).
-      // Registration successful! The backend auto-verifies the email now.
-      // Log the user straight into their dashboard.
-      const loginResult = await login(formData.email, formData.password)
-      if (!loginResult.success) {
-        // Auto-login failed (rare) — fall back to the login page as before.
-        router.push('/login?verified=true')
-      }
+      // Account created and verification code sent to the user's email via Nodemailer.
+      // Transition to OTP verification step so the user enters the code received in their email.
+      setStep('otp')
+      setOtp(['', '', '', '', '', ''])
+      setVerificationCode('')
+      setError('')
     } catch (err) {
       setError('Registration failed. Please try again.')
     } finally {
@@ -179,7 +173,7 @@ function SignupContent() {
       // Verified! Log the user straight into their dashboard.
       const loginResult = await login(formData.email, formData.password)
       if (!loginResult.success) {
-        // Auto-login failed (rare) — fall back to the login page as before.
+        // Auto-login fallback
         router.push('/login?verified=true')
       }
     } catch (err) {
@@ -201,12 +195,7 @@ function SignupContent() {
       if (!response.ok) {
         setError(data.message || 'Failed to resend code')
       } else {
-        const code = data.devVerificationCode || data.verificationCode || ''
-        if (code) {
-          setVerificationCode(code)
-          setOtp(code.split(''))
-        }
-        setResendNotice(data.message || 'New verification code sent!')
+        setResendNotice(data.message || 'New verification code sent to your email!')
       }
     } catch {
       setError('Failed to resend code')
@@ -235,41 +224,14 @@ function SignupContent() {
             </p>
             <p className="mt-1 text-center font-semibold text-charcoal">{formData.email}</p>
             
-            <div className={`mt-4 rounded-lg border p-3 ${emailNotDelivered ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-              {emailNotDelivered ? (
-                <>
-                  <p className="text-center text-sm text-amber-700">
-                    Your account has been created, but email delivery is temporarily unavailable.
-                  </p>
-                  <p className="mt-1 text-center text-xs text-amber-600">
-                    Use the code below to finish verification. You can request a new code anytime.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-center text-sm text-green-700">
-                    A verification code has been sent to your email.
-                  </p>
-                  <p className="mt-1 text-center text-xs text-green-600">
-                    Check your inbox and spam folder for the 6-digit code.
-                  </p>
-                </>
-              )}
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
+              <p className="text-center text-sm text-green-700">
+                A verification code has been sent to your email.
+              </p>
+              <p className="mt-1 text-center text-xs text-green-600">
+                Please check your inbox (and spam folder) for the 6-digit code.
+              </p>
             </div>
-            {verificationCode && (
-              <div 
-                className="mt-3 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-3 cursor-pointer hover:bg-blue-100 transition-colors"
-                onClick={() => {
-                  const newOtp = verificationCode.split('')
-                  setOtp(newOtp)
-                  const lastInput = document.getElementById(`otp-${newOtp.length - 1}`)
-                  lastInput?.focus()
-                }}
-              >
-                <p className="text-center text-xs text-blue-500 mb-1">Development code (click to auto-fill):</p>
-                <p className="text-center text-2xl font-bold tracking-[8px] text-blue-700 font-mono">{verificationCode}</p>
-              </div>
-            )}
 
             {resendNotice && (
               <p className="mt-3 text-center text-xs text-green-700">{resendNotice}</p>

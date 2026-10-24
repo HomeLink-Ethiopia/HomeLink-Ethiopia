@@ -50,7 +50,7 @@ const registerUser = async (req, res) => {
         emailVerificationCode: hashedVerificationCode,
         emailVerificationExpires: verificationExpires,
         identityStatus: "verified",
-        emailVerified: true
+        emailVerified: false,
       };
 
       mockStore.users.set(email, mockUser);
@@ -65,11 +65,11 @@ const registerUser = async (req, res) => {
         });
       }
 
-      console.log(`⚡ [MOCK DB] User registered: ${email} (${assignedRole}) | Verification Code: ${verificationCode}`);
+      // Deliver verification email using configured Nodemailer SMTP
+      await sendVerificationEmail(email, verificationCode);
 
       return res.status(201).json({
-        message: "User registered successfully",
-        verificationCode: verificationCode,
+        message: "User registered successfully. A verification code has been sent to your email.",
         user: {
           id: mockUser._id,
           firstName: mockUser.firstName,
@@ -78,7 +78,7 @@ const registerUser = async (req, res) => {
           phone: mockUser.phone,
           role: mockUser.role,
           identityStatus: mockUser.identityStatus,
-          emailVerified: mockUser.emailVerified,
+          emailVerified: false,
         }
       });
     }
@@ -109,7 +109,7 @@ const registerUser = async (req, res) => {
       role: assignedRole,
       emailVerificationCode: hashedVerificationCode,
       emailVerificationExpires: verificationExpires,
-      emailVerified: true, // Auto-verify email to skip the verification step
+      emailVerified: false,
     });
 
     if (assignedRole === "landlord") {
@@ -123,12 +123,11 @@ const registerUser = async (req, res) => {
       }
     }
 
-    // Skip sending verification email
-    const emailSent = true;
+    // Deliver verification email using configured Nodemailer SMTP
+    await sendVerificationEmail(email, verificationCode);
 
     res.status(201).json({
-      message: "User registered successfully",
-      verificationCode: process.env.NODE_ENV === "production" ? undefined : verificationCode,
+      message: "User registered successfully. A verification code has been sent to your email.",
       user: {
         id: user._id,
         firstName: user.firstName,
@@ -137,7 +136,7 @@ const registerUser = async (req, res) => {
         phone: user.phone,
         role: user.role,
         identityStatus: user.identityStatus,
-        emailVerified: user.emailVerified,
+        emailVerified: false,
       },
     });
   } catch (error) {
@@ -161,9 +160,22 @@ const verifyEmail = async (req, res) => {
 
     if (isMockMode()) {
       const mockUser = mockStore.users.get(email);
-      if (mockUser) {
-        mockUser.emailVerified = true;
+      if (!mockUser) {
+        return res.status(404).json({ message: "User not found" });
       }
+      if (mockUser.emailVerified) {
+        return res.status(400).json({ message: "Email is already verified" });
+      }
+      if (mockUser.emailVerificationExpires && mockUser.emailVerificationExpires < new Date()) {
+        return res.status(400).json({ message: "Verification code is expired" });
+      }
+      const isCodeCorrect = await bcrypt.compare(code, mockUser.emailVerificationCode);
+      if (!isCodeCorrect) {
+        return res.status(400).json({ message: "Invalid verification code" });
+      }
+      mockUser.emailVerified = true;
+      mockUser.emailVerificationCode = null;
+      mockUser.emailVerificationExpires = null;
       return res.status(200).json({
         message: "Email verified successfully",
       });
@@ -234,6 +246,23 @@ const resendEmailCode = async (req, res) => {
       });
     }
 
+    if (isMockMode()) {
+      const mockUser = mockStore.users.get(email);
+      if (!mockUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (mockUser.emailVerified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+      const verificationCode = crypto.randomInt(100000, 1000000).toString();
+      mockUser.emailVerificationCode = await bcrypt.hash(verificationCode, 10);
+      mockUser.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await sendVerificationEmail(email, verificationCode);
+      return res.status(200).json({
+        message: "A new verification code has been sent to your email",
+      });
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -296,8 +325,22 @@ const forgotPassword = async (req,res)=>{
   try{
     const { email } = req.body;
     if(!email){
-      return re.status(400).json({
+      return res.status(400).json({
         message: "Email is required",
+      });
+    }
+
+    if (isMockMode()) {
+      const mockUser = mockStore.users.get(email);
+      if (!mockUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const resetCode = crypto.randomInt(100000, 1000000).toString();
+      mockUser.passwordResetCode = await bcrypt.hash(resetCode, 10);
+      mockUser.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await sendVerificationEmail(email, resetCode);
+      return res.status(200).json({
+        message: "Password reset code sent to your email",
       });
     }
 
@@ -358,6 +401,26 @@ const verifyResetCode = async (req,res)=>{
     if(!email||!code){
       return res.status(400).json({
         message:"Email and reset code are required",
+      });
+    }
+
+    if (isMockMode()) {
+      const mockUser = mockStore.users.get(email);
+      if (!mockUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (!mockUser.passwordResetCode) {
+        return res.status(400).json({ message: "No password reset request found" });
+      }
+      if (!mockUser.passwordResetExpires || mockUser.passwordResetExpires < new Date()) {
+        return res.status(400).json({ message: "Password reset code is expired" });
+      }
+      const isCodeCorrect = await bcrypt.compare(code, mockUser.passwordResetCode);
+      if (!isCodeCorrect) {
+        return res.status(400).json({ message: "Invalid password reset code" });
+      }
+      return res.status(200).json({
+        message: "Password reset code is valid",
       });
     }
 
@@ -422,6 +485,21 @@ const resetPassword = async (req,res)=>{
       return res.status(400).json({
         message:"Password must be at least 8 characters"
       });
+    }
+
+    if (isMockMode()) {
+      const mockUser = mockStore.users.get(email);
+      if (!mockUser) return res.status(404).json({ message: "User not found" });
+      if (!mockUser.passwordResetCode) return res.status(400).json({ message: "No password reset request found" });
+      if (!mockUser.passwordResetExpires || mockUser.passwordResetExpires < new Date()) {
+        return res.status(400).json({ message: "Password reset code expired" });
+      }
+      const isCodeCorrect = await bcrypt.compare(code, mockUser.passwordResetCode);
+      if (!isCodeCorrect) return res.status(400).json({ message: "Invalid password reset code" });
+      mockUser.password = await bcrypt.hash(newPassword, 10);
+      mockUser.passwordResetCode = null;
+      mockUser.passwordResetExpires = null;
+      return res.status(200).json({ message: "Password reset successful" });
     }
 
     const user = await User.findOne({ email });

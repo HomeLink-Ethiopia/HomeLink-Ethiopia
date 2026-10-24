@@ -102,10 +102,31 @@ const requestViewing = async (req, res) => {
 const getTenantViewings = async (req, res) => {
     try {
         if (isMockMode()) {
-            if (!mockStore.viewings) mockStore.viewings = [];
-            let list = mockStore.viewings.filter(v => String(v.tenantId) === String(req.user.id));
+            if (!mockStore.viewings || mockStore.viewings.length === 0) {
+                mockStore.viewings = [
+                    {
+                        _id: "viewing-mock-1",
+                        propertyId: {
+                            _id: "prop-1",
+                            title: "Luxury 2 Bedroom Apartment in Bole",
+                            location: { city: "Addis Ababa", subCity: "Bole" },
+                            rentAmount: 35000,
+                            images: ["/homes/modern-villa.png"]
+                        },
+                        tenantId: req.user?.id || req.user?.userId || "mock-user-tenant",
+                        landlordId: "mock-landlord-1",
+                        date: "2026-10-30T10:00:00Z",
+                        requestedSlots: ["2026-10-30T10:00:00Z"],
+                        confirmedSlot: "2026-10-30T10:00:00Z",
+                        status: "confirmed",
+                        tenantNote: "Looking forward to seeing the property.",
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+            }
+            let list = mockStore.viewings.filter(v => String(v.tenantId) === String(req.user?.id || req.user?.userId));
             if (list.length === 0 && mockStore.viewings.length > 0) {
-                list = mockStore.viewings.map(v => ({ ...v, tenantId: req.user.id }));
+                list = mockStore.viewings.map(v => ({ ...v, tenantId: req.user?.id || req.user?.userId }));
             }
             return res.status(200).json({ success: true, data: list, viewings: list });
         }

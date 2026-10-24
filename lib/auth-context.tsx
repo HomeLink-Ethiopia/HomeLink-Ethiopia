@@ -95,7 +95,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userId) {
         const dbUser = getUserById(userId)
         if (dbUser) {
-          setUser(dbUserToUser(dbUser))
+          const userObj = dbUserToUser(dbUser)
+          setUser(userObj)
+          if (typeof window !== 'undefined' && !localStorage.getItem('hl_token')) {
+            localStorage.setItem('hl_token', `dev_mock_jwt_token_${userObj.role}`)
+            localStorage.setItem('hl_user', JSON.stringify(userObj))
+          }
         } else {
           setSessionCookie(null, null)
         }
@@ -158,6 +163,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userObj = dbUserToUser(result.user)
         setUser(userObj)
         setSessionCookie(result.user.id, result.user.role)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hl_token', `dev_mock_jwt_token_${result.user.role}`)
+          localStorage.setItem('hl_user', JSON.stringify(userObj))
+        }
         router.push(ROLE_HOME[result.user.role])
         return { success: true }
       }

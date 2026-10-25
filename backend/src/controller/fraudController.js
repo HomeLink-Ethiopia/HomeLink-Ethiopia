@@ -5,6 +5,7 @@ const Property = require('../models/Property');
 
 const User = require('../models/User');
 const LandlordProfile = require('../models/LandlordProfile');
+const { isMockMode, mockStore } = require('../config/db');
 
 // Real Risk Evaluation Engine combining heuristic signals + AI Score
 const evaluateRiskSignals = async (reportData) => {
@@ -127,6 +128,31 @@ const reportFraud = async (req, res) => {
             evidenceKeys
         });
 
+        if (isMockMode()) {
+            const report = {
+                _id: 'mock-fraud-' + Date.now(),
+                reportedBy: req.user?.firstName ? { _id: req.user.id, firstName: req.user.firstName, lastName: req.user.lastName } : req.user.id,
+                reportedPropertyId,
+                reportedUserId,
+                category,
+                description,
+                evidenceKeys,
+                aiRiskScore: riskAssessment.score,
+                aiRiskLevel: riskAssessment.level,
+                aiSignals: riskAssessment.signals,
+                status: 'open',
+                history: [{
+                    status: 'open',
+                    note: `Report filed. AI Risk Assessed as ${riskAssessment.level}.`,
+                    at: new Date().toISOString()
+                }],
+                createdAt: new Date().toISOString()
+            };
+            if (!mockStore.fraudReports) mockStore.fraudReports = [];
+            mockStore.fraudReports.unshift(report);
+            return res.status(201).json({ message: "Report submitted successfully.", reportId: report._id, riskLevel: riskAssessment.level });
+        }
+
         // 2. Save the report
         const report = await FraudReport.create({
             reportedBy,
@@ -152,20 +178,91 @@ const reportFraud = async (req, res) => {
 
 const getAdminReports = async (req, res) => {
     try {
+        if (isMockMode()) {
+            const reports = mockStore.fraudReports || [];
+            return res.status(200).json({ data: reports });
+        }
+
         // Fetch open/under_review reports, sorted by Risk Score descending (Highest Risk First)
-        const reports = await FraudReport.find({ status: { $in: ['open', 'under_review'] } })
+        const reports = await FraudReport.find()
             .populate('reportedBy', 'firstName lastName')
             .populate('reportedPropertyId', 'title')
             .populate('reportedUserId', 'firstName lastName')
             .sort({ aiRiskScore: -1 });
 
-        res.status(200).json(reports);
+        res.status(200).json({ data: reports });
     } catch (error) {
         res.status(500).json({ message: "Server error" });
     }
 };
 
+const reviewFraudReport = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, adminNotes } = req.body;
+
+        if (isMockMode()) {
+            const report = (mockStore.fraudReports || []).find(r => String(r._id) === String(id));
+            if (!report) return res.status(404).json({ message: "Fraud report not found" });
+
+            report.status = status || report.status;
+            if (adminNotes !== undefined) report.adminNotes = adminNotes;
+            if (!report.history) report.history = [];
+            report.history.push({
+                status: report.status,
+                note: adminNotes || `Admin marked report as ${report.status}`,
+                at: new Date().toISOString()
+            });
+
+            return res.status(200).json({ message: "Report reviewed successfully", data: report });
+        }
+
+        const report = await FraudReport.findById(id);
+        if (!report) return res.status(404).json({ message: "Fraud report not found" });
+
+        report.status = status || report.status;
+        if (adminNotes !== undefined) report.adminNotes = adminNotes;
+        report.history.push({
+            status: report.status,
+            note: adminNotes || `Admin marked report as ${report.status}`,
+            at: new Date()
+        });
+        await report.save();
+
+        res.status(200).json({ message: "Report reviewed successfully", data: report });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+const getPropertyRiskScore = async (req, res) => {
+    try {
+        const { id } = req.params;
+        let property = null;
+
+        if (isMockMode()) {
+            property = (mockStore.properties || []).find(p => String(p._id) === String(id) || String(p.id) === String(id));
+        } else {
+            property = await Property.findById(id);
+        }
+
+        if (!property) {
+            return res.status(200).json({ data: { score: 0.15, level: 'LOW', signals: ['unindexed_listing'] } });
+        }
+
+        const score = property.fraudRiskScore != null ? property.fraudRiskScore : 0.15;
+        const level = property.riskLevel || (score >= 0.6 ? 'HIGH' : score >= 0.3 ? 'MEDIUM' : 'LOW');
+        const signals = property.redFlags && property.redFlags.length > 0 ? property.redFlags : ['price_in_normal_range', 'verified_landlord_account'];
+
+        return res.status(200).json({ data: { score, level, signals } });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
 module.exports = {
     reportFraud,
-    getAdminReports
+    getAdminReports,
+    reviewFraudReport,
+    getPropertyRiskScore
 };

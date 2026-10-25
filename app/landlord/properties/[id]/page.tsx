@@ -428,7 +428,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                     {property.listingStatus === 'active' ? 'Deactivate' : property.listingStatus === 'reserved' ? 'Mark Available' : 'Mark Available'} ▾
                   </button>
                   {statusMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-white rounded-lg border border-charcoal/10 shadow-lg py-1 z-10">
+                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-white rounded-lg border border-charcoal/15 shadow-xl py-1 z-30">
                       {Object.entries(STATUS_MAP).map(([key, config]) => (
                         <button
                           key={key}

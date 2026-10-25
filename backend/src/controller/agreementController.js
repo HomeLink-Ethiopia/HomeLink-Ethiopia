@@ -292,6 +292,23 @@ const terminateAgreement = async (req, res) => {
         const role = req.user.role;
         const userId = req.user.id;
 
+        if (isMockMode()) {
+            const agreement = mockFindAgreement(id);
+            if (!agreement) return res.status(404).json({ message: "Agreement not found" });
+            agreement.status = "terminated";
+            agreement.terminationDate = new Date().toISOString();
+            agreement.terminationReason = terminationReason || "Terminated by user";
+            agreement.terminatedBy = role;
+            const otherId = role === 'tenant' ? ((agreement.landlordId && agreement.landlordId._id) || agreement.landlordId) : ((agreement.tenantId && agreement.tenantId._id) || agreement.tenantId);
+            await createNotification(
+                otherId, 'agreement_terminated', 'Agreement Terminated',
+                `The rental agreement for ${(agreement.propertyId && agreement.propertyId.title) || 'property'} has been terminated by the ${role}.`,
+                'RentalAgreement', agreement._id
+            );
+            if (typeof persistMockData === 'function') persistMockData();
+            return res.status(200).json({ message: "Agreement terminated successfully", agreement });
+        }
+
         const agreement = await RentalAgreement.findById(id).populate('propertyId', 'title');
         if (!agreement) return res.status(404).json({ message: "Agreement not found" });
 

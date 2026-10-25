@@ -41,34 +41,86 @@ export interface PropertyFilters {
   minPrice?: number
   maxPrice?: number
   beds?: number
+  baths?: number
+  propertyType?: string
+  furnished?: boolean
   verifiedOnly?: boolean
+  amenities?: string[]
+  sort?: string
+  page?: number
+  limit?: number
+  query?: string
+}
+
+export interface SearchPropertiesResult {
+  properties: Property[]
+  total: number
+  pages: number
+  page: number
 }
 
 // Map API response (MongoDB) to frontend Property type
 export function mapApiProperty(raw: any): Property {
   const loc = raw.location || {}
-  const subCity = loc.subCity || 'Unknown'
+  const subCity = loc.subCity || loc.neighborhood || 'Bole'
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+  // Only use real landlord-uploaded photos — do not show fake stock images
+  let image = ''
+  if (raw.images && raw.images.length > 0) {
+    const primary = raw.images.find((img: any) => img.isPrimary) || raw.images[0]
+    const u = typeof primary === 'string' ? primary : primary?.url
+    if (u) {
+      image = u.startsWith('/uploads') ? `${API_URL}${u}` : u
+    }
+  }
+
+  // Real coordinates from neighborhood or DB coordinates
+  let lat = raw.location?.coordinates?.coordinates?.[1] ?? raw.location?.coordinates?.[1]
+  let lng = raw.location?.coordinates?.coordinates?.[0] ?? raw.location?.coordinates?.[0]
+  if (!lat || !lng || (lat === 9.03 && lng === 38.7578)) {
+    const neighborhoodCoords: Record<string, [number, number]> = {
+      Bole: [9.0084, 38.7913],
+      Kazanchis: [9.0227, 38.7621],
+      CMC: [9.0522, 38.8067],
+      Saris: [8.9806, 38.7756],
+      Yeka: [9.0392, 38.8125],
+      Piassa: [9.0340, 38.7460],
+      Merkato: [9.0170, 38.7480],
+      'Arat Kilo': [9.0380, 38.7610],
+      'Old Airport': [8.9920, 38.7350],
+      Mekanissa: [8.9880, 38.7200],
+    }
+    const center = neighborhoodCoords[subCity] || [9.02, 38.75]
+    lat = center[0]
+    lng = center[1]
+  }
+
   return {
-    id: raw._id,
+    id: raw._id || raw.id,
     title: raw.title,
     neighborhood: subCity as any,
     priceEtb: raw.rentAmount || 0,
     beds: raw.bedrooms || 0,
     baths: raw.bathrooms || 0,
     sizeSqm: raw.sizeM2 || 0,
-    rating: raw.fraudRiskScore ? Math.max(1, 5.0 - raw.fraudRiskScore * 3) : 4.5,
+    rating: raw.fraudRiskScore ? Math.max(1, 5.0 - raw.fraudRiskScore * 0.2) : 4.8,
     fraudRiskScore: raw.fraudRiskScore,
-    riskLevel: raw.riskLevel || (raw.fraudRiskScore > 0.7 ? 'high' : raw.fraudRiskScore > 0.4 ? 'medium' : 'low'),
+    riskLevel: raw.riskLevel || 'low',
     redFlags: raw.redFlags || [],
-    reviewCount: Math.floor(Math.random() * 30) + 5,
+    reviewCount: 0,
     verified: raw.verificationStatus === 'verified',
-    image: raw.images?.[0]?.url || '/images/placeholder.jpg',
-    lat: raw.location?.coordinates?.coordinates?.[1] || 9.0084,
-    lng: raw.location?.coordinates?.coordinates?.[0] || 38.7913,
+    image,
+    lat,
+    lng,
     description: raw.description,
     propertyType: raw.propertyType,
     amenities: raw.amenities,
-    images: raw.images?.map((img: any) => img.url) || [],
+    images: (raw.images || []).map((img: any) => {
+      const u = typeof img === 'string' ? img : img.url
+      return u && u.startsWith('/uploads') ? `${API_URL}${u}` : u
+    }).filter(Boolean),
     landlordId: raw.landlordId,
     status: raw.listingStatus,
     createdAt: raw.createdAt,
@@ -76,44 +128,55 @@ export function mapApiProperty(raw: any): Property {
   }
 }
 
-async function fetchPropertiesFromAPI(filters: PropertyFilters = {}): Promise<Property[]> {
+export async function searchProperties(filters: PropertyFilters = {}): Promise<SearchPropertiesResult> {
   try {
     const params = new URLSearchParams()
-    if (filters.neighborhood) params.append('neighborhood', filters.neighborhood)
+    if (filters.neighborhood && !filters.neighborhood.startsWith('__header')) {
+      params.append('neighborhood', filters.neighborhood)
+      params.append('subCity', filters.neighborhood)
+    }
     if (filters.city) params.append('city', filters.city)
-    if (filters.minPrice) params.append('minPrice', String(filters.minPrice))
-    if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
-    if (filters.beds) params.append('beds', String(filters.beds))
+    if (filters.propertyType) params.append('propertyType', filters.propertyType)
+    if (filters.minPrice !== undefined && filters.minPrice !== null) params.append('minPrice', String(filters.minPrice))
+    if (filters.maxPrice !== undefined && filters.maxPrice !== null) params.append('maxPrice', String(filters.maxPrice))
+    if (filters.beds !== undefined && filters.beds !== null) {
+      params.append('beds', String(filters.beds))
+      params.append('bedrooms', String(filters.beds))
+    }
+    if (filters.baths !== undefined && filters.baths !== null) {
+      params.append('baths', String(filters.baths))
+      params.append('bathrooms', String(filters.baths))
+    }
+    if (filters.furnished !== undefined) params.append('furnished', String(filters.furnished))
     if (filters.verifiedOnly) params.append('verifiedOnly', 'true')
+    if (filters.sort) params.append('sort', filters.sort)
+    if (filters.page) params.append('page', String(filters.page))
+    if (filters.limit) params.append('limit', String(filters.limit))
+    if (filters.query) params.append('query', filters.query)
 
     const query = params.toString()
-    const endpoint = query ? `/api/public/properties?${query}` : '/api/public/properties'
+    const endpoint = query ? `/api/v1/properties/search?${query}` : '/api/v1/properties/search'
 
-    const response = await get<{ data: any[] }>(endpoint)
-    const rawProperties = response.data.data || []
-    return rawProperties.map(mapApiProperty)
+    const response = await get<{ data: any[]; pagination?: any }>(endpoint)
+    const rawProperties = response.data?.data || []
+    const pagination = response.data?.pagination || {}
+    const properties = rawProperties.map(mapApiProperty)
+
+    return {
+      properties,
+      total: typeof pagination.total === 'number' ? pagination.total : properties.length,
+      pages: typeof pagination.totalPages === 'number' ? pagination.totalPages : 1,
+      page: typeof pagination.page === 'number' ? pagination.page : 1,
+    }
   } catch (error) {
-    console.error('Failed to fetch properties from API:', error)
-    return fetchPropertiesMock(filters)
+    console.error('Failed to search properties from API:', error)
+    return { properties: [], total: 0, pages: 1, page: 1 }
   }
-}
-
-function fetchPropertiesMock(filters: PropertyFilters = {}): Property[] {
-  let results = PROPERTIES
-  if (filters.neighborhood) results = results.filter((p) => p.neighborhood === filters.neighborhood)
-  if (filters.city) results = results.filter((p) => p.neighborhood === filters.city)
-  if (filters.minPrice) results = results.filter((p) => p.priceEtb >= filters.minPrice!)
-  if (filters.maxPrice) results = results.filter((p) => p.priceEtb <= filters.maxPrice!)
-  if (filters.beds) results = results.filter((p) => p.beds >= filters.beds!)
-  if (filters.verifiedOnly) results = results.filter((p) => p.verified)
-  return results
 }
 
 export async function fetchProperties(filters: PropertyFilters = {}): Promise<Property[]> {
-  if (!MOCK_MODE) {
-    return fetchPropertiesFromAPI(filters)
-  }
-  return delay(fetchPropertiesMock(filters), 400)
+  const result = await searchProperties(filters)
+  return result.properties
 }
 
 async function fetchPropertyFromAPI(id: string): Promise<Property | null> {
@@ -528,8 +591,6 @@ export async function fetchAIRecommendations(
   }
   return []
 }
-
-export { fetchProperties as searchProperties };
 
 export interface AiMatch {
   propertyId: string;

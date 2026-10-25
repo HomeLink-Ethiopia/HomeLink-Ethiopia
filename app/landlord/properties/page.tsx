@@ -269,7 +269,7 @@ export default function PropertiesPage() {
               const isDeleting = actionLoading === property._id
 
               return (
-                <div key={property._id} className="bg-white rounded-xl border border-charcoal/10 hover:shadow-md transition-shadow overflow-hidden">
+                <div key={property._id} className="bg-white rounded-xl border border-charcoal/10 hover:shadow-md transition-shadow">
                   <div className="p-5">
                     <div className="flex items-start gap-4">
                       {/* Image Thumbnail */}
@@ -339,7 +339,7 @@ export default function PropertiesPage() {
                           <button className="px-3 py-1.5 rounded-lg border border-charcoal/10 text-xs font-medium text-charcoal/60 hover:bg-charcoal/5 transition-colors w-full">
                             Status ▾
                           </button>
-                          <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-charcoal/10 shadow-lg py-1 z-10 hidden group-hover:block">
+                          <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-charcoal/15 shadow-xl py-1 z-30 hidden group-hover:block">
                             {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                               <button
                                 key={key}

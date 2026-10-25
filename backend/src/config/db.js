@@ -44,7 +44,10 @@ const loadMockUsers = () => {
     if (fs.existsSync(MOCK_USERS_FILE)) {
       const entries = JSON.parse(fs.readFileSync(MOCK_USERS_FILE, "utf8"));
       for (const [email, user] of entries) {
-        if (!mockStore.users.has(email)) mockStore.users.set(email, user);
+        const norm = (email || "").toLowerCase().trim();
+        user.email = norm;
+        user.emailVerified = true;
+        mockStore.users.set(norm, user);
       }
       console.log(`[MOCK DB] restored ${entries.length} persisted user(s) from mock-users.json`);
     }
@@ -311,6 +314,75 @@ const mockStore = {
       ],
       landlordId: "mock-landlord-1",
       createdAt: new Date()
+    },
+    {
+      _id: "66d1f801e12a4b001a555555",
+      title: "Affordable 1BR Apartment in Saris",
+      description: "Cozy and convenient 1-bedroom apartment close to the light rail station, with 24/7 water reservoir and secure access.",
+      propertyType: "apartment",
+      rentAmount: 9500,
+      bedrooms: 1,
+      bathrooms: 1,
+      sizeM2: 45,
+      furnished: false,
+      location: { city: "Addis Ababa", subCity: "Saris", neighborhood: "Abo Mazoriya" },
+      amenities: ["water_tank", "security"],
+      listingStatus: "active",
+      verificationStatus: "verified",
+      fraudRiskScore: 2,
+      riskLevel: "low",
+      redFlags: [],
+      images: [
+        { key: "saris-apt-1.jpg", url: "/uploads/homes/apartment-tower.png", isPrimary: true }
+      ],
+      landlordId: "mock-landlord-1",
+      createdAt: new Date(Date.now() - 3600000)
+    },
+    {
+      _id: "66d1f801e12a4b001a666666",
+      title: "Modern 2BR Flat in Yeka",
+      description: "Well-lit 2-bedroom flat with ceramic tiles, open kitchen, and balcony overlooking mountain views in Yeka.",
+      propertyType: "apartment",
+      rentAmount: 14000,
+      bedrooms: 2,
+      bathrooms: 1,
+      sizeM2: 70,
+      furnished: false,
+      location: { city: "Addis Ababa", subCity: "Yeka", neighborhood: "Signal Area" },
+      amenities: ["water_tank", "wifi", "parking"],
+      listingStatus: "active",
+      verificationStatus: "verified",
+      fraudRiskScore: 3,
+      riskLevel: "low",
+      redFlags: [],
+      images: [
+        { key: "yeka-flat-1.jpg", url: "/uploads/homes/compound-house.png", isPrimary: true }
+      ],
+      landlordId: "mock-landlord-1",
+      createdAt: new Date(Date.now() - 7200000)
+    },
+    {
+      _id: "66d1f801e12a4b001a777777",
+      title: "Comfortable 2BR Apartment in Bole",
+      description: "Modern 2-bedroom apartment in Bole Bulbula with backup generator, water tanker, and dedicated parking.",
+      propertyType: "apartment",
+      rentAmount: 22000,
+      bedrooms: 2,
+      bathrooms: 1,
+      sizeM2: 80,
+      furnished: true,
+      location: { city: "Addis Ababa", subCity: "Bole", neighborhood: "Bole Bulbula" },
+      amenities: ["generator", "water_tank", "parking", "security"],
+      listingStatus: "active",
+      verificationStatus: "verified",
+      fraudRiskScore: 3,
+      riskLevel: "low",
+      redFlags: [],
+      images: [
+        { key: "bole-bulbula-1.jpg", url: "/uploads/homes/apartment-tower.png", isPrimary: true }
+      ],
+      landlordId: "mock-landlord-1",
+      createdAt: new Date(Date.now() - 10800000)
     }
   ]
 };
@@ -326,7 +398,72 @@ mockStore.viewings.push(
   { _id: "mock-viewing-1", propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole", location: { subCity: "Bole" } }, tenantId: { _id: "mock-user-seed-1", firstName: "Hanna", lastName: "Tesfaye" }, landlordId: "mock-landlord-1", requestedSlots: [{ date: new Date(Date.now() + 2 * 86400000).toISOString(), startTime: "10:00" }], preferredDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), preferredTime: "10:00", tenantNote: "Coming with my sister, is parking available?", status: "requested", createdAt: new Date().toISOString() },
 );
 mockStore.applications.push(
-  { _id: "mock-application-1", propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole", rentAmount: 42000 }, tenantId: "mock-user-seed-1", landlordId: "mock-landlord-1", status: "under_review", employmentStatus: "Employed", monthlyIncome: 25000, createdAt: new Date(Date.now() - 86400000).toISOString() },
+  {
+    _id: "mock-application-1",
+    propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole", rentAmount: 42000 },
+    tenantId: "mock-user-seed-1",
+    landlordId: "mock-landlord-1",
+    status: "under_review",
+    fullName: "Hanna Tesfaye",
+    phone: "+251911223344",
+    email: "hanna.tesfaye@example.com",
+    employmentStatus: "Employed",
+    monthlyIncome: 35000,
+    monthlyIncomeEtb: 35000,
+    religion: "Orthodox Christian",
+    maritalStatus: "single",
+    smokingHabit: "non_smoker",
+    alcoholHabit: "non_drinker",
+    numberOfOccupants: 1,
+    durationMonths: 12,
+    hasPets: false,
+    quietHoursAgreed: true,
+    previousLandlordName: "Ato Bekele Tadesse",
+    previousLandlordPhone: "+251911445566",
+    previousRentalDuration: "2 years in CMC",
+    reasonForMoving: "Closer to work at Bole Medhanialem",
+    tenantBehaviorScore: 4.9,
+    tenantReviewsCount: 3,
+    tenantReviewBadges: ["Punctual Payer", "Quiet & Respectful", "Clean Property", "ID Verified"],
+    supportingDocuments: [
+      { documentType: "kebele_id", docType: "kebele_id", fileKey: "/uploads/document-1792929775913-604211682.png", originalName: "Kebele_ID_Hanna.pdf" },
+      { documentType: "proof_of_income", docType: "proof_of_income", fileKey: "/uploads/document-1792929775913-604211682.png", originalName: "Commercial_Bank_Payslip.pdf" }
+    ],
+    createdAt: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    _id: "mock-application-2",
+    propertyId: { _id: "66d1f801e12a4b001a222222", title: "Spacious 3BR Villa in CMC", rentAmount: 55000 },
+    tenantId: "mock-user-seed-2",
+    landlordId: "mock-landlord-1",
+    status: "submitted",
+    fullName: "Dawit & Rahel Haile",
+    phone: "+251912345678",
+    email: "dawit.haile@ethiopia.com",
+    employmentStatus: "Employed",
+    monthlyIncome: 85000,
+    monthlyIncomeEtb: 85000,
+    religion: "Protestant",
+    maritalStatus: "family_with_kids",
+    smokingHabit: "non_smoker",
+    alcoholHabit: "non_drinker",
+    numberOfOccupants: 4,
+    durationMonths: 24,
+    hasPets: false,
+    quietHoursAgreed: true,
+    previousLandlordName: "W/ro Almaz G/Medhin",
+    previousLandlordPhone: "+251913998877",
+    previousRentalDuration: "3 years in Gerji",
+    reasonForMoving: "Children enrolled in school nearby in CMC",
+    tenantBehaviorScore: 5.0,
+    tenantReviewsCount: 4,
+    tenantReviewBadges: ["Long-term Stable", "Zero Late Payments", "Exemplary Upkeep"],
+    supportingDocuments: [
+      { documentType: "kebele_id", docType: "kebele_id", fileKey: "/uploads/document-1792929775913-604211682.png", originalName: "Family_National_IDs.pdf" },
+      { documentType: "proof_of_income", docType: "proof_of_income", fileKey: "/uploads/document-1792929775913-604211682.png", originalName: "Employment_Verification_Letter.pdf" }
+    ],
+    createdAt: new Date(Date.now() - 2 * 86400000).toISOString()
+  }
 );
 mockStore.maintenance.push(
   { _id: "mock-maintenance-1", propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole" }, tenantId: "mock-user-seed-1", landlordId: "mock-landlord-1", issue: "Kitchen faucet dripping", description: "Hot water tap drips continuously.", priority: "medium", status: "in_progress", createdAt: new Date(Date.now() - 2 * 86400000).toISOString(), updates: [{ note: "Plumber scheduled for Thursday.", at: new Date().toISOString() }] },

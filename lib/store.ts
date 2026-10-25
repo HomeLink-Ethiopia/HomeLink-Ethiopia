@@ -47,22 +47,40 @@ export const useUIStore = create<UIState>((set) => ({
 // Favorites / Saved Properties
 // ---------------------------------------------------------------------------
 
-const FAVORITES_KEY = 'hl_favorites'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-function loadFavorites(): Set<string> {
+function getCurrentUserId(): string {
+  if (typeof window === 'undefined') return 'guest'
+  try {
+    const raw = localStorage.getItem('hl_user')
+    if (raw) {
+      const u = JSON.parse(raw)
+      return u.id || u._id || 'guest'
+    }
+  } catch { /* ignore */ }
+  return 'guest'
+}
+
+function getFavoritesKey(userId?: string): string {
+  const uid = userId || getCurrentUserId()
+  return `hl_favorites_${uid}`
+}
+
+function loadFavorites(userId?: string): Set<string> {
   if (typeof window === 'undefined') return new Set()
   try {
-    const raw = localStorage.getItem(FAVORITES_KEY)
+    const key = getFavoritesKey(userId)
+    const raw = localStorage.getItem(key)
     if (raw) return new Set(JSON.parse(raw) as string[])
   } catch { /* ignore */ }
   return new Set()
 }
 
-function persistFavorites(favs: Set<string>) {
+function persistFavorites(favs: Set<string>, userId?: string) {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favs]))
+    const key = getFavoritesKey(userId)
+    localStorage.setItem(key, JSON.stringify([...favs]))
   } catch { /* ignore */ }
 }
 
@@ -71,10 +89,10 @@ function syncFavoriteWithBackend(propertyId: string, saved: boolean) {
   if (typeof window === 'undefined') return
   const token = localStorage.getItem('hl_token')
   if (!token) return
-  fetch(`${API_URL}/api/v1/favorites/${propertyId}`, {
+  fetch(`${API_URL}/api/v1/properties/${propertyId}/favourite`, {
     method: saved ? 'POST' : 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
-  }).catch(() => { /* endpoint may not exist yet — local persistence still works */ })
+  }).catch(() => { /* local persistence still works */ })
 }
 
 interface FavoritesState {
@@ -82,15 +100,18 @@ interface FavoritesState {
   hydrated: boolean
   toggleFavorite: (propertyId: string) => void
   isFavorite: (propertyId: string) => boolean
-  hydrate: () => void
+  hydrate: (userId?: string) => void
+  resetFavorites: () => void
 }
 
 export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   favorites: new Set<string>(),
   hydrated: false,
-  hydrate: () => {
-    if (get().hydrated) return
-    set({ favorites: loadFavorites(), hydrated: true })
+  hydrate: (userId?: string) => {
+    set({ favorites: loadFavorites(userId), hydrated: true })
+  },
+  resetFavorites: () => {
+    set({ favorites: new Set<string>(), hydrated: false })
   },
   toggleFavorite: (propertyId) =>
     set((s) => {

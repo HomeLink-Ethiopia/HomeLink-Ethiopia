@@ -18,20 +18,27 @@ interface HomeJourneyTrackerProps {
 }
 
 export default function HomeJourneyTracker({ currentStepIndex }: HomeJourneyTrackerProps) {
-  const progressPercent = (currentStepIndex / (STEPS.length - 1)) * 100
+  const clampedIndex = Math.min(Math.max(0, currentStepIndex), STEPS.length - 1)
+  const progressRatio = clampedIndex / (STEPS.length - 1)
 
   return (
-    <div>
+    <div className="relative overflow-hidden">
       <div className="relative flex items-start justify-between">
-        <div className="absolute left-0 right-0 top-5 h-0.5 bg-charcoal/10" aria-hidden />
-        <motion.div
-          className="absolute left-0 top-5 h-0.5 origin-left bg-rust"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: progressPercent / 100 }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-          style={{ width: '100%' }}
+        {/* Track line perfectly bounded between step 0 center (10%) and step 4 center (90%) */}
+        <div
+          className="absolute top-5 h-0.5 bg-charcoal/10"
+          style={{ left: '10%', right: '10%' }}
           aria-hidden
-        />
+        >
+          <motion.div
+            className="h-full bg-rust origin-left"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: progressRatio }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+            style={{ width: '100%' }}
+            aria-hidden
+          />
+        </div>
 
         {STEPS.map((step, i) => {
           const isDone = i < currentStepIndex

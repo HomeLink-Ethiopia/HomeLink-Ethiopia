@@ -553,7 +553,7 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
   }, [saveName, autoSearchName, currentSearchParams])
 
   return (
-    <div className="relative flex flex-col h-[calc(100vh-4rem)]">
+    <div className="relative flex flex-col h-[calc(100vh-4rem)] w-full overflow-x-hidden">
       {/* Saved-search toast */}
       {saveToast && (
         <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full bg-charcoal px-5 py-2.5 text-sm font-medium text-cream shadow-lg">
@@ -823,10 +823,10 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
       </div>
 
       {/* Results Count */}
-      <div className="border-b border-charcoal/10 bg-cream/50 px-4 py-2 sm:px-6">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm text-charcoal/70">
-            <span className="font-semibold text-charcoal">{totalResults} verified homes</span> found · Showing {totalResults > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, totalResults)}
+      <div className="border-b border-charcoal/10 bg-cream/50 px-4 py-2.5 sm:px-6 w-full">
+        <div className="mx-auto max-w-7xl flex items-center justify-between">
+          <p className="text-xs sm:text-sm text-charcoal/70">
+            <span className="font-semibold text-charcoal">{totalResults} verified {totalResults === 1 ? 'home' : 'homes'}</span> listed by landlords · Showing {totalResults > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}–{Math.min(currentPage * itemsPerPage, totalResults)} of {totalResults}
           </p>
         </div>
       </div>
@@ -920,15 +920,29 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                       : 'border-charcoal/10 shadow-sm hover:shadow-md'
                   }`}
                 >
-                  {/* Property Image */}
-                  <div className="relative h-32 w-40 shrink-0 overflow-hidden rounded-lg">
-                    <Image src={property.image} alt={property.title} fill sizes="160px" className="object-cover" />
-                    {property.verified && (
-                      <span className="absolute left-2 top-2 rounded bg-verified px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                        Verified
-                      </span>
-                    )}
-                  </div>
+                  {/* Property Image or Property Icon */}
+                  {property.image ? (
+                    <div className="relative h-32 w-40 shrink-0 overflow-hidden rounded-lg bg-sand/40">
+                      <Image src={property.image} alt={property.title} fill sizes="160px" className="object-cover" />
+                      {property.verified && (
+                        <span className="absolute left-2 top-2 rounded bg-verified px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="relative flex h-32 w-40 shrink-0 flex-col items-center justify-center rounded-lg bg-sand/60 text-charcoal/40 border border-charcoal/8">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-8 w-8 text-rust/60">
+                        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span className="mt-1 text-[11px] font-medium text-charcoal/60 capitalize">{property.propertyType || 'Residence'}</span>
+                      {property.verified && (
+                        <span className="absolute left-2 top-2 rounded bg-verified px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Property Details */}
                   <div className="flex min-w-0 flex-1 flex-col justify-between">
@@ -939,6 +953,16 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                       <p className="mt-0.5 text-sm text-charcoal/60">
                         {property.neighborhood}
                       </p>
+                      {property.landlordId && (
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-charcoal/70">
+                          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5 text-rust shrink-0">
+                            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <span className="truncate">
+                            Listed by <strong className="font-semibold text-charcoal">{typeof property.landlordId === 'object' && (property.landlordId as any).legalName ? (property.landlordId as any).legalName : 'Verified Landlord'}</strong>
+                          </span>
+                        </p>
+                      )}
                     </div>
 
                     <div>

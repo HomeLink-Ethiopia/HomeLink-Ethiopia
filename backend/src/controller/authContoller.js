@@ -4,7 +4,7 @@ const LandlordProfile = require("../models/LandlordProfile");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
-const { isMockMode, mockStore } = require("../config/db");
+const { isMockMode, mockStore, persistMockUsers, persistMockData } = require("../config/db");
 const { registerSchema } = require("../validators/authValidators");
 const { sendVerificationEmail } = require("../utils/emailService")
 
@@ -27,6 +27,7 @@ const registerUser = async (req, res) => {
       });
     }
 
+    const normalizedEmail = (email || "").trim().toLowerCase();
     const assignedRole = role === "landlord" ? "landlord" : "tenant";
     const verificationCode = crypto.randomInt(100000, 1000000).toString();
     const hashedVerificationCode = await bcrypt.hash(verificationCode, 10);
@@ -35,7 +36,7 @@ const registerUser = async (req, res) => {
 
     // ─── IN-MEMORY MOCK FALLBACK (OFFLINE DATABASE) ───
     if (isMockMode()) {
-      if (mockStore.users.has(email)) {
+      if (mockStore.users.has(normalizedEmail)) {
         return res.status(400).json({ message: "Email is already registered" });
       }
 
@@ -43,17 +44,18 @@ const registerUser = async (req, res) => {
         _id: "mock-user-" + Date.now(),
         firstName,
         lastName,
-        email,
+        email: normalizedEmail,
         phone,
         password: hashedPassword,
         role: assignedRole,
-        emailVerificationCode: hashedVerificationCode,
-        emailVerificationExpires: verificationExpires,
         identityStatus: "verified",
-        emailVerified: false,
+        emailVerified: true,
       };
 
-      mockStore.users.set(email, mockUser);
+      mockUser.emailVerificationCode = hashedVerificationCode;
+      mockUser.emailVerificationExpires = verificationExpires;
+
+      mockStore.users.set(normalizedEmail, mockUser);
 
       if (assignedRole === "landlord") {
         mockStore.landlordProfiles.set(mockUser._id, {
@@ -63,13 +65,26 @@ const registerUser = async (req, res) => {
           verificationStatus: "verified",
           verifiedPropertiesCount: 0
         });
+        if (typeof persistMockData === 'function') persistMockData();
       }
 
-      // Deliver verification email using configured Nodemailer SMTP
-      await sendVerificationEmail(email, verificationCode);
+      if (typeof persistMockUsers === 'function') persistMockUsers();
+
+      // Send real email with verification link
+      const verifyLink = `http://localhost:3000/verify-email?email=${encodeURIComponent(normalizedEmail)}&code=${verificationCode}`;
+      sendVerificationEmail(normalizedEmail, verificationCode, verifyLink).catch(err => {
+        console.warn("Async registration email error:", err.message);
+      });
+
+      const token = jwt.sign(
+        { id: mockUser._id, role: mockUser.role },
+        process.env.JWT_SECRET || "homelink_dev_secret_key_2026",
+        { expiresIn: "1d" }
+      );
 
       return res.status(201).json({
-        message: "User registered successfully. A verification code has been sent to your email.",
+        message: "User registered successfully",
+        token: token,
         user: {
           id: mockUser._id,
           firstName: mockUser.firstName,
@@ -78,13 +93,13 @@ const registerUser = async (req, res) => {
           phone: mockUser.phone,
           role: mockUser.role,
           identityStatus: mockUser.identityStatus,
-          emailVerified: false,
+          emailVerified: true,
         }
       });
     }
 
     // ─── MONGOOSE DATABASE MODE ───
-    const existingEmail = await User.findOne({ email });
+    const existingEmail = await User.findOne({ email: normalizedEmail });
 
     if (existingEmail) {
       return res.status(400).json({
@@ -103,13 +118,11 @@ const registerUser = async (req, res) => {
     const user = await User.create({
       firstName,
       lastName,
-      email,
+      email: normalizedEmail,
       phone,
       password: hashedPassword,
       role: assignedRole,
-      emailVerificationCode: hashedVerificationCode,
-      emailVerificationExpires: verificationExpires,
-      emailVerified: false,
+      emailVerified: true,
     });
 
     if (assignedRole === "landlord") {
@@ -123,11 +136,24 @@ const registerUser = async (req, res) => {
       }
     }
 
-    // Deliver verification email using configured Nodemailer SMTP
-    await sendVerificationEmail(email, verificationCode);
+    user.emailVerificationCode = hashedVerificationCode;
+    user.emailVerificationExpires = verificationExpires;
+    try { await user.save(); } catch (_) {}
+
+    const verifyLink = `http://localhost:3000/verify-email?email=${encodeURIComponent(normalizedEmail)}&code=${verificationCode}`;
+    sendVerificationEmail(normalizedEmail, verificationCode, verifyLink).catch(err => {
+      console.warn("Async registration email error:", err.message);
+    });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET || "homelink_dev_secret_key_2026",
+      { expiresIn: "1d" }
+    );
 
     res.status(201).json({
-      message: "User registered successfully. A verification code has been sent to your email.",
+      message: "User registered successfully",
+      token: token,
       user: {
         id: user._id,
         firstName: user.firstName,
@@ -136,7 +162,7 @@ const registerUser = async (req, res) => {
         phone: user.phone,
         role: user.role,
         identityStatus: user.identityStatus,
-        emailVerified: false,
+        emailVerified: true,
       },
     });
   } catch (error) {
@@ -158,13 +184,15 @@ const verifyEmail = async (req, res) => {
       });
     }
 
+    const normalizedEmail = (email || "").trim().toLowerCase();
+
     if (isMockMode()) {
-      const mockUser = mockStore.users.get(email);
+      const mockUser = mockStore.users.get(normalizedEmail);
       if (!mockUser) {
         return res.status(404).json({ message: "User not found" });
       }
       if (mockUser.emailVerified) {
-        return res.status(400).json({ message: "Email is already verified" });
+        return res.status(200).json({ message: "Email is already verified" });
       }
       if (mockUser.emailVerificationExpires && mockUser.emailVerificationExpires < new Date()) {
         return res.status(400).json({ message: "Verification code is expired" });
@@ -176,12 +204,13 @@ const verifyEmail = async (req, res) => {
       mockUser.emailVerified = true;
       mockUser.emailVerificationCode = null;
       mockUser.emailVerificationExpires = null;
+      if (typeof persistMockUsers === 'function') persistMockUsers();
       return res.status(200).json({
         message: "Email verified successfully",
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({
@@ -190,7 +219,7 @@ const verifyEmail = async (req, res) => {
     }
 
     if (user.emailVerified) {
-      return res.status(400).json({
+      return res.status(200).json({
         message: "Email is already verified",
       });
     }
@@ -246,34 +275,30 @@ const resendEmailCode = async (req, res) => {
       });
     }
 
+    const normalizedEmail = (email || "").trim().toLowerCase();
+
     if (isMockMode()) {
-      const mockUser = mockStore.users.get(email);
+      const mockUser = mockStore.users.get(normalizedEmail);
       if (!mockUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      if (mockUser.emailVerified) {
-        return res.status(400).json({ message: "Email already verified" });
-      }
       const verificationCode = crypto.randomInt(100000, 1000000).toString();
       mockUser.emailVerificationCode = await bcrypt.hash(verificationCode, 10);
-      mockUser.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
-      await sendVerificationEmail(email, verificationCode);
+      mockUser.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      if (typeof persistMockUsers === 'function') persistMockUsers();
+      const verifyLink = `http://localhost:3000/verify-email?email=${encodeURIComponent(normalizedEmail)}&code=${verificationCode}`;
+      await sendVerificationEmail(normalizedEmail, verificationCode, verifyLink);
       return res.status(200).json({
-        message: "A new verification code has been sent to your email",
+        message: "A verification email has been sent to your inbox",
+        verificationCode: process.env.NODE_ENV !== 'production' ? verificationCode : undefined,
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({
         message: "User not found",
-      });
-    }
-
-    if (user.emailVerified) {
-      return res.status(400).json({
-        message: "Email already verified",
       });
     }
 
@@ -287,7 +312,7 @@ const resendEmailCode = async (req, res) => {
     );
 
     const verificationExpires = new Date(
-      Date.now() + 10 * 60 * 1000
+      Date.now() + 24 * 60 * 60 * 1000
     );
 
     user.emailVerificationCode = hashedVerificationCode;
@@ -295,9 +320,11 @@ const resendEmailCode = async (req, res) => {
 
     await user.save();
 
+    const verifyLink = `http://localhost:3000/verify-email?email=${encodeURIComponent(normalizedEmail)}&code=${verificationCode}`;
     const emailSent = await sendVerificationEmail(
-      email,
-      verificationCode
+      normalizedEmail,
+      verificationCode,
+      verifyLink
     );
 
     if(!emailSent){
@@ -307,7 +334,7 @@ const resendEmailCode = async (req, res) => {
     }
 
     res.status(200).json({
-      message: "A new verification code has been sent to your email",
+      message: "A verification email has been sent to your inbox",
     });
   } catch (error) {
     console.error(
@@ -570,22 +597,12 @@ const loginUser = async (req, res) => {
       });
     }
 
+    const normalizedEmail = (email || "").trim().toLowerCase();
+
     if (isMockMode()) {
-      let mockUser = mockStore.users.get(email);
+      const mockUser = mockStore.users.get(normalizedEmail);
       if (!mockUser) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        mockUser = {
-          _id: "mock-user-" + Date.now(),
-          firstName: "Demo",
-          lastName: "User",
-          email,
-          phone: "0911223344",
-          password: hashedPassword,
-          role: email.toLowerCase().includes("landlord") ? "landlord" : "tenant",
-          emailVerified: true,
-          identityStatus: "verified"
-        };
-        mockStore.users.set(email, mockUser);
+        return res.status(401).json({ message: "Invalid email or password" });
       }
 
       const isPasswordCorrect = await bcrypt.compare(password, mockUser.password);
@@ -610,12 +627,12 @@ const loginUser = async (req, res) => {
           phone: mockUser.phone,
           role: mockUser.role,
           identityStatus: mockUser.identityStatus,
-          emailVerified: mockUser.emailVerified,
+          emailVerified: true,
         }
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(401).json({
@@ -640,12 +657,19 @@ const loginUser = async (req, res) => {
       });
     }
 
+    if (!user.emailVerified) {
+      user.emailVerified = true;
+      try {
+        await user.save();
+      } catch (_) {}
+    }
+
     const token = jwt.sign(
       {
         id: user._id,
         role: user.role,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "homelink_dev_secret_key_2026",
       {
         expiresIn: "1d",
       }
@@ -662,7 +686,7 @@ const loginUser = async (req, res) => {
         phone: user.phone,
         role: user.role,
         identityStatus: user.identityStatus,
-        emailVerified: user.emailVerified,
+        emailVerified: true,
       },
     });
   } catch (error) {

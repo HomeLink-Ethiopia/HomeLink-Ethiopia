@@ -1,31 +1,11 @@
 import type { Metadata } from 'next'
-import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { LanguageProvider } from '@/lib/language-context'
 import AutoTranslate from '@/lib/auto-translate'
 import ModalRoot from '@/components/modals/ModalRoot'
+import LeafletErrorGuard from '@/components/shared/LeafletErrorGuard'
 import RoleSwitcher from '@/components/RoleSwitcher'
-
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-fraunces',
-  weight: ['500', '600', '700'],
-  display: 'swap',
-})
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  variable: '--font-plex-mono',
-  weight: ['400', '500'],
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'HomeLink Ethiopia — A Trusted Digital Housing Platform',
@@ -39,14 +19,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
+    <html lang="en">
       <body className="font-sans">
         <LanguageProvider>
           <AuthProvider>
+            <LeafletErrorGuard />
             {children}
             <AutoTranslate />
             <ModalRoot />
-            {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
+            <RoleSwitcher />
           </AuthProvider>
         </LanguageProvider>
       </body>

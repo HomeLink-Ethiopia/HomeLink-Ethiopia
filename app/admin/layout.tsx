@@ -1,9 +1,8 @@
 import Sidebar from '@/components/admin/Sidebar'
-import AdminFooter from '@/components/admin/AdminFooter'
 
 /**
  * Layout for the entire /admin tree.
- * Sidebar is shared across all admin pages.
+ * Persistent left navigation rail with clean, full-height scrollable workspace.
  */
 export default function AdminLayout({
   children,
@@ -15,7 +14,6 @@ export default function AdminLayout({
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         {children}
-        <AdminFooter />
       </div>
     </div>
   )

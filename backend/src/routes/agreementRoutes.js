@@ -155,9 +155,11 @@ router.put('/:id/renewal/respond', authMiddleware, respondToRenewal);
 // Kept for backwards compatibility with the earlier landlord-only renew
 router.put('/:id/renew', authMiddleware, roleMiddleware('landlord'), renewAgreement);
 
-// Confirm a signature (tenant OR landlord) — POST and PUT /api/v1/agreements/:id/confirm
+// Confirm a signature (tenant OR landlord) — POST and PUT /api/v1/agreements/:id/confirm or /sign
 router.put('/:id/confirm', authMiddleware, wrapList, signAgreement);
 router.post('/:id/confirm', authMiddleware, wrapList, signAgreement);
+router.put('/:id/sign', authMiddleware, wrapList, signAgreement);
+router.post('/:id/sign', authMiddleware, wrapList, signAgreement);
 
 // ─── Sprint 8: CRUD ───
 router.post('/', authMiddleware, roleMiddleware('landlord'), wrapList, createAgreement);

@@ -53,7 +53,11 @@ export default function MessagesPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setConversations(data.data || [])
+        const list = data.data || data.conversations || []
+        setConversations(list)
+        if (list.length > 0) {
+          setActiveId(prev => prev || list[0]._id)
+        }
       }
     } catch { /* ignore */ }
     setLoading(false)
@@ -77,7 +81,7 @@ export default function MessagesPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setMessages(data.data || [])
+        setMessages(data.data || data.messages || [])
       }
     } catch { /* ignore */ }
     setLoadingMessages(false)
@@ -118,7 +122,10 @@ export default function MessagesPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setMessages(prev => [...prev, data.data || data.message])
+        const newMsg = data.data || data.message || data.messageObj
+        if (newMsg) {
+          setMessages(prev => [...prev, newMsg])
+        }
         setDraft('')
         // Refresh conversations to update lastMessage
         fetchConversations()
@@ -128,20 +135,20 @@ export default function MessagesPage() {
   }
 
   const otherName = (conv: Conversation) => {
-    const other = conv.participants?.find(p => p._id !== currentUserId.current)
-    return other ? `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.email : 'User'
+    const other = conv.participants?.find(p => String(p._id || (p as any).id) !== String(currentUserId.current))
+    return other ? `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.email || 'Landlord' : 'Landlord'
   }
 
   const otherRole = (conv: Conversation) => {
-    const other = conv.participants?.find(p => p._id !== currentUserId.current)
-    return other?.role || ''
+    const other = conv.participants?.find(p => String(p._id || (p as any).id) !== String(currentUserId.current))
+    return other?.role || 'landlord'
   }
 
   const senderName = (msg: ChatMessage) => {
     if (typeof msg.senderId === 'object') {
       return `${msg.senderId.firstName || ''} ${msg.senderId.lastName || ''}`.trim() || 'User'
     }
-    return msg.senderId === currentUserId.current ? 'You' : 'User'
+    return String(msg.senderId) === String(currentUserId.current) ? 'You' : 'User'
   }
 
   const formatTime = (date: string) => {
@@ -222,13 +229,15 @@ export default function MessagesPage() {
                     ) : (
                       <div className="space-y-3">
                         {messages.map((m) => {
-                          const isMe = (typeof m.senderId === 'string' ? m.senderId : m.senderId?._id) === currentUserId.current
+                          const sId = typeof m.senderId === 'string' ? m.senderId : (m.senderId?._id || (m.senderId as any)?.id || '')
+                          const isMe = String(sId) === String(currentUserId.current)
+                          const content = m.text || (m as any).body || ''
                           return (
                             <div key={m._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                               <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                                 isMe ? 'bg-rust text-white rounded-br-md' : 'bg-cream text-charcoal rounded-bl-md'
                               }`}>
-                                <p>{m.text}</p>
+                                <p>{content}</p>
                                 <p className={`mt-1 text-[10px] ${isMe ? 'text-white/60' : 'text-charcoal/40'}`}>
                                   {formatTime(m.createdAt)}
                                   {isMe && m.readAt ? ' • Read' : ''}

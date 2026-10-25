@@ -20,11 +20,13 @@ const {
 // ─── Response shaping: frontend reads payment.amount / payment.status ───
 const shapePayment = (p) => {
     const raw = p.toObject ? p.toObject() : p;
+    const amountVal = raw.amountDue !== undefined ? raw.amountDue : (raw.amount || 0);
     return {
         ...raw,
-        amount: raw.amountDue,
-        amountDueEtb: raw.amountDue,
+        amount: amountVal,
+        amountDueEtb: amountVal,
         paidDate: raw.paidAt,
+        receiptNumber: raw.receiptNumber || (['paid', 'collected'].includes(raw.status) ? `RCPT-${String(raw._id).slice(-6).toUpperCase()}` : undefined),
     };
 };
 

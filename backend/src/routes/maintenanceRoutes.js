@@ -23,7 +23,10 @@ router.put('/:id/status', authMiddleware, roleMiddleware('landlord'), updateTick
 // Tenant or Landlord adds a comment/update to the ticket
 router.post('/:id/updates', authMiddleware, roleMiddleware('tenant', 'landlord'), addUpdateNote);
 
-// Get tickets for the logged-in user
+// Tenant & Landlord convenience list routes (MUST come before /:id)
+router.get('/my', authMiddleware, roleMiddleware('tenant', 'landlord'), getTickets);
+router.get('/tenant', authMiddleware, roleMiddleware('tenant'), getTickets);
+router.get('/landlord', authMiddleware, roleMiddleware('landlord'), getTickets);
 router.get('/', authMiddleware, roleMiddleware('tenant', 'landlord'), getTickets);
 router.get('/:id', authMiddleware, roleMiddleware('tenant', 'landlord'), getTicketById);
 

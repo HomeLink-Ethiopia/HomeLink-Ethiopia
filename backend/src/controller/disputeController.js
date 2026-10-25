@@ -114,7 +114,13 @@ const getDisputeById = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const userRole = req.user.role; // Assuming role is set by authMiddleware
+        const userRole = req.user.role;
+
+        if (isMockMode()) {
+            const dispute = (mockStore.disputes || []).find(d => String(d._id) === String(id));
+            if (!dispute) return res.status(404).json({ message: "Dispute not found" });
+            return res.status(200).json({ data: dispute });
+        }
 
         const dispute = await Dispute.findById(id)
             .populate('raisedBy', 'firstName lastName email')
@@ -153,12 +159,30 @@ const addDisputeMessage = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
         const userRole = req.user.role;
-        const { message, isAdminNote } = req.body;
+        const message = req.body.message || req.body.text || "";
+        const { isAdminNote } = req.body;
 
         const attachments = req.files ? req.files.map(file => file.path) : [];
 
         if (!message && attachments.length === 0) {
             return res.status(400).json({ message: "Message or attachments are required." });
+        }
+
+        if (isMockMode()) {
+            const dispute = (mockStore.disputes || []).find(d => String(d._id) === String(id));
+            if (!dispute) return res.status(404).json({ message: "Dispute not found" });
+
+            if (!dispute.communications) dispute.communications = [];
+            const newMessage = {
+                fromUserId: userId,
+                message: message || "",
+                attachments,
+                isAdminNote: Boolean(isAdminNote),
+                timestamp: new Date()
+            };
+            dispute.communications.push(newMessage);
+            dispute.updatedAt = new Date().toISOString();
+            return res.status(200).json({ message: "Message added", data: newMessage });
         }
 
         const dispute = await Dispute.findById(id);

@@ -10,6 +10,8 @@ function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
+  const emailParam = searchParams.get('email')
+  const codeParam = searchParams.get('code')
   
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying')
   const [message, setMessage] = useState('')
@@ -17,25 +19,39 @@ function VerifyEmailContent() {
   useEffect(() => {
     const performVerification = async () => {
       try {
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 1500))
-        
-        if (!token) {
-          setStatus('error')
-          setMessage('No verification token provided.')
+        if (emailParam && codeParam) {
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+          const res = await fetch(`${API_URL}/api/auth/verify-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailParam, code: codeParam }),
+          })
+          const data = await res.json().catch(() => ({}))
+          if (res.ok) {
+            setStatus('success')
+            setMessage('Your email has been verified successfully! You can now log in.')
+          } else {
+            setStatus('error')
+            setMessage(data.message || 'Verification failed. The link or code may have expired.')
+          }
           return
         }
 
-        // Verify the token
-        const result = verifyEmail(token)
-        
-        if (result.success) {
-          setStatus('success')
-          setMessage('Your email has been verified successfully! You can now log in.')
-        } else {
-          setStatus('error')
-          setMessage(result.error || 'Verification failed.')
+        if (token) {
+          await new Promise((resolve) => setTimeout(resolve, 800))
+          const result = verifyEmail(token)
+          if (result.success) {
+            setStatus('success')
+            setMessage('Your email has been verified successfully! You can now log in.')
+          } else {
+            setStatus('error')
+            setMessage(result.error || 'Verification failed.')
+          }
+          return
         }
+
+        setStatus('error')
+        setMessage('No verification link or token provided.')
       } catch (err) {
         setStatus('error')
         setMessage('An unexpected error occurred. Please try again.')
@@ -43,7 +59,7 @@ function VerifyEmailContent() {
     }
 
     performVerification()
-  }, [token])
+  }, [token, emailParam, codeParam])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4 py-12">

@@ -37,76 +37,74 @@ HomeLink solves Ethiopia's fragmented rental market by providing verified proper
 
 ```
 HomeLink-Ethiopia/
-├── app/                    # Next.js App Router pages
-│   ├── (public)/           # Home, explore, property details, auth pages
-│   ├── tenant/             # Tenant dashboard (favorites, viewings, agreements…)
-│   ├── landlord/           # Landlord dashboard (properties, applications…)
-│   └── admin/              # Admin dashboard (verification queue, disputes…)
-├── components/             # Shared UI components
-├── services/               # API client layer (calls the Express backend)
-├── lib/                    # Stores, contexts, and helpers
-├── locales/                # English/Amharic translation files
-├── middleware.ts           # Route protection
-├── backend/
-│   ├── server.js           # Express entry point
-│   └── src/
-│       ├── config/         # DB connection
-│       ├── controller/     # Business logic
-│       ├── middleware/     # Auth, roles, rate limiting, uploads
-│       ├── models/         # Mongoose schemas (User, Property, …)
-│       ├── routes/         # API route definitions
-│       ├── utils/          # Email service, helpers
-│       ├── validators/     # Joi validation schemas
-│       └── uploads/        # Uploaded property images & documents
-└── scripts/                # (in backend/) DB seed scripts
+├── frontend/               # Next.js 14 App Router & TypeScript UI
+│   ├── app/                # Public, tenant, landlord, and admin routes
+│   ├── components/         # Reusable UI components & modals
+│   ├── lib/                # Client state, contexts, API configs
+│   ├── locales/            # Amharic & English translations
+│   ├── public/             # Images, icons, static assets
+│   ├── services/           # Backend API integration client
+│   └── package.json        # Frontend dependencies & Next scripts
+├── backend/                # Node.js Express 5 REST API & MongoDB
+│   ├── server.js           # Server entry point (port 5000)
+│   ├── src/
+│   │   ├── config/         # MongoDB Atlas connection
+│   │   ├── controller/     # Auth, property, and user controllers
+│   │   ├── middleware/     # JWT authentication, RBAC, uploads
+│   │   ├── models/         # Mongoose schemas
+│   │   └── routes/         # Express API routes
+│   └── package.json        # Backend dependencies
+├── ai/                     # Python FastAPI AI Engine (port 8000)
+│   ├── main.py             # FastAPI entry point
+│   ├── models/             # Trained ML models (Rent estimator)
+│   └── requirements.txt    # Python dependencies
+├── package.json            # Root convenience scripts (delegates to frontend & backend)
+├── start-project.bat       # Windows 1-click launcher for all services
+└── start-project.sh        # Linux/macOS launcher for all services
 ```
 
 ---
 
-## Getting Started (Hackathon Quick Start)
+## Getting Started (Quick Start)
 
-We've simplified the boot process so teammates and judges can run the stack locally without friction.
+Anyone cloning this repository can launch the entire project instantly.
 
 ### Prerequisites
 
 - **Node.js 18+** & **npm 9+**
-- **Python 3.10+** (or Conda)
+- **Python 3.10+** (optional, for AI engine)
 
 ### 1. Install Dependencies
 
-Install the frontend, backend, and AI dependencies:
+You can install all dependencies from the root:
 
 ```bash
-# 1. Next.js Frontend (Root)
-npm install
+# Option A: From root (installs both frontend and backend)
+npm run install:all
 
-# 2. Express Backend
-cd backend
-npm install
-
-# 3. AI Backend
-cd ../ai
-pip install -r requirements.txt
+# Option B: Individually
+cd frontend && npm install
+cd ../backend && npm install
+cd ../ai && pip install -r requirements.txt
 ```
 
 ### 2. Launch the Application
 
-The easiest way to launch all three servers is to use the automated startup script:
+**Option A — Automated One-Click Start (Recommended):**
+- **Windows:** Double-click `start-project.bat` (or run `.\start-project.bat` in PowerShell).
+- **Linux/macOS:** Run `./start-project.sh`.
 
-> **🔥 Quick Start Automation:** If you are on Windows, simply double-click the `start-project.bat` script in the project root to automatically launch the Next.js frontend, Express backend, and FastAPI AI Engine in parallel!
+This automatically starts the Frontend (port 3000), Backend (port 5000), and AI Service (port 8000).
 
-If you prefer to start them manually, open three terminal windows:
-
+**Option B — Run Directly:**
 ```bash
-# Terminal 1 - Express Backend (from /backend)
-npm start
-
-# Terminal 2 - AI Backend (from /ai)
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Terminal 3 - Next.js Frontend (from root)
+# Start frontend (from repository root or inside /frontend):
 npm run dev
+
+# In a separate terminal, start backend (from /backend):
+cd backend && npm start
 ```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser!
 
 ---
 
@@ -146,9 +144,11 @@ The development Resend account only delivers to `@resend.dev` addresses on the f
 
 | Location | Command | Description |
 |---|---|---|
-| root | `npm run dev` | Start Next.js dev server |
-| root | `npm run build` | Production build |
-| root | `npm run lint` | ESLint |
+| root | `npm run dev` | Start Next.js dev server (delegates to `frontend/`) |
+| root | `npm run build` | Production build (delegates to `frontend/`) |
+| root | `npm run lint` | ESLint checks |
+| root | `npm run install:all` | Install dependencies for both frontend and backend |
+| frontend | `npm run dev` | Start Next.js dev server directly |
 | backend | `npm start` | Start API server |
 | backend | `node scripts/seed-dev-accounts.js` | Seed dev accounts |
 

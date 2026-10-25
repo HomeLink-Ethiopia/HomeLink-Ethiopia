@@ -13,7 +13,7 @@ start cmd /k "cd ai && (call conda activate base || echo Conda not found, procee
 
 echo.
 echo [3/3] Starting Next.js Frontend (Port 3000)...
-start cmd /k "npm install && npm run dev"
+start cmd /k "cd frontend && npm install && npm run dev"
 
 echo.
 echo Boot sequence initiated!

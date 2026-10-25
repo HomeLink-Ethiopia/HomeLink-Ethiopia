@@ -171,9 +171,18 @@ export default function PropertyCard({
         </p>
 
         <div className="mt-3 flex items-center gap-4 text-sm text-charcoal/70">
-          <span>{property.beds} {locale === 'EN' ? 'Beds' : 'መኝታ'}</span>
-          <span>{property.baths} {locale === 'EN' ? 'Bath' : 'መታጠቢያ'}</span>
-          <span>{property.sizeSqm} m²</span>
+          {property.propertyType === 'building' || property.propertyType === 'commercial' ? (
+            <>
+              <span className="font-semibold text-rust">🏢 {property.buildingDetails?.units?.length || 10} Available Units / Rooms</span>
+              <span>{property.sizeSqm} m² Total</span>
+            </>
+          ) : (
+            <>
+              <span>{property.beds} {locale === 'EN' ? 'Beds' : 'መኝታ'}</span>
+              <span>{property.baths} {locale === 'EN' ? 'Bath' : 'መታጠቢያ'}</span>
+              <span>{property.sizeSqm} m²</span>
+            </>
+          )}
         </div>
 
         <div className="mt-3 flex items-center gap-1 text-sm">

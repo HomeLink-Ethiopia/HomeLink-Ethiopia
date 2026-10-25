@@ -612,6 +612,8 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                   { label: 'House', value: 'house' },
                   { label: 'Villa', value: 'villa' },
                   { label: 'Studio', value: 'studio' },
+                  { label: '🏢 Building / Workspaces', value: 'building' },
+                  { label: '💼 Commercial Space', value: 'commercial' },
                 ]}
               />
 

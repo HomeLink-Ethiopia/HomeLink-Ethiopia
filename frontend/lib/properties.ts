@@ -6,6 +6,28 @@ export type Neighborhood =
   // Other Cities
   | 'Dire Dawa' | 'Hawassa' | 'Bahir Dar' | 'Mekelle' | 'Adama' | 'Jimma' | 'Gondar' | 'Dessie' | 'Harar' | 'Axum'
 
+export interface BuildingUnit {
+  id: string
+  unitNumber: string
+  name: string
+  spaceType: 'office_room' | 'whole_floor' | 'entire_building' | 'retail_shop' | 'coworking_desk' | 'residential_unit'
+  floorNumber: number
+  sizeM2: number
+  monthlyRent: number
+  depositAmount?: number
+  suitableFor: string[]
+  status: 'available' | 'reserved' | 'rented'
+  amenities?: string[]
+}
+
+export interface BuildingDetails {
+  isMultiUnit: boolean
+  rentalScope: 'entire_building' | 'by_floor' | 'individual_rooms' | 'flexible'
+  totalFloors: number
+  totalUnits: number
+  units: BuildingUnit[]
+}
+
 export interface Property {
   id: string
   title: string
@@ -22,7 +44,8 @@ export interface Property {
   lng: number
   // Extended fields for full property details
   description?: string
-  propertyType?: 'apartment' | 'house' | 'studio' | 'villa'
+  propertyType?: 'apartment' | 'house' | 'studio' | 'villa' | 'building' | 'commercial'
+  buildingDetails?: BuildingDetails
   amenities?: string[]
   images?: string[] // Additional interior photos
   landlordId?: string
@@ -104,6 +127,173 @@ const RAW: Omit<Property, 'lat' | 'lng' | 'image'>[] = [
   { id: 'p8', title: '3 Bedroom House', neighborhood: 'CMC', priceEtb: 20000, beds: 3, baths: 2, sizeSqm: 110, rating: 4.5, reviewCount: 15, verified: false, propertyType: 'house', furnished: false },
   { id: 'p9', title: '2 Bedroom Apartment', neighborhood: 'Saris', priceEtb: 13500, beds: 2, baths: 1, sizeSqm: 58, rating: 4.3, reviewCount: 9, verified: true, propertyType: 'apartment', furnished: false },
   { id: 'p10', title: '1 Bedroom Apartment', neighborhood: 'Bole', priceEtb: 12000, beds: 1, baths: 1, sizeSqm: 40, rating: 4.4, reviewCount: 14, verified: true, propertyType: 'studio', furnished: true },
+  {
+    id: 'p11',
+    title: 'Bole Nexus Commercial Center & Office Tower',
+    neighborhood: 'Bole',
+    priceEtb: 18500,
+    beds: 10,
+    baths: 8,
+    sizeSqm: 1400,
+    rating: 4.9,
+    reviewCount: 42,
+    verified: true,
+    propertyType: 'building',
+    furnished: true,
+    description: 'Premier 5-storey commercial tower in Bole with 10 private office rooms, whole floor corporate headquarters, high-speed fiber internet, dual generators, and underground parking.',
+    buildingDetails: {
+      isMultiUnit: true,
+      rentalScope: 'flexible',
+      totalFloors: 5,
+      totalUnits: 12,
+      units: [
+        {
+          id: 'unit-tower-all',
+          unitNumber: 'Full Building',
+          name: 'Entire Commercial Tower (Floors 1-5)',
+          spaceType: 'entire_building',
+          floorNumber: 0,
+          sizeM2: 1400,
+          monthlyRent: 480000,
+          depositAmount: 960000,
+          suitableFor: ['Corporate HQ', 'Embassy', 'Tech Campus', 'Financial Institution'],
+          status: 'available',
+        },
+        {
+          id: 'unit-floor-2',
+          unitNumber: 'Floor 2',
+          name: 'Whole 2nd Floor (Corporate Workspace)',
+          spaceType: 'whole_floor',
+          floorNumber: 2,
+          sizeM2: 280,
+          monthlyRent: 120000,
+          depositAmount: 240000,
+          suitableFor: ['IT / Software Company', 'Consultancy Group', 'Law Chambers'],
+          status: 'available',
+        },
+        {
+          id: 'unit-floor-3',
+          unitNumber: 'Floor 3',
+          name: 'Whole 3rd Floor (Executive Suites)',
+          spaceType: 'whole_floor',
+          floorNumber: 3,
+          sizeM2: 280,
+          monthlyRent: 115000,
+          depositAmount: 230000,
+          suitableFor: ['FinTech', 'Regional NGO', 'Medical Specialist Center'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-101',
+          unitNumber: 'Office 101',
+          name: 'Private Work Suite 101',
+          spaceType: 'office_room',
+          floorNumber: 1,
+          sizeM2: 35,
+          monthlyRent: 18500,
+          depositAmount: 37000,
+          suitableFor: ['Tech Startup', 'Architect Studio', 'Accounting Firm'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-102',
+          unitNumber: 'Office 102',
+          name: 'Executive Suite 102 (Balcony View)',
+          spaceType: 'office_room',
+          floorNumber: 1,
+          sizeM2: 40,
+          monthlyRent: 20000,
+          depositAmount: 40000,
+          suitableFor: ['Legal Advisor', 'Import / Export Desk', 'Creative Agency'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-103',
+          unitNumber: 'Office 103',
+          name: 'Team Workstation Room 103',
+          spaceType: 'office_room',
+          floorNumber: 1,
+          sizeM2: 55,
+          monthlyRent: 27000,
+          depositAmount: 54000,
+          suitableFor: ['Software Dev Team (6-8 people)', 'Design Lab'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-104',
+          unitNumber: 'Office 104',
+          name: 'Private Consultant Room 104',
+          spaceType: 'office_room',
+          floorNumber: 1,
+          sizeM2: 30,
+          monthlyRent: 16000,
+          depositAmount: 32000,
+          suitableFor: ['Solo Consultant', 'Financial Analyst', 'Therapy Clinic'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-105',
+          unitNumber: 'Office 105',
+          name: 'Corner Office Suite 105',
+          spaceType: 'office_room',
+          floorNumber: 1,
+          sizeM2: 45,
+          monthlyRent: 23000,
+          depositAmount: 46000,
+          suitableFor: ['Managing Director', 'Brokerage Office'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-201',
+          unitNumber: 'Office 201',
+          name: 'Open-Plan Team Office 201',
+          spaceType: 'office_room',
+          floorNumber: 2,
+          sizeM2: 60,
+          monthlyRent: 30000,
+          depositAmount: 60000,
+          suitableFor: ['Call Center / Customer Support', 'Data Processing Hub'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-202',
+          unitNumber: 'Office 202',
+          name: 'Conference & Work Suite 202',
+          spaceType: 'office_room',
+          floorNumber: 2,
+          sizeM2: 38,
+          monthlyRent: 19000,
+          depositAmount: 38000,
+          suitableFor: ['Marketing Agency', 'Training Classroom'],
+          status: 'available',
+        },
+        {
+          id: 'unit-room-203',
+          unitNumber: 'Office 203',
+          name: 'Incubator Lab 203',
+          spaceType: 'office_room',
+          floorNumber: 2,
+          sizeM2: 50,
+          monthlyRent: 25000,
+          depositAmount: 50000,
+          suitableFor: ['Hardware Prototyping', 'Media Production'],
+          status: 'available',
+        },
+        {
+          id: 'unit-ground-retail',
+          unitNumber: 'Shop G-01',
+          name: 'Ground Floor Premium Banking / Retail Hall',
+          spaceType: 'retail_shop',
+          floorNumber: 0,
+          sizeM2: 180,
+          monthlyRent: 95000,
+          depositAmount: 190000,
+          suitableFor: ['Bank Branch', 'Showroom', 'Coffee Bistro / Pharmacy'],
+          status: 'available',
+        },
+      ],
+    },
+  },
 ]
 
 export const PROPERTIES: Property[] = RAW.map((p, i) => {

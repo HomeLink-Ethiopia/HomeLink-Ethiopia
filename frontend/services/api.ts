@@ -116,6 +116,7 @@ export function mapApiProperty(raw: any): Property {
     lng,
     description: raw.description,
     propertyType: raw.propertyType,
+    buildingDetails: raw.buildingDetails,
     amenities: raw.amenities,
     images: (raw.images || []).map((img: any) => {
       const u = typeof img === 'string' ? img : img.url
@@ -205,7 +206,7 @@ export interface PropertyListingInput {
   title: string
   neighborhood: string
   address: string
-  propertyType: 'apartment' | 'house' | 'studio' | 'villa'
+  propertyType: 'apartment' | 'house' | 'studio' | 'villa' | 'building' | 'commercial'
   beds: number
   baths: number
   sizeSqm: number
@@ -216,6 +217,7 @@ export interface PropertyListingInput {
   photoUrls: string[]
   ownershipDocUrl: string
   landlordIdDocUrl: string
+  buildingDetails?: any
 }
 
 export interface VerificationRecord {

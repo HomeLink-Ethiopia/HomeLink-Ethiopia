@@ -197,6 +197,11 @@ export default function ApplicationModal() {
       formData.append('reasonForMoving', values.reasonForMoving || '')
       formData.append('message', values.note || '')
 
+      if (modalContext.selectedUnit) {
+        formData.append('selectedUnit', JSON.stringify(modalContext.selectedUnit))
+        formData.append('unitNumber', modalContext.selectedUnit.unitNumber)
+      }
+
       if (idFile) {
         formData.append('documents', idFile)
         formData.append('documentTypes', 'kebele_id')
@@ -370,6 +375,21 @@ export default function ApplicationModal() {
               Switch account
             </button>
           </div>
+
+          {/* Selected Building Unit / Workspace Badge */}
+          {modalContext.selectedUnit && (
+            <div className="rounded-lg border-2 border-rust bg-rust-tint/60 p-3 text-xs">
+              <span className="block font-bold uppercase tracking-wider text-rust">
+                Target Building Unit / Office Room
+              </span>
+              <span className="mt-0.5 block font-display text-sm font-bold text-charcoal">
+                {modalContext.selectedUnit.name || modalContext.selectedUnit.unitNumber} • {modalContext.selectedUnit.sizeM2} m² (Floor {modalContext.selectedUnit.floorNumber})
+              </span>
+              <span className="mt-1 block text-charcoal/70">
+                Monthly Rent: <strong className="text-rust">ETB {modalContext.selectedUnit.monthlyRent?.toLocaleString()}/mo</strong>
+              </span>
+            </div>
+          )}
 
           <Field label="Full name" error={errors.fullName}>
             <input className={inputClass} placeholder="Your full name" {...register('fullName')} />

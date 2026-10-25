@@ -227,6 +227,17 @@ export default function ViewingModal() {
             </button>
           </div>
 
+          {modalContext.selectedUnit && (
+            <div className="rounded-lg border-2 border-rust bg-rust-tint/60 p-3 text-xs">
+              <span className="block font-bold uppercase tracking-wider text-rust">
+                Viewing Specific Unit / Space
+              </span>
+              <span className="mt-0.5 block font-display text-sm font-bold text-charcoal">
+                Unit {modalContext.selectedUnit.unitNumber} {modalContext.selectedUnit.floorNumber !== undefined ? `(Floor ${modalContext.selectedUnit.floorNumber})` : ''}
+              </span>
+            </div>
+          )}
+
           <Field label="Preferred date" error={errors.preferredDate}>
             <input type="date" min={minDate} className={inputClass} {...register('preferredDate')} />
           </Field>

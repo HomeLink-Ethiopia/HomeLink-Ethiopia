@@ -187,6 +187,9 @@ export function homePhoto(seed: string, propertyType?: string): string {
     'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Shalom_Shalome_Apartment_%28View_from_NE_to_SW%29.jpg/960px-Shalom_Shalome_Apartment_%28View_from_NE_to_SW%29.jpg',
     'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Shalom_Shalome_Apartment_%28View_from_South_to_North%29.jpg/960px-Shalom_Shalome_Apartment_%28View_from_South_to_North%29.jpg',
   ]
+  if (propertyType === 'building' || propertyType === 'commercial') {
+    return '/homes/apartment-tower.png'
+  }
   if (propertyType === 'house' || propertyType === 'villa') {
     return houseExteriors[hashSeed(seed) % houseExteriors.length]
   }

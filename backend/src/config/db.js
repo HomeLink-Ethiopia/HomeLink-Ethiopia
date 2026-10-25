@@ -383,6 +383,181 @@ const mockStore = {
       ],
       landlordId: "mock-landlord-1",
       createdAt: new Date(Date.now() - 10800000)
+    },
+    {
+      _id: "66d1f801e12a4b001a888888",
+      title: "Bole Nexus Commercial Center & Office Tower",
+      description: "Premier 5-storey commercial tower in Bole with 10 private office rooms, whole floor corporate headquarters, high-speed fiber internet, dual generators, and underground parking.",
+      propertyType: "building",
+      rentAmount: 18500,
+      bedrooms: 10,
+      bathrooms: 8,
+      sizeM2: 1400,
+      furnished: true,
+      location: { city: "Addis Ababa", subCity: "Bole", neighborhood: "Cameroon St / Atlas" },
+      amenities: ["generator", "water_tank", "wifi", "elevator", "parking", "security"],
+      listingStatus: "active",
+      verificationStatus: "verified",
+      fraudRiskScore: 2,
+      riskLevel: "low",
+      redFlags: [],
+      buildingDetails: {
+        isMultiUnit: true,
+        rentalScope: "flexible",
+        totalFloors: 5,
+        totalUnits: 12,
+        units: [
+          {
+            unitId: "unit-tower-all",
+            unitNumber: "Full Building",
+            name: "Entire Commercial Tower (Floors 1-5)",
+            spaceType: "entire_building",
+            floorNumber: 0,
+            sizeM2: 1400,
+            rentAmount: 480000,
+            depositAmount: 960000,
+            suitableFor: ["Corporate HQ", "Embassy", "Tech Campus", "Financial Institution"],
+            status: "available"
+          },
+          {
+            unitId: "unit-floor-2",
+            unitNumber: "Floor 2",
+            name: "Whole 2nd Floor (Corporate Workspace)",
+            spaceType: "whole_floor",
+            floorNumber: 2,
+            sizeM2: 280,
+            rentAmount: 120000,
+            depositAmount: 240000,
+            suitableFor: ["IT / Software Company", "Consultancy Group", "Law Chambers"],
+            status: "available"
+          },
+          {
+            unitId: "unit-floor-3",
+            unitNumber: "Floor 3",
+            name: "Whole 3rd Floor (Executive Suites)",
+            spaceType: "whole_floor",
+            floorNumber: 3,
+            sizeM2: 280,
+            rentAmount: 115000,
+            depositAmount: 230000,
+            suitableFor: ["FinTech", "Regional NGO", "Medical Specialist Center"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-101",
+            unitNumber: "Office 101",
+            name: "Private Work Suite 101",
+            spaceType: "office_room",
+            floorNumber: 1,
+            sizeM2: 35,
+            rentAmount: 18500,
+            depositAmount: 37000,
+            suitableFor: ["Tech Startup", "Architect Studio", "Accounting Firm"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-102",
+            unitNumber: "Office 102",
+            name: "Executive Suite 102 (Balcony View)",
+            spaceType: "office_room",
+            floorNumber: 1,
+            sizeM2: 40,
+            rentAmount: 20000,
+            depositAmount: 40000,
+            suitableFor: ["Legal Advisor", "Import / Export Desk", "Creative Agency"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-103",
+            unitNumber: "Office 103",
+            name: "Team Workstation Room 103",
+            spaceType: "office_room",
+            floorNumber: 1,
+            sizeM2: 55,
+            rentAmount: 27000,
+            depositAmount: 54000,
+            suitableFor: ["Software Dev Team (6-8 people)", "Design Lab"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-104",
+            unitNumber: "Office 104",
+            name: "Private Consultant Room 104",
+            spaceType: "office_room",
+            floorNumber: 1,
+            sizeM2: 30,
+            rentAmount: 16000,
+            depositAmount: 32000,
+            suitableFor: ["Solo Consultant", "Financial Analyst", "Therapy Clinic"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-105",
+            unitNumber: "Office 105",
+            name: "Corner Office Suite 105",
+            spaceType: "office_room",
+            floorNumber: 1,
+            sizeM2: 45,
+            rentAmount: 23000,
+            depositAmount: 46000,
+            suitableFor: ["Managing Director", "Brokerage Office"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-201",
+            unitNumber: "Office 201",
+            name: "Open-Plan Team Office 201",
+            spaceType: "office_room",
+            floorNumber: 2,
+            sizeM2: 60,
+            rentAmount: 30000,
+            depositAmount: 60000,
+            suitableFor: ["Call Center / Customer Support", "Data Processing Hub"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-202",
+            unitNumber: "Office 202",
+            name: "Conference & Work Suite 202",
+            spaceType: "office_room",
+            floorNumber: 2,
+            sizeM2: 38,
+            rentAmount: 19000,
+            depositAmount: 38000,
+            suitableFor: ["Marketing Agency", "Training Classroom"],
+            status: "available"
+          },
+          {
+            unitId: "unit-room-203",
+            unitNumber: "Office 203",
+            name: "Incubator Lab 203",
+            spaceType: "office_room",
+            floorNumber: 2,
+            sizeM2: 50,
+            rentAmount: 25000,
+            depositAmount: 50000,
+            suitableFor: ["Hardware Prototyping", "Media Production"],
+            status: "available"
+          },
+          {
+            unitId: "unit-ground-retail",
+            unitNumber: "Shop G-01",
+            name: "Ground Floor Premium Banking / Retail Hall",
+            spaceType: "retail_shop",
+            floorNumber: 0,
+            sizeM2: 180,
+            rentAmount: 95000,
+            depositAmount: 190000,
+            suitableFor: ["Bank Branch", "Showroom", "Coffee Bistro / Pharmacy"],
+            status: "available"
+          }
+        ]
+      },
+      images: [
+        { key: "bole-tower-1.jpg", url: "/uploads/homes/apartment-tower.png", isPrimary: true }
+      ],
+      landlordId: "mock-landlord-1",
+      createdAt: new Date(Date.now() - 14400000)
     }
   ]
 };

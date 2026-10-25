@@ -1,6 +1,7 @@
 'use client'
 
 import { useUIStore, useFavoritesStore } from '@/lib/store'
+import type { BuildingUnit } from '@/lib/properties'
 
 interface ActionCardProps {
   propertyId: string
@@ -10,6 +11,7 @@ interface ActionCardProps {
   /** Landlord's User account id (property.landlord.accountId) — enables the Message button */
   landlordAccountId?: string
   landlordName?: string
+  selectedUnit?: BuildingUnit | null
 }
 
 export default function ActionCard({
@@ -19,39 +21,78 @@ export default function ActionCard({
   depositEtb,
   landlordAccountId,
   landlordName,
+  selectedUnit,
 }: ActionCardProps) {
   const openModal = useUIStore((s) => s.openModal)
   const saved = useFavoritesStore((s) => s.favorites.has(propertyId))
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
 
+  const effectivePrice = selectedUnit ? selectedUnit.monthlyRent : priceEtb
+  const effectiveDeposit = selectedUnit ? (selectedUnit.depositAmount || selectedUnit.monthlyRent * 2) : depositEtb
+
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-sm">
+      {selectedUnit && (
+        <div className="mb-4 rounded-md border border-rust/30 bg-rust-tint/60 p-2.5 text-center">
+          <span className="block text-[11px] font-bold uppercase tracking-wider text-rust">
+            Applying for Selected Unit
+          </span>
+          <span className="block font-display text-sm font-bold text-charcoal">
+            {selectedUnit.name || selectedUnit.unitNumber} ({selectedUnit.sizeM2} m²)
+          </span>
+        </div>
+      )}
+
       <div className="text-center">
         <p className="font-display text-4xl font-bold text-rust">
-          ETB {priceEtb.toLocaleString()}
+          ETB {effectivePrice.toLocaleString()}
         </p>
-        <p className="mt-1 text-sm text-charcoal/60">/ month</p>
+        <p className="mt-1 text-sm text-charcoal/60">
+          / month {selectedUnit ? `(Unit ${selectedUnit.unitNumber})` : ''}
+        </p>
         <p className="mt-2 text-sm text-charcoal/70">
-          Deposit: <span className="font-semibold">ETB {depositEtb.toLocaleString()}</span>
+          Deposit: <span className="font-semibold">ETB {effectiveDeposit.toLocaleString()}</span>
         </p>
       </div>
 
       <div className="mt-6 space-y-3">
-
         <button
           type="button"
-          onClick={() => openModal('application', { propertyId, propertyTitle })}
+          onClick={() =>
+            openModal('application', {
+              propertyId,
+              propertyTitle,
+              selectedUnit: selectedUnit ? {
+                id: selectedUnit.id,
+                unitNumber: selectedUnit.unitNumber,
+                name: selectedUnit.name,
+                spaceType: selectedUnit.spaceType,
+                monthlyRent: selectedUnit.monthlyRent,
+                sizeM2: selectedUnit.sizeM2,
+                floorNumber: selectedUnit.floorNumber
+              } : undefined
+            })
+          }
           className="w-full rounded-lg bg-rust px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-rust-dark hover:shadow-md active:scale-[0.98]"
         >
-          Apply Now
+          {selectedUnit ? `Apply for ${selectedUnit.unitNumber}` : 'Apply Now'}
         </button>
         
         <button
           type="button"
-          onClick={() => openModal('viewing', { propertyId, propertyTitle })}
+          onClick={() =>
+            openModal('viewing', {
+              propertyId,
+              propertyTitle,
+              selectedUnit: selectedUnit ? {
+                unitNumber: selectedUnit.unitNumber,
+                floorNumber: selectedUnit.floorNumber
+              } : undefined
+            })
+          }
           className="w-full rounded-lg border-2 border-charcoal/15 px-5 py-3 text-sm font-bold text-charcoal transition-all hover:border-rust hover:text-rust active:scale-[0.98]"
         >
-          Schedule Viewing
+          {selectedUnit ? `Schedule Viewing for ${selectedUnit.unitNumber}` : 'Schedule Viewing'}
         </button>
 
         {landlordAccountId && (

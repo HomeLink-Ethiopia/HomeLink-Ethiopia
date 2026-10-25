@@ -9,6 +9,8 @@ import { useFavoritesStore } from '@/lib/store'
 import ReviewsSection from '@/components/property/ReviewsSection'
 import ActionCard from '@/components/property/ActionCard'
 import ReportButton from '@/components/property/ReportButton'
+import BuildingUnitsSection from '@/components/property/BuildingUnitsSection'
+import type { BuildingUnit } from '@/lib/properties'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -67,6 +69,7 @@ const VERIFICATION_LABEL: Record<string, { text: string; cls: string }> = {
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
   const [property, setProperty] = useState<RawProperty | null>(null)
+  const [selectedUnit, setSelectedUnit] = useState<BuildingUnit | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -118,6 +121,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           rentAmount: fallback.priceEtb,
           price: fallback.priceEtb,
           propertyType: fallback.propertyType || 'apartment',
+          buildingDetails: fallback.buildingDetails,
           bedrooms: fallback.beds,
           bathrooms: fallback.baths,
           sizeM2: fallback.sizeSqm,
@@ -312,9 +316,22 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               ) : null}
             </div>
 
-            {/* About This Home */}
+            {/* Building Units & Flexible Workspace Leasing */}
+            {property.buildingDetails && property.buildingDetails.units && (
+              <BuildingUnitsSection
+                buildingDetails={property.buildingDetails}
+                onSelectUnit={setSelectedUnit}
+                selectedUnit={selectedUnit}
+              />
+            )}
+
+            {/* About This Home / Building */}
             <div className="rounded-lg border border-charcoal/10 bg-white p-6">
-              <h2 className="font-display text-lg font-semibold text-charcoal">About this home</h2>
+              <h2 className="font-display text-lg font-semibold text-charcoal">
+                {property.propertyType === 'building' || property.propertyType === 'commercial'
+                  ? 'About this building & workspace'
+                  : 'About this home'}
+              </h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-charcoal/80">
                 {property.description || 'The landlord has not added a description for this property yet.'}
               </p>
@@ -399,6 +416,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               propertyTitle={property.title}
               priceEtb={property.priceEtb}
               depositEtb={deposit}
+              selectedUnit={selectedUnit}
               landlordAccountId={
                 (typeof (landlord as any)?.accountId === 'object'
                   ? (landlord as any)?.accountId?._id

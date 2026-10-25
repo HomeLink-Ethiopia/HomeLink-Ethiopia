@@ -24,7 +24,7 @@ const schema = z.object({
   title: z.string().min(5, 'Give the listing a short, descriptive title'),
   neighborhood: z.enum(['Bole', 'Kazanchis', 'CMC', 'Saris', 'Yeka']),
   address: z.string().min(5, 'Enter the street address'),
-  propertyType: z.enum(['apartment', 'house', 'studio', 'villa']),
+  propertyType: z.enum(['apartment', 'house', 'studio', 'villa', 'building', 'commercial']),
   beds: z.coerce.number().min(0, 'Enter number of bedrooms'),
   baths: z.coerce.number().min(1, 'Enter number of bathrooms'),
   sizeSqm: z.coerce.number().min(10, 'Enter the size in m²'),
@@ -79,6 +79,63 @@ export default function PropertyWizard() {
   })
 
   const amenities = watch('amenities')
+  const propertyType = watch('propertyType')
+  const isBuilding = propertyType === 'building' || propertyType === 'commercial'
+
+  const [rentalScope, setRentalScope] = useState<'entire_building' | 'by_floor' | 'individual_rooms' | 'flexible'>('flexible')
+  const [totalFloors, setTotalFloors] = useState<number>(4)
+  const [buildingUnits, setBuildingUnits] = useState<Array<{
+    unitNumber: string
+    name: string
+    spaceType: string
+    floorNumber: number
+    sizeM2: number
+    monthlyRent: number
+    status: string
+  }>>([])
+
+  function generateTenOfficeRooms() {
+    const generated = Array.from({ length: 10 }, (_, i) => {
+      const roomNum = 101 + i
+      const floor = i < 5 ? 1 : 2
+      const size = 30 + (i % 4) * 10
+      const rent = 16000 + (i % 4) * 4000
+      return {
+        unitNumber: `Office ${roomNum}`,
+        name: `Private Office Suite ${roomNum}`,
+        spaceType: 'office_room',
+        floorNumber: floor,
+        sizeM2: size,
+        monthlyRent: rent,
+        status: 'available',
+      }
+    })
+    setBuildingUnits(generated)
+    setValue('beds', 10)
+    setValue('sizeSqm', 480)
+    setValue('priceEtb', 16000)
+    setValue('depositEtb', 32000)
+  }
+
+  function addSingleUnit() {
+    const nextIdx = buildingUnits.length + 1
+    setBuildingUnits([
+      ...buildingUnits,
+      {
+        unitNumber: `Unit ${nextIdx}`,
+        name: `Commercial Space ${nextIdx}`,
+        spaceType: 'office_room',
+        floorNumber: 1,
+        sizeM2: 40,
+        monthlyRent: 18000,
+        status: 'available',
+      },
+    ])
+  }
+
+  function removeUnit(index: number) {
+    setBuildingUnits(buildingUnits.filter((_, i) => i !== index))
+  }
 
   function toggleAmenity(name: string) {
     const next = amenities.includes(name) ? amenities.filter((a) => a !== name) : [...amenities, name]
@@ -110,6 +167,15 @@ export default function PropertyWizard() {
       photoUrls: values.photos.map((p) => p.url),
       ownershipDocUrl: values.ownershipDocUrl,
       landlordIdDocUrl: values.landlordIdDocUrl,
+      buildingDetails: isBuilding
+        ? {
+            isMultiUnit: true,
+            rentalScope,
+            totalFloors,
+            totalUnits: buildingUnits.length > 0 ? buildingUnits.length : 1,
+            units: buildingUnits,
+          }
+        : undefined,
     })
     setSubmitted(true)
   }
@@ -178,9 +244,120 @@ export default function PropertyWizard() {
                       <option value="house">House</option>
                       <option value="studio">Studio</option>
                       <option value="villa">Villa</option>
+                      <option value="building">Commercial Building / Multi-Unit</option>
+                      <option value="commercial">Commercial Space / Office</option>
                     </select>
                   </Field>
                 </div>
+
+                {/* Building & Multi-Unit Workspace Configurator */}
+                {isBuilding && (
+                  <div className="rounded-xl border-2 border-rust/30 bg-rust-tint/20 p-4 space-y-4">
+                    <div className="flex items-center justify-between border-b border-rust/20 pb-3">
+                      <div>
+                        <h3 className="font-display text-sm font-bold text-charcoal flex items-center gap-1.5">
+                          <span>🏢</span> Multi-Unit & Building Rental Setup
+                        </h3>
+                        <p className="text-xs text-charcoal/70">
+                          Configure whether you rent the entire building, full floors, or individual office rooms.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-rust px-2.5 py-0.5 text-[11px] font-bold text-white">
+                        {buildingUnits.length} Units Configured
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-charcoal mb-1">Rental Strategy</label>
+                        <select
+                          value={rentalScope}
+                          onChange={(e) => setRentalScope(e.target.value as any)}
+                          className={inputClass}
+                        >
+                          <option value="flexible">Flexible (Whole Building, Floors, or Rooms)</option>
+                          <option value="individual_rooms">Individual Office Rooms / Workspaces</option>
+                          <option value="by_floor">Floor by Floor</option>
+                          <option value="entire_building">Entire Building Only</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-charcoal mb-1">Total Floors in Building</label>
+                        <input
+                          type="number"
+                          value={totalFloors}
+                          onChange={(e) => setTotalFloors(Number(e.target.value) || 1)}
+                          min={1}
+                          max={30}
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Room Generator */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-rust/10">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={generateTenOfficeRooms}
+                          className="rounded-lg bg-rust px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-rust-dark transition-colors"
+                        >
+                          ⚡ Auto-Generate 10 Office Rooms (Floors 1-2)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={addSingleUnit}
+                          className="rounded-lg border border-charcoal/20 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal hover:border-rust"
+                        >
+                          + Add Single Unit
+                        </button>
+                      </div>
+                      {buildingUnits.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setBuildingUnits([])}
+                          className="text-xs text-charcoal/50 hover:text-red-600 underline"
+                        >
+                          Clear units
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Interactive Units List */}
+                    {buildingUnits.length > 0 && (
+                      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                        {buildingUnits.map((unit, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-charcoal/10 bg-white p-2.5 text-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-6 w-6 items-center justify-center rounded bg-sand font-bold text-charcoal text-[11px]">
+                                {idx + 1}
+                              </span>
+                              <div>
+                                <span className="font-bold text-charcoal">{unit.unitNumber}</span>
+                                <span className="text-charcoal/50 ml-1.5">Floor {unit.floorNumber} • {unit.sizeM2} m²</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-rust">ETB {unit.monthlyRent?.toLocaleString()}/mo</span>
+                              <button
+                                type="button"
+                                onClick={() => removeUnit(idx)}
+                                className="text-charcoal/40 hover:text-red-500 font-bold px-1"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Field label="Street address" error={errors.address}>
                   <input className={inputClass} placeholder="Full address (kept private until an application is approved)" {...register('address')} />
                 </Field>

@@ -15,6 +15,8 @@ export interface ModalContext {
   /** User account id of the landlord (property.landlord.accountId) for the message modal */
   receiverId?: string
   receiverName?: string
+  /** Selected room or whole-floor unit for multi-unit commercial buildings */
+  selectedUnit?: any
 }
 
 interface UIState {

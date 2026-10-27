@@ -50,20 +50,8 @@ export function middleware(request: NextRequest) {
     if (isAdminRoute && sessionRole !== 'admin') {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-  } else {
-    // Only redirect if a logged-in user tries to visit guest auth pages (/login, /signup, etc.)
-    const isGuestAuthPage =
-      pathname.startsWith('/login') ||
-      pathname.startsWith('/signup') ||
-      pathname === '/forgot-password' ||
-      pathname === '/reset-password'
-
-    if (sessionRole && isGuestAuthPage) {
-      if (sessionRole === 'tenant') return NextResponse.redirect(new URL('/tenant/dashboard', request.url))
-      if (sessionRole === 'landlord') return NextResponse.redirect(new URL('/landlord/dashboard', request.url))
-      if (sessionRole === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url))
-    }
   }
+  // Allow all public and auth pages to be accessible without bouncing users away
 
   return NextResponse.next()
 }

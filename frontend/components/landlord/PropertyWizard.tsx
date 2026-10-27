@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import { submitPropertyListing } from '@/services/api'
 import { Field, inputClass, SubmitButton, SuccessState } from '@/components/modals/FormFields'
+import BuildingFloorManager from '@/components/landlord/BuildingFloorManager'
 
 const AMENITY_OPTIONS = [
   'Wi-Fi',
@@ -252,111 +253,30 @@ export default function PropertyWizard() {
 
                 {/* Building & Multi-Unit Workspace Configurator */}
                 {isBuilding && (
-                  <div className="rounded-xl border-2 border-rust/30 bg-rust-tint/20 p-4 space-y-4">
-                    <div className="flex items-center justify-between border-b border-rust/20 pb-3">
-                      <div>
-                        <h3 className="font-display text-sm font-bold text-charcoal flex items-center gap-1.5">
-                          <span>🏢</span> Multi-Unit & Building Rental Setup
-                        </h3>
-                        <p className="text-xs text-charcoal/70">
-                          Configure whether you rent the entire building, full floors, or individual office rooms.
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-rust px-2.5 py-0.5 text-[11px] font-bold text-white">
-                        {buildingUnits.length} Units Configured
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-charcoal mb-1">Rental Strategy</label>
-                        <select
-                          value={rentalScope}
-                          onChange={(e) => setRentalScope(e.target.value as any)}
-                          className={inputClass}
-                        >
-                          <option value="flexible">Flexible (Whole Building, Floors, or Rooms)</option>
-                          <option value="individual_rooms">Individual Office Rooms / Workspaces</option>
-                          <option value="by_floor">Floor by Floor</option>
-                          <option value="entire_building">Entire Building Only</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-charcoal mb-1">Total Floors in Building</label>
-                        <input
-                          type="number"
-                          value={totalFloors}
-                          onChange={(e) => setTotalFloors(Number(e.target.value) || 1)}
-                          min={1}
-                          max={30}
-                          className={inputClass}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Quick Room Generator */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-rust/10">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={generateTenOfficeRooms}
-                          className="rounded-lg bg-rust px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-rust-dark transition-colors"
-                        >
-                          ⚡ Auto-Generate 10 Office Rooms (Floors 1-2)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={addSingleUnit}
-                          className="rounded-lg border border-charcoal/20 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal hover:border-rust"
-                        >
-                          + Add Single Unit
-                        </button>
-                      </div>
-                      {buildingUnits.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setBuildingUnits([])}
-                          className="text-xs text-charcoal/50 hover:text-red-600 underline"
-                        >
-                          Clear units
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Interactive Units List */}
-                    {buildingUnits.length > 0 && (
-                      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
-                        {buildingUnits.map((unit, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between gap-3 rounded-lg border border-charcoal/10 bg-white p-2.5 text-xs"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded bg-sand font-bold text-charcoal text-[11px]">
-                                {idx + 1}
-                              </span>
-                              <div>
-                                <span className="font-bold text-charcoal">{unit.unitNumber}</span>
-                                <span className="text-charcoal/50 ml-1.5">Floor {unit.floorNumber} • {unit.sizeM2} m²</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-rust">ETB {unit.monthlyRent?.toLocaleString()}/mo</span>
-                              <button
-                                type="button"
-                                onClick={() => removeUnit(idx)}
-                                className="text-charcoal/40 hover:text-red-500 font-bold px-1"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <BuildingFloorManager
+                    initialDetails={{
+                      isMultiUnit: true,
+                      rentalScope,
+                      totalFloors,
+                      totalUnits: buildingUnits.length > 0 ? buildingUnits.length : 1,
+                      units: buildingUnits as any,
+                    }}
+                    onChange={(details) => {
+                      setRentalScope(details.rentalScope)
+                      setTotalFloors(details.totalFloors)
+                      setBuildingUnits(details.units as any)
+                      if (details.units.length > 0) {
+                        setValue('beds', details.units.length)
+                        const totalSqm = details.units.reduce((acc, u) => acc + (u.sizeM2 || 0), 0)
+                        if (totalSqm > 0) setValue('sizeSqm', totalSqm)
+                        const minRent = Math.min(...details.units.map(u => u.monthlyRent || 0).filter(Boolean))
+                        if (minRent > 0 && isFinite(minRent)) {
+                          setValue('priceEtb', minRent)
+                          setValue('depositEtb', minRent * 2)
+                        }
+                      }
+                    }}
+                  />
                 )}
                 <Field label="Street address" error={errors.address}>
                   <input className={inputClass} placeholder="Full address (kept private until an application is approved)" {...register('address')} />

@@ -129,7 +129,7 @@ function NavIcon({ name }: { name: string }) {
 
         <nav className="mt-8 flex flex-1 flex-col gap-1" aria-label="Tenant dashboard" onClick={() => setSidebarOpen(false)}>
           {MAIN_NAV.map((item) => (
-            <Link key={item.label} href={item.href} className={itemClass(item.href)}>
+            <Link key={item.label} href={item.href} prefetch={item.href !== '/logout'} className={itemClass(item.href)}>
               <NavIcon name={item.icon} />
               {item.label}
             </Link>
@@ -138,7 +138,7 @@ function NavIcon({ name }: { name: string }) {
           <div className="my-3 border-t border-white/10" />
 
           {SECONDARY_NAV.map((item) => (
-            <Link key={item.label} href={item.href} className={itemClass(item.href)}>
+            <Link key={item.label} href={item.href} prefetch={true} className={itemClass(item.href)}>
               <NavIcon name={item.icon} />
               {item.label}
             </Link>
@@ -147,7 +147,7 @@ function NavIcon({ name }: { name: string }) {
           <div className="my-3 border-t border-white/10" />
 
           {FOOTER_NAV.map((item) => (
-            <Link key={item.label} href={item.href} className={itemClass(item.href)}>
+            <Link key={item.label} href={item.href} prefetch={item.href !== '/logout'} className={itemClass(item.href)}>
               <NavIcon name={item.icon} />
               {item.label}
             </Link>
@@ -155,7 +155,7 @@ function NavIcon({ name }: { name: string }) {
         </nav>
 
         <div className="space-y-1 border-t border-white/10 pt-3">
-          <Link href="/support" className={itemClass('#')}>
+          <Link href="/support" prefetch={true} className={itemClass('#')}>
             <NavIcon name="help" />
             {t.sidebar.helpCenter}
           </Link>

@@ -46,7 +46,9 @@ export default function Footer() {
           <div className="md:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2 font-display text-xl font-bold text-white">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rust text-white text-base">
-                🏠
+                <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                </svg>
               </span>
               HomeLink <span className="text-rust">Ethiopia</span>
             </Link>

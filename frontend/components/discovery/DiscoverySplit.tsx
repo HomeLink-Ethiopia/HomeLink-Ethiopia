@@ -561,6 +561,32 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
         </div>
       )}
 
+      {/* Category Switcher Bar */}
+      <div className="border-b border-charcoal/10 bg-sand/30 px-4 py-2 sm:px-6">
+        <div className="mx-auto max-w-7xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-rust px-3 py-1.5 text-xs font-bold text-white shadow-xs">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              </svg>
+              <span>Residential Homes</span>
+            </span>
+            <Link
+              href="/buildings"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3 py-1.5 text-xs font-bold text-charcoal/70 hover:border-rust hover:text-rust transition-colors"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-charcoal/50">
+                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+              </svg>
+              <span>Commercial Buildings & Offices →</span>
+            </Link>
+          </div>
+          <p className="hidden md:block text-xs text-charcoal/50">
+            Looking for multi-floor commercial buildings or office spaces? Switch to Commercial Buildings.
+          </p>
+        </div>
+      </div>
+
       {/* Filter Bar */}
       <div className="border-b border-charcoal/10 bg-white px-4 py-3 sm:px-6">
         <div className="mx-auto max-w-7xl">
@@ -612,8 +638,8 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                   { label: 'House', value: 'house' },
                   { label: 'Villa', value: 'villa' },
                   { label: 'Studio', value: 'studio' },
-                  { label: '🏢 Building / Workspaces', value: 'building' },
-                  { label: '💼 Commercial Space', value: 'commercial' },
+                  { label: 'Commercial Building', value: 'building' },
+                  { label: 'Commercial Space', value: 'commercial' },
                 ]}
               />
 
@@ -694,6 +720,25 @@ export default function DiscoverySplit({ filters = {} }: DiscoverySplitProps) {
                   setAmenities={setAmenitiesFilter}
                 />
               </div>
+
+              {/* Quick Filter: Commercial Buildings & Multi-Unit */}
+              <button
+                type="button"
+                onClick={() => {
+                  setPropertyType(propertyType === 'building' ? '' : 'building')
+                  setCurrentPage(1)
+                }}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-all shadow-sm ${
+                  propertyType === 'building'
+                    ? 'border-rust bg-rust text-white shadow-md'
+                    : 'border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                }`}
+              >
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <span>Buildings & Floors ({propertyType === 'building' ? 'Active' : 'Filter'})</span>
+              </button>
 
               {/* Clear all */}
               {activeFilterCount > 0 && (

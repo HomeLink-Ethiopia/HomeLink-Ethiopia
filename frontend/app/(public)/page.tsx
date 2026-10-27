@@ -416,6 +416,8 @@ function StatsRibbon() {
   )
 }
 
+
+
 /* ─── 3. EXPLORE ADDIS ABABA (NEIGHBORHOODS) ────────────────────────────── */
 function NeighborhoodSection() {
   const { t } = useLanguage()
@@ -501,12 +503,17 @@ function VerifiedHomesSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true })
 
-  const displayProperties =
+  const filtered =
     activeTab === 'popular'
       ? PROPERTIES.filter((p) => p.reviewCount >= 25)
       : activeTab === 'top'
       ? PROPERTIES.filter((p) => p.rating >= 4.7)
       : PROPERTIES.filter((p) => p.verified)
+
+  const building = PROPERTIES.find((p) => p.id === 'p11')
+  const displayProperties = building
+    ? [building, ...filtered.filter((p) => p.id !== 'p11')]
+    : filtered
 
   return (
     <section ref={ref} className="bg-sand/35 py-16 border-y border-charcoal/8">

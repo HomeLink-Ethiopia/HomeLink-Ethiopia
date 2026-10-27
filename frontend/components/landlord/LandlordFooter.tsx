@@ -38,7 +38,9 @@ export default function LandlordFooter() {
           <div className="space-y-3">
             <Link href="/" className="flex items-center gap-2 font-display text-base font-bold text-cream">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rust text-white text-sm">
-                🏠
+                <svg className="h-3.5 w-3.5 fill-white" viewBox="0 0 24 24">
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                </svg>
               </span>
               <span>HomeLink <span className="text-rust">Ethiopia</span></span>
             </Link>

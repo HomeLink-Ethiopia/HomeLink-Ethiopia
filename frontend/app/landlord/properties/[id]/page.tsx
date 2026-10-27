@@ -39,6 +39,24 @@ interface Property {
   floor?: number
   furnished?: boolean
   amenities?: string[]
+  buildingDetails?: {
+    isMultiUnit?: boolean
+    rentalScope?: string
+    totalFloors?: number
+    totalUnits?: number
+    units?: Array<{
+      unitId?: string
+      id?: string
+      unitNumber: string
+      name?: string
+      spaceType: string
+      floorNumber: number
+      sizeM2?: number
+      rentAmount?: number
+      monthlyRent?: number
+      status: 'available' | 'reserved' | 'rented'
+    }>
+  }
   location?: {
     address?: string
     subCity?: string
@@ -147,6 +165,33 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       router.push('/landlord/properties')
     } catch {
       router.push('/landlord/properties')
+    }
+  }
+
+  const handleUnitStatusChange = async (unitIdentifier: string, newStatus: 'available' | 'reserved' | 'rented') => {
+    if (!property?.buildingDetails?.units) return
+    const updatedUnits = property.buildingDetails.units.map((u) => {
+      const match = (u.unitId && u.unitId === unitIdentifier) || (u.id && u.id === unitIdentifier) || u.unitNumber === unitIdentifier
+      if (match) {
+        return { ...u, status: newStatus }
+      }
+      return u
+    })
+    const updatedBuildingDetails = {
+      ...property.buildingDetails,
+      units: updatedUnits,
+    }
+    setProperty(prev => prev ? { ...prev, buildingDetails: updatedBuildingDetails } : null)
+
+    try {
+      const token = localStorage.getItem('hl_token')
+      await fetch(`${API_URL}/api/v1/properties/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ buildingDetails: updatedBuildingDetails }),
+      })
+    } catch (e) {
+      console.error('Failed to update unit status:', e)
     }
   }
 
@@ -299,6 +344,104 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* ═══ MAIN CONTENT ═══ */}
           <div className="lg:col-span-2 space-y-6">
+            {/* ═══ BUILDING FLOORS & UNITS MANAGEMENT (FOR BUILDINGS) ═══ */}
+            {property.buildingDetails?.units && property.buildingDetails.units.length > 0 && (
+              <div className="rounded-xl border-2 border-rust/30 bg-white p-6 shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-charcoal/10 pb-4">
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-charcoal flex items-center gap-2">
+                      <svg className="h-5 w-5 text-rust shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Building Floors & Room Occupancy (የፎቆች እና ክፍሎች ሁኔታ)
+                    </h2>
+                    <p className="text-xs text-charcoal/60 mt-0.5">
+                      Manage room vacancies floor-by-floor. 1-click toggle to mark rooms Available or Rented!
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                      {property.buildingDetails.units.filter(u => u.status === 'available').length} Available
+                    </span>
+                    <span className="rounded-full bg-sand px-3 py-1 text-xs font-semibold text-charcoal/70">
+                      {property.buildingDetails.units.length} Total Units
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grouped by Floor */}
+                {(() => {
+                  const units = property.buildingDetails.units
+                  const distinctFloors = Array.from(new Set(units.map(u => typeof u.floorNumber === 'number' ? u.floorNumber : 0))).sort((a, b) => a - b)
+
+                  return (
+                    <div className="space-y-4">
+                      {distinctFloors.map(floor => {
+                        const floorUnits = units.filter(u => (typeof u.floorNumber === 'number' ? u.floorNumber : 0) === floor)
+                        const floorTitle = floor === 0 ? 'Ground Floor (ምድር ቤት)' : floor === 1 ? '1st Floor (1ኛ ፎቅ)' : floor === 2 ? '2nd Floor (2ኛ ፎቅ)' : `${floor}th Floor (${floor}ኛ ፎቅ)`
+
+                        return (
+                          <div key={floor} className="rounded-lg border border-charcoal/15 bg-sand/20 p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-display text-sm font-bold text-charcoal flex items-center gap-2">
+                                <span className="inline-block h-2 w-2 rounded-full bg-rust"></span>
+                                {floorTitle}
+                              </span>
+                              <span className="text-xs text-charcoal/60 font-medium">
+                                {floorUnits.length} room{floorUnits.length === 1 ? '' : 's'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                              {floorUnits.map((u, uIdx) => {
+                                const uId = u.unitId || u.id || u.unitNumber || `u-${uIdx}`
+                                const isAvail = u.status === 'available'
+                                const rent = u.monthlyRent ?? (u as any).rentAmount ?? 0
+
+                                return (
+                                  <div
+                                    key={uId}
+                                    className={`rounded-lg border p-3 flex flex-col justify-between transition-all bg-white ${
+                                      isAvail ? 'border-emerald-200 shadow-xs' : 'border-charcoal/15 bg-gray-50 opacity-80'
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-display text-xs font-bold text-charcoal">{u.unitNumber}</span>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                          isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
+                                        }`}>
+                                          {isAvail ? 'Available' : 'Rented'}
+                                        </span>
+                                      </div>
+                                      <p className="text-[11px] text-charcoal/60 mt-1 truncate">{u.name || u.unitNumber}</p>
+                                      <p className="text-[11px] text-charcoal/50">{u.sizeM2} m² • ETB {rent.toLocaleString()}/mo</p>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnitStatusChange(uId, isAvail ? 'rented' : 'available')}
+                                      className={`mt-2.5 w-full py-1.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                                        isAvail
+                                          ? 'border border-charcoal/20 text-charcoal/70 hover:bg-red-50 hover:border-red-300 hover:text-red-700'
+                                          : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                      }`}
+                                    >
+                                      {isAvail ? 'Mark as Rented' : 'Mark as Available'}
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+
             {/* Description */}
             {property.description && (
               <div className="rounded-xl border border-charcoal/10 bg-white p-6">

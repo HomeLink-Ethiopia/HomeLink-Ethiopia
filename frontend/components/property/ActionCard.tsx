@@ -27,8 +27,9 @@ export default function ActionCard({
   const saved = useFavoritesStore((s) => s.favorites.has(propertyId))
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
 
-  const effectivePrice = selectedUnit ? selectedUnit.monthlyRent : priceEtb
-  const effectiveDeposit = selectedUnit ? (selectedUnit.depositAmount || selectedUnit.monthlyRent * 2) : depositEtb
+  const unitRent = selectedUnit ? (selectedUnit.monthlyRent ?? (selectedUnit as any).rentAmount ?? 0) : null
+  const effectivePrice = unitRent !== null && unitRent > 0 ? unitRent : priceEtb
+  const effectiveDeposit = selectedUnit ? (selectedUnit.depositAmount || effectivePrice * 2) : depositEtb
 
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-sm">

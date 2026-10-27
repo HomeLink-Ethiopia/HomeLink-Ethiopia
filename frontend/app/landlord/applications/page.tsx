@@ -437,10 +437,10 @@ export default function LandlordApplicationsPage() {
                             <p><span className="font-semibold text-charcoal">Religion / Faith:</span> {app.religion || 'Orthodox Christian'}</p>
                             <p className="capitalize"><span className="font-semibold text-charcoal">Marital Status:</span> {(app.maritalStatus || 'single').replace(/_/g, ' ')}</p>
                             <p><span className="font-semibold text-charcoal">Household Occupants:</span> {app.numberOfOccupants || 1} person(s)</p>
-                            <p><span className="font-semibold text-charcoal">Pets:</span> {app.hasPets ? 'Yes (Pets allowed)' : 'No pets'}</p>
+                            <p><span className="font-semibold text-charcoal">Pets:</span> {app.hasPets ? (app.petDetails ? `Yes (${app.petDetails})` : 'Yes (Has pets)') : 'No pets'}</p>
                           </div>
                           <div className="space-y-1.5">
-                            <p><span className="font-semibold text-charcoal">Smoke-Free Commitment:</span> <span className="text-emerald-700 font-semibold">✓ Agreed (100% Smoke-Free Indoors)</span></p>
+                            <p><span className="font-semibold text-charcoal">Smoking Habit:</span> <span className="font-semibold capitalize text-charcoal">{(app.smokingHabit || 'non_smoker').replace(/_/g, ' ')}</span></p>
                             <p><span className="font-semibold text-charcoal">Peaceful Conduct:</span> <span className="text-emerald-700 font-semibold">✓ Agreed (No Public Disturbance)</span></p>
                             <p><span className="font-semibold text-charcoal">Quiet Hours Agreement:</span> <span className="text-emerald-700 font-semibold">✓ Signed (10 PM – 7 AM)</span></p>
                             <p><span className="font-semibold text-charcoal">Lease Term Requested:</span> {app.durationMonths || 12} Months</p>
@@ -450,15 +450,15 @@ export default function LandlordApplicationsPage() {
 
                       {/* 3. Previous Rental History & Reference */}
                       <div className="rounded-xl bg-white p-4 border border-charcoal/10 shadow-sm space-y-2">
-                        <p className="text-xs font-bold uppercase tracking-wider text-charcoal/50">Previous Rental History & Landlord Reference</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-charcoal/50">Previous Rental History &amp; Landlord Reference</p>
                         <div className="grid gap-3 sm:grid-cols-2 text-xs">
                           <div className="space-y-1">
-                            <p><span className="font-semibold text-charcoal">Previous Landlord:</span> {app.previousLandlordName || 'Ato Bekele Tadesse'}</p>
-                            <p><span className="font-semibold text-charcoal">Reference Contact:</span> {app.previousLandlordPhone || '+251911445566'}</p>
+                            <p><span className="font-semibold text-charcoal">Previous Landlord:</span> {app.previousLandlordName || 'None provided'}</p>
+                            <p><span className="font-semibold text-charcoal">Reference Contact:</span> {app.previousLandlordPhone || '—'}</p>
                           </div>
                           <div className="space-y-1">
-                            <p><span className="font-semibold text-charcoal">Duration at Last Rental:</span> {app.previousRentalDuration || '2 years in CMC'}</p>
-                            <p><span className="font-semibold text-charcoal">Reason for Moving:</span> {app.reasonForMoving || 'Looking for closer proximity to workplace'}</p>
+                            <p><span className="font-semibold text-charcoal">Duration at Last Rental:</span> {app.previousRentalDuration || '—'}</p>
+                            <p><span className="font-semibold text-charcoal">Reason for Moving:</span> {app.reasonForMoving || '—'}</p>
                           </div>
                         </div>
                       </div>

@@ -12,6 +12,12 @@ const ROLES: { role: Role; label: string; email: string }[] = [
   { role: 'admin', label: 'Admin', email: 'dev.admin@homelink.test' },
 ]
 
+const ROLE_HOME: Record<Role, string> = {
+  tenant: '/tenant/dashboard',
+  landlord: '/landlord/dashboard',
+  admin: '/admin/dashboard',
+}
+
 /**
  * Testing-only affordance: lets a developer jump between the three role
  * dashboards using three real seeded accounts (tenant / landlord / admin).
@@ -24,10 +30,11 @@ export default function RoleSwitcher() {
   const [busy, setBusy] = useState<string | null>(null)
   const [err, setErr] = useState('')
 
-  const switchTo = async (label: string, email: string) => {
+  const switchTo = async (role: Role, label: string, email: string) => {
     setBusy(label)
     setErr('')
-    const result = await login(email, 'Password123!')
+    const destination = ROLE_HOME[role]
+    const result = await login(email, 'Password123!', destination)
     setBusy(null)
     if (!result.success) {
       setErr(result.error || 'Login failed')
@@ -42,35 +49,41 @@ export default function RoleSwitcher() {
             {err}
           </span>
         )}
-        <div className="flex items-center gap-1 rounded-full border border-charcoal/15 bg-white/95 px-1.5 py-1.5 shadow-stamp backdrop-blur-sm">
+        <div className="flex items-center gap-1.5 rounded-full border border-charcoal/15 bg-white/95 px-2 py-1.5 shadow-stamp backdrop-blur-sm">
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-charcoal/40 hover:text-charcoal"
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-charcoal/50 hover:text-charcoal"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-verified" />
-            Dev
+            Switch Account
           </button>
 
-          {open &&
-            ROLES.map(({ role, label, email }) => (
-              <button
-                key={role}
-                type="button"
-                disabled={busy !== null}
-                onClick={() => switchTo(label, email)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                  user?.role === role
-                    ? 'bg-rust text-white'
-                    : 'text-charcoal/70 hover:bg-sand hover:text-charcoal'
-                }`}
-              >
-                {busy === label ? '…' : label}
-              </button>
-            ))}
+          {open && (
+            <>
+              <span className="h-4 w-px bg-charcoal/15 mx-0.5" />
+              {ROLES.map(({ role, label, email }) => (
+                <button
+                  key={role}
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => switchTo(role, label, email)}
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                    user?.role === role
+                      ? 'bg-rust text-white shadow-sm'
+                      : 'text-charcoal/70 hover:bg-sand hover:text-charcoal'
+                  }`}
+                >
+                  {busy === label ? '…' : label}
+                </button>
+              ))}
+            </>
+          )}
 
-          {open && user && (
-            <span className="pr-2 font-mono text-[10px] text-charcoal/40">as {user.name}</span>
+          {user && (
+            <span className="pr-2 font-mono text-[10px] text-charcoal/50">
+              ({user.role}: {user.name})
+            </span>
           )}
         </div>
       </div>

@@ -6,6 +6,16 @@ const nextConfig = {
     // Strip console.* (except errors/warnings) from production bundles
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
+  experimental: {
+    optimizePackageImports: [
+      'framer-motion',
+      'recharts',
+      'leaflet',
+      'react-leaflet',
+      'zod',
+      'react-hook-form',
+    ],
+  },
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },

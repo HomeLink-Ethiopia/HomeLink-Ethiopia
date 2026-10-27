@@ -17,9 +17,10 @@ export default function TopNav() {
   const [searchInput, setSearchInput] = useState('')
   
   const PRIMARY_LINKS = [
-    { label: t.common.explore, href: '/explore' },
+    { label: locale === 'AM' ? 'መኖሪያ ቤቶች' : 'Browse Homes', href: '/explore' },
+    { label: locale === 'AM' ? 'የንግድ ህንፃዎችና ቢሮዎች' : 'Commercial Buildings', href: '/buildings' },
     { label: t.common.howItWorks, href: '/how-it-works' },
-    { label: locale === 'AM' ? 'ለባለቤቶች' : 'For Landlords', href: '/signup' },
+    { label: locale === 'AM' ? 'ለባለቤቶች' : 'For Landlords', href: user?.role === 'landlord' ? '/landlord/properties/new' : '/signup?role=landlord' },
     { label: t.common.about, href: '/about' },
     { label: t.common.support, href: '/support' },
   ]
@@ -33,7 +34,7 @@ export default function TopNav() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-charcoal/10 bg-white backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-charcoal/10 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Logo href="/" className="shrink-0" />
@@ -48,8 +49,8 @@ export default function TopNav() {
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t.hero.searchPlaceholder || "Addis Ababa..."}
-              className="w-full rounded-lg border border-charcoal/15 bg-white pl-10 pr-4 py-2 text-sm text-charcoal placeholder:text-charcoal/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              placeholder={t.hero.searchPlaceholder || "Search homes or commercial buildings..."}
+              className="w-full rounded-lg border border-charcoal/15 bg-sand/30 pl-10 pr-4 py-2 text-sm text-charcoal placeholder:text-charcoal/40 focus:border-rust focus:bg-white focus:outline-none focus:ring-1 focus:ring-rust transition-colors"
             />
           </form>
         </div>
@@ -60,6 +61,7 @@ export default function TopNav() {
             <Link
               key={link.href}
               href={link.href}
+              prefetch={true}
               className="text-sm font-medium text-charcoal/70 transition-colors hover:text-rust"
             >
               {link.label}
@@ -82,6 +84,7 @@ export default function TopNav() {
             <>
               <Link
                 href={ROLE_HOME[user.role] || '/'}
+                prefetch={true}
                 className="text-sm font-medium text-charcoal/70 transition-colors hover:text-rust"
               >
                 { (user.name || user.email || 'My').split(' ')[0] }'s Dashboard
@@ -98,12 +101,14 @@ export default function TopNav() {
             <>
               <Link
                 href="/login"
+                prefetch={true}
                 className="text-sm font-medium text-charcoal/70 transition-colors hover:text-rust"
               >
                 {t.common.login}
               </Link>
               <Link
                 href="/signup"
+                prefetch={true}
                 className="rounded-lg bg-rust px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rust-dark transition-colors"
               >
                 {t.common.signup}

@@ -159,7 +159,15 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         // `landlord` for the "Listed by / Identity Verified" card.
         const mapped = mapApiProperty(raw)
         const landlord = (typeof raw.landlordId === 'object' && raw.landlordId) || raw.landlord || null
-        setProperty({ ...mapped, ...raw, landlord, id: raw._id, images: mapped.images, image: mapped.image } as RawProperty)
+        setProperty({
+          ...raw,
+          ...mapped,
+          landlord,
+          id: raw._id || mapped.id,
+          buildingDetails: mapped.buildingDetails || raw.buildingDetails,
+          images: mapped.images,
+          image: mapped.image,
+        } as RawProperty)
         setLoading(false)
       })
       .catch((e) => {
@@ -293,28 +301,51 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="flex flex-col items-center gap-2 rounded-lg border border-charcoal/10 bg-white px-4 py-4">
-                <p className="text-lg font-bold text-charcoal">{property.beds}</p>
-                <p className="text-xs text-charcoal/60">Bedrooms</p>
-              </div>
-              <div className="flex flex-col items-center gap-2 rounded-lg border border-charcoal/10 bg-white px-4 py-4">
-                <p className="text-lg font-bold text-charcoal">{property.baths}</p>
-                <p className="text-xs text-charcoal/60">Bathrooms</p>
-              </div>
-              {property.sizeSqm ? (
-                <div className="flex flex-col items-center gap-2 rounded-lg border border-charcoal/10 bg-white px-4 py-4">
-                  <p className="text-lg font-bold text-charcoal">{property.sizeSqm}</p>
-                  <p className="text-xs text-charcoal/60">m²</p>
+            {property.buildingDetails || property.propertyType === 'building' || property.propertyType === 'commercial' ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                  <p className="text-lg font-bold text-charcoal">{property.buildingDetails?.totalFloors || (property as any).totalFloors || 5}</p>
+                  <p className="text-xs text-charcoal/60 font-medium">Floors</p>
                 </div>
-              ) : null}
-              {property.propertyType ? (
-                <div className="flex flex-col items-center gap-2 rounded-lg border border-charcoal/10 bg-white px-4 py-4">
-                  <p className="text-sm font-bold capitalize text-charcoal">{property.propertyType}</p>
-                  <p className="text-xs text-charcoal/60">Type</p>
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                  <p className="text-lg font-bold text-charcoal">{property.buildingDetails?.units?.length || property.beds || 12}</p>
+                  <p className="text-xs text-charcoal/60 font-medium">Total Spaces</p>
                 </div>
-              ) : null}
-            </div>
+                {property.sizeSqm ? (
+                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                    <p className="text-lg font-bold text-charcoal">{property.sizeSqm}</p>
+                    <p className="text-xs text-charcoal/60 font-medium">m² Total Area</p>
+                  </div>
+                ) : null}
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                  <p className="text-sm font-bold text-charcoal">Commercial</p>
+                  <p className="text-xs text-charcoal/60 font-medium">Building</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                  <p className="text-lg font-bold text-charcoal">{property.beds}</p>
+                  <p className="text-xs text-charcoal/60 font-medium">Bedrooms</p>
+                </div>
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                  <p className="text-lg font-bold text-charcoal">{property.baths}</p>
+                  <p className="text-xs text-charcoal/60 font-medium">Bathrooms</p>
+                </div>
+                {property.sizeSqm ? (
+                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                    <p className="text-lg font-bold text-charcoal">{property.sizeSqm}</p>
+                    <p className="text-xs text-charcoal/60 font-medium">m²</p>
+                  </div>
+                ) : null}
+                {property.propertyType ? (
+                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                    <p className="text-sm font-bold capitalize text-charcoal">{property.propertyType}</p>
+                    <p className="text-xs text-charcoal/60 font-medium">Type</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             {/* Building Units & Flexible Workspace Leasing */}
             {property.buildingDetails && property.buildingDetails.units && (

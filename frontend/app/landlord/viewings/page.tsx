@@ -15,8 +15,12 @@ interface Viewing {
   scheduledDate?: string
   preferredTime?: string
   scheduledTime?: string
+  date?: string
+  time?: string
+  requestedSlots?: any[]
+  tenantNote?: string
   message?: string
-  status: 'requested' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled'
+  status: 'requested' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled' | 'pending'
   createdAt: string
 }
 
@@ -101,7 +105,38 @@ export default function LandlordViewingsPage() {
       : 'Tenant'
   const tenantPhone = (v: Viewing) =>
     typeof v.tenantId === 'object' ? v.tenantId?.phone : undefined
-  const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '—')
+  const getSlotDate = (v: Viewing) => {
+    if (v.preferredDate) return v.preferredDate
+    if (v.scheduledDate) return v.scheduledDate
+    if (v.date) return v.date
+    if (Array.isArray(v.requestedSlots) && v.requestedSlots.length > 0) {
+      const slot = v.requestedSlots[0]
+      return typeof slot === 'string' ? slot : slot?.date
+    }
+    return undefined
+  }
+
+  const getSlotTime = (v: Viewing) => {
+    if (v.preferredTime) return v.preferredTime
+    if (v.scheduledTime) return v.scheduledTime
+    if (v.time) return v.time
+    if (Array.isArray(v.requestedSlots) && v.requestedSlots.length > 0) {
+      const slot = v.requestedSlots[0]
+      if (typeof slot === 'string' && slot.includes('T')) {
+        const t = slot.split('T')[1]?.slice(0, 5)
+        if (t && t !== '00:00') return t
+      } else if (typeof slot === 'object' && slot) {
+        return slot.startTime || slot.time
+      }
+    }
+    if (v.date && v.date.includes('T')) {
+      const t = v.date.split('T')[1]?.slice(0, 5)
+      if (t && t !== '00:00') return t
+    }
+    return undefined
+  }
+
+  const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '—')
 
   return (
     <>
@@ -140,20 +175,30 @@ export default function LandlordViewingsPage() {
                         <span className="font-medium text-charcoal">{tenantName(v)}</span>
                         {tenantPhone(v) ? ` • ${tenantPhone(v)}` : ''}
                       </p>
-                      <div className="mt-3 grid gap-2 text-sm text-charcoal/70 sm:grid-cols-2">
-                        <p>
-                          <span className="font-medium text-charcoal">Requested:</span>{' '}
-                          {fmtDate(v.preferredDate || v.scheduledDate)} at {v.preferredTime || v.scheduledTime || '—'}
-                        </p>
-                        {v.status === 'confirmed' && v.scheduledDate && (
-                          <p>
-                            <span className="font-medium text-verified">Confirmed for:</span>{' '}
-                            {fmtDate(v.scheduledDate)} at {v.scheduledTime || v.preferredTime}
-                          </p>
-                        )}
-                      </div>
-                      {v.message && (
-                        <p className="mt-2 rounded bg-cream/60 px-3 py-2 text-xs text-charcoal/60">Tenant note: {v.message}</p>
+                      {(() => {
+                        const reqDate = getSlotDate(v)
+                        const reqTime = getSlotTime(v)
+                        const confDate = v.scheduledDate || reqDate
+                        const confTime = v.scheduledTime || reqTime
+                        return (
+                          <div className="mt-3 grid gap-2 text-sm text-charcoal/70 sm:grid-cols-2">
+                            <p>
+                              <span className="font-medium text-charcoal">Requested:</span>{' '}
+                              <span className="font-semibold text-charcoal">{fmtDate(reqDate)}</span>
+                              {reqTime ? <span className="font-bold text-rust"> at {reqTime}</span> : ''}
+                            </p>
+                            {v.status === 'confirmed' && (
+                              <p>
+                                <span className="font-medium text-verified">Confirmed for:</span>{' '}
+                                <span className="font-semibold text-charcoal">{fmtDate(confDate)}</span>
+                                {confTime ? <span className="font-bold text-verified"> at {confTime}</span> : ''}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })()}
+                      {(v.message || v.tenantNote) && (
+                        <p className="mt-2 rounded bg-cream/60 px-3 py-2 text-xs text-charcoal/60">Tenant note: {v.message || v.tenantNote}</p>
                       )}
                     </div>
 

@@ -23,10 +23,53 @@ const createNotification = async (userId, type, title, body, entityType, entityI
     }
 };
 
+const normalizeViewing = (v) => {
+    if (!v) return v;
+    let slotDate = v.preferredDate || v.scheduledDate || v.date;
+    let slotTime = v.preferredTime || v.scheduledTime || v.time;
+    if ((!slotDate || !slotTime) && Array.isArray(v.requestedSlots) && v.requestedSlots.length > 0) {
+        const first = v.requestedSlots[0];
+        if (typeof first === 'string') {
+            slotDate = slotDate || first;
+            if (first.includes('T')) {
+                const parts = first.split('T')[1]?.slice(0, 5);
+                if (parts && parts !== '00:00') slotTime = slotTime || parts;
+            }
+        } else if (first && typeof first === 'object') {
+            slotDate = slotDate || first.date;
+            slotTime = slotTime || first.startTime || first.time;
+        }
+    }
+    if ((!slotDate || !slotTime) && v.confirmedSlot) {
+        slotDate = slotDate || v.confirmedSlot.date;
+        slotTime = slotTime || v.confirmedSlot.startTime;
+    }
+    return {
+        ...v,
+        date: slotDate,
+        preferredDate: slotDate,
+        preferredTime: slotTime,
+        scheduledDate: v.status === 'confirmed' ? (v.confirmedSlot?.date || slotDate) : (v.scheduledDate || slotDate),
+        scheduledTime: v.status === 'confirmed' ? (v.confirmedSlot?.startTime || slotTime) : (v.scheduledTime || slotTime),
+        message: v.message || v.tenantNote || ''
+    };
+};
+
 const requestViewing = async (req, res) => {
     try {
-        const { propertyId, requestedSlots, tenantNote } = req.body;
+        const { propertyId, requestedSlots, tenantNote, preferredDate, preferredTime, scheduledDate, scheduledTime, date } = req.body;
         const tenantId = req.user.id;
+
+        let slotDate = preferredDate || scheduledDate || date;
+        let slotTime = preferredTime || scheduledTime;
+        if (!slotDate && Array.isArray(requestedSlots) && requestedSlots.length > 0) {
+            const first = requestedSlots[0];
+            slotDate = typeof first === 'string' ? first : (first?.date || first?.preferredDate);
+            slotTime = first?.startTime || first?.time || first?.preferredTime;
+        }
+        if (slotDate && String(slotDate).includes('T') && !slotTime) {
+            slotTime = String(slotDate).split('T')[1]?.slice(0, 5);
+        }
 
         if (isMockMode()) {
             if (!mockStore.viewings) mockStore.viewings = [];
@@ -48,7 +91,12 @@ const requestViewing = async (req, res) => {
                 },
                 tenantId,
                 landlordId: property.landlordId || "mock-landlord-1",
-                requestedSlots: requestedSlots || [],
+                requestedSlots: requestedSlots || (slotDate ? [{ date: slotDate, startTime: slotTime, endTime: slotTime }] : []),
+                date: slotDate,
+                preferredDate: slotDate,
+                preferredTime: slotTime,
+                scheduledDate: slotDate,
+                scheduledTime: slotTime,
                 status: "pending",
                 tenantNote: tenantNote || "",
                 createdAt: new Date().toISOString()
@@ -57,8 +105,8 @@ const requestViewing = async (req, res) => {
             if (typeof persistMockData === 'function') persistMockData();
             return res.status(201).json({
                 message: "Viewing requested successfully",
-                viewing,
-                data: viewing
+                viewing: normalizeViewing(viewing),
+                data: normalizeViewing(viewing)
             });
         }
 
@@ -76,7 +124,10 @@ const requestViewing = async (req, res) => {
             propertyId,
             tenantId,
             landlordId: landlordProfile.accountId,
-            requestedSlots,
+            requestedSlots: requestedSlots || (slotDate ? [{ date: slotDate, startTime: slotTime, endTime: slotTime }] : []),
+            date: slotDate,
+            preferredDate: slotDate,
+            preferredTime: slotTime,
             tenantNote
         });
 
@@ -91,8 +142,8 @@ const requestViewing = async (req, res) => {
 
         res.status(201).json({
             message: "Viewing requested successfully",
-            viewing,
-            data: viewing
+            viewing: normalizeViewing(viewing.toObject ? viewing.toObject() : viewing),
+            data: normalizeViewing(viewing.toObject ? viewing.toObject() : viewing)
         });
     } catch (error) {
         console.error("Request viewing error:", error);
@@ -123,8 +174,12 @@ const getTenantViewings = async (req, res) => {
                         tenantId: "mock-user-seed-1",
                         landlordId: "mock-landlord-1",
                         date: "2026-10-30T10:00:00Z",
-                        requestedSlots: ["2026-10-30T10:00:00Z"],
-                        confirmedSlot: "2026-10-30T10:00:00Z",
+                        requestedSlots: [{ date: "2026-10-30T10:00:00Z", startTime: "10:00" }],
+                        preferredDate: "2026-10-30T10:00:00Z",
+                        preferredTime: "10:00",
+                        scheduledDate: "2026-10-30T10:00:00Z",
+                        scheduledTime: "10:00",
+                        confirmedSlot: { date: "2026-10-30T10:00:00Z", startTime: "10:00" },
                         status: "confirmed",
                         tenantNote: "Looking forward to seeing the property.",
                         createdAt: new Date().toISOString()
@@ -136,7 +191,7 @@ const getTenantViewings = async (req, res) => {
             const list = mockStore.viewings.filter(v => {
                 const vTenantId = v.tenantId?._id ? String(v.tenantId._id) : String(v.tenantId || "");
                 return vTenantId === currentUserId || (isSeedTenant && (vTenantId === 'mock-user-seed-1' || vTenantId === 'mock-user-tenant'));
-            });
+            }).map(normalizeViewing);
 
             return res.status(200).json({ success: true, data: list, viewings: list });
         }
@@ -144,8 +199,9 @@ const getTenantViewings = async (req, res) => {
         const viewings = await Viewing.find({ tenantId: req.user.id })
             .populate('propertyId', 'title location rentAmount images')
             .sort({ date: 1, createdAt: -1 });
+        const list = viewings.map(v => normalizeViewing(v.toObject ? v.toObject() : v));
             
-        res.status(200).json({ success: true, data: viewings, viewings: viewings });
+        res.status(200).json({ success: true, data: list, viewings: list });
     } catch (error) {
         console.error("getTenantViewings error:", error);
         res.status(500).json({ message: "Server error" });
@@ -164,7 +220,7 @@ const getLandlordViewings = async (req, res) => {
             const list = mockStore.viewings.filter(v => {
                 const vLandlordId = v.landlordId?._id ? String(v.landlordId._id) : String(v.landlordId || "");
                 return vLandlordId === currentUserId || (isSeedLandlord && vLandlordId === 'mock-landlord-1');
-            });
+            }).map(normalizeViewing);
 
             return res.status(200).json({ success: true, data: list, viewings: list });
         }
@@ -173,8 +229,9 @@ const getLandlordViewings = async (req, res) => {
             .populate('propertyId', 'title location rentAmount images')
             .populate('tenantId', 'firstName lastName email phone')
             .sort({ date: 1, createdAt: -1 });
+        const list = viewings.map(v => normalizeViewing(v.toObject ? v.toObject() : v));
             
-        res.status(200).json({ success: true, data: viewings, viewings: viewings });
+        res.status(200).json({ success: true, data: list, viewings: list });
     } catch (error) {
         console.error("getLandlordViewings error:", error);
         res.status(500).json({ message: "Server error" });

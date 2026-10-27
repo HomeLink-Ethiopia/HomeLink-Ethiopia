@@ -46,7 +46,9 @@ const propertySchema = new Schema({
                 type: String,
                 enum: ["available", "reserved", "rented"],
                 default: "available"
-            }
+            },
+            image: String,
+            amenities: [String]
         }]
     },
     location: {

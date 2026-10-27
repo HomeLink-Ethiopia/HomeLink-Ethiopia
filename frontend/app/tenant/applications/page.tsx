@@ -22,6 +22,14 @@ interface Application {
   monthlyIncome?: number
   numberOfOccupants?: number
   hasPets?: boolean
+  petDetails?: string
+  smokingHabit?: string
+  religion?: string
+  employmentStatus?: string
+  previousLandlordName?: string
+  previousLandlordPhone?: string
+  previousRentalDuration?: string
+  reasonForMoving?: string
   landlordFeedback?: string
 }
 
@@ -251,12 +259,30 @@ export default function ApplicationsPage() {
                         <p><strong className="text-charcoal">Preferred Move-in Date:</strong> {application.moveInDate ? new Date(application.moveInDate).toLocaleDateString() : 'Flexible'}</p>
                         <p><strong className="text-charcoal">Lease Duration:</strong> {application.durationMonths ? `${application.durationMonths} months` : '12 months'}</p>
                         <p><strong className="text-charcoal">Occupants:</strong> {application.numberOfOccupants || 1} person(s)</p>
-                        <p><strong className="text-charcoal">Pets:</strong> {application.hasPets ? 'Yes' : 'No'}</p>
+                        <p><strong className="text-charcoal">Pets:</strong> {application.hasPets ? (application.petDetails ? `Yes (${application.petDetails})` : 'Yes (Has pets)') : 'No pets'}</p>
+                        {application.smokingHabit && (
+                          <p><strong className="text-charcoal">Smoking:</strong> {application.smokingHabit.replace(/_/g, ' ')}</p>
+                        )}
+                        {application.religion && (
+                          <p><strong className="text-charcoal">Faith / Profile:</strong> {application.religion}</p>
+                        )}
                       </div>
                       <div className="space-y-1.5">
-                        {application.monthlyIncome && (
-                          <p><strong className="text-charcoal">Declared Monthly Income:</strong> ETB {application.monthlyIncome.toLocaleString()}</p>
+                        {application.monthlyIncome ? (
+                          <p><strong className="text-charcoal">Declared Monthly Income:</strong> ETB {Number(application.monthlyIncome).toLocaleString()}</p>
+                        ) : null}
+                        {application.employmentStatus && (
+                          <p><strong className="text-charcoal">Employment:</strong> {application.employmentStatus}</p>
                         )}
+                        {application.previousLandlordName ? (
+                          <p><strong className="text-charcoal">Previous Landlord:</strong> {application.previousLandlordName} {application.previousLandlordPhone ? `(${application.previousLandlordPhone})` : ''}</p>
+                        ) : null}
+                        {application.previousRentalDuration ? (
+                          <p><strong className="text-charcoal">Previous Rental:</strong> {application.previousRentalDuration}</p>
+                        ) : null}
+                        {application.reasonForMoving ? (
+                          <p><strong className="text-charcoal">Reason for Moving:</strong> {application.reasonForMoving}</p>
+                        ) : null}
                         {application.message && (
                           <p><strong className="text-charcoal">Application Note:</strong> &ldquo;{application.message}&rdquo;</p>
                         )}

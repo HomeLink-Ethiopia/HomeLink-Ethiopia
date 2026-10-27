@@ -26,6 +26,7 @@ const schema = z.object({
   smokingHabit: z.enum(['non_smoker', 'balcony_only', 'smoker']).default('non_smoker'),
   alcoholHabit: z.enum(['non_drinker', 'social_drinker', 'regular']).default('non_drinker'),
   hasPets: z.enum(['no_pets', 'has_pets']).default('no_pets'),
+  petDetails: z.string().optional(),
   quietHoursAgreed: z.boolean().default(true),
   previousLandlordName: z.string().optional(),
   previousLandlordPhone: z.string().optional(),
@@ -81,6 +82,7 @@ export default function ApplicationModal() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -93,11 +95,17 @@ export default function ApplicationModal() {
       smokingHabit: 'non_smoker',
       alcoholHabit: 'non_drinker',
       hasPets: 'no_pets',
+      petDetails: '',
       quietHoursAgreed: true,
-      previousRentalDuration: '2 years',
-      reasonForMoving: 'Looking for a well-maintained home closer to work',
+      previousLandlordName: '',
+      previousLandlordPhone: '',
+      previousRentalDuration: '',
+      reasonForMoving: '',
+      note: '',
     },
   })
+
+  const currentHasPets = watch('hasPets')
 
   // Pre-fill form when open and authenticated as tenant
   useEffect(() => {
@@ -117,9 +125,12 @@ export default function ApplicationModal() {
         smokingHabit: 'non_smoker',
         alcoholHabit: 'non_drinker',
         hasPets: 'no_pets',
+        petDetails: '',
         quietHoursAgreed: true,
-        previousRentalDuration: '2 years',
-        reasonForMoving: 'Looking for a well-maintained home closer to work',
+        previousLandlordName: '',
+        previousLandlordPhone: '',
+        previousRentalDuration: '',
+        reasonForMoving: '',
         note: '',
       })
     }
@@ -186,6 +197,7 @@ export default function ApplicationModal() {
       formData.append('durationMonths', String(values.durationMonths || 12))
       formData.append('numberOfOccupants', String(values.numberOfOccupants || 1))
       formData.append('hasPets', values.hasPets === 'has_pets' ? 'true' : 'false')
+      formData.append('petDetails', values.petDetails || '')
       formData.append('religion', values.religion || 'Orthodox Christian')
       formData.append('maritalStatus', values.maritalStatus || 'single')
       formData.append('smokingHabit', values.smokingHabit || 'non_smoker')
@@ -307,13 +319,6 @@ export default function ApplicationModal() {
             >
               Sign In
             </a>
-            <button
-              type="button"
-              onClick={() => login('dev.tenant@homelink.test', 'Password123!')}
-              className="w-full rounded-lg border border-charcoal/20 bg-sand/30 py-2 font-mono text-xs font-semibold text-charcoal transition-colors hover:border-rust hover:text-rust"
-            >
-              ⚡ Dev: Continue as Dev Tenant
-            </button>
             <a
               href={`/signup?role=tenant&redirect=${encodeURIComponent(returnPath)}`}
               className="block w-full rounded-lg border-2 border-charcoal/15 px-5 py-2.5 text-sm font-bold text-charcoal transition-colors hover:border-rust hover:text-rust"
@@ -471,6 +476,34 @@ export default function ApplicationModal() {
                 </select>
               </Field>
             </div>
+
+            {/* Pets and Smoking declaration */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Do you have pets?" error={errors.hasPets}>
+                <select className={inputClass} {...register('hasPets')}>
+                  <option value="no_pets">No pets (የቤት እንስሳ የለኝም)</option>
+                  <option value="has_pets">Yes, I have pets (የቤት እንስሳ አለኝ)</option>
+                </select>
+              </Field>
+
+              <Field label="Smoking Habit" error={errors.smokingHabit}>
+                <select className={inputClass} {...register('smokingHabit')}>
+                  <option value="non_smoker">Non-smoker (ማያጨስ)</option>
+                  <option value="balcony_only">Outdoor / Balcony only</option>
+                  <option value="smoker">Smoker</option>
+                </select>
+              </Field>
+            </div>
+
+            {currentHasPets === 'has_pets' && (
+              <Field label="Pet Details" error={errors.petDetails}>
+                <input
+                  className={inputClass}
+                  placeholder="e.g. 1 vaccinated indoor cat, 1 small dog"
+                  {...register('petDetails')}
+                />
+              </Field>
+            )}
 
             {/* Binding Landlord House Rules & Property Standards Commitments */}
             <div className="rounded-lg border border-charcoal/15 bg-white p-3 space-y-2">

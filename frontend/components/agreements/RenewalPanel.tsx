@@ -159,8 +159,11 @@ export default function RenewalPanel({ agreement, myRole, onChanged }: Props) {
       {showBanner && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className={`text-sm font-semibold ${urgencyText}`}>
-              🗓️ Lease expires in {days} day{days === 1 ? '' : 's'} ({agreement.endDate ? new Date(agreement.endDate).toLocaleDateString() : '—'})
+            <p className={`text-sm font-semibold flex items-center gap-1.5 ${urgencyText}`}>
+              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Lease expires in {days} day{days === 1 ? '' : 's'} ({agreement.endDate ? new Date(agreement.endDate).toLocaleDateString() : '—'})
             </p>
             <p className="mt-0.5 text-xs text-charcoal/60">
               {days > 45
@@ -239,15 +242,18 @@ export default function RenewalPanel({ agreement, myRole, onChanged }: Props) {
 
           {suggestion && (
             <div className="mt-2 rounded-lg border border-sky-200 bg-sky-50 p-3">
-              <p className="text-sm font-semibold text-sky-800">
-                🤖 AI suggestion: ETB {suggestion.suggested.toLocaleString()}/mo
+              <p className="text-sm font-semibold text-sky-800 flex items-center gap-1.5">
+                <svg className="h-4 w-4 shrink-0 text-sky-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Market benchmark: ETB {suggestion.suggested.toLocaleString()}/mo
                 <span className="ml-2 text-xs font-normal text-sky-600">
                   range ETB {suggestion.rangeLow.toLocaleString()}–{suggestion.rangeHigh.toLocaleString()}
                 </span>
               </p>
               <p className="mt-0.5 text-xs text-sky-700">{suggestion.explanation}</p>
               <p className="mt-1 text-[10px] text-sky-500">
-                Market estimate ETB {suggestion.marketEstimate.toLocaleString()} • confidence {Math.round(suggestion.confidence * 100)}% • heuristic model, human decides
+                Market estimate ETB {suggestion.marketEstimate.toLocaleString()} • confidence {Math.round(suggestion.confidence * 100)}%
               </p>
             </div>
           )}

@@ -10,8 +10,32 @@ const {
     getPendingVerifications,
     reviewVerification,
     reviewLandlordVerification,
-    getVerificationDetails
+    getVerificationDetails,
+    preScanDocument,
+    requestFaydaOtp,
+    verifyFaydaOtp
 } = require('../controller/verificationController');
+
+router.post(
+    '/pre-scan',
+    authMiddleware,
+    documentUpload.single('file'),
+    preScanDocument
+);
+
+router.post(
+    '/fayda/request-otp',
+    authMiddleware,
+    roleMiddleware('landlord'),
+    requestFaydaOtp
+);
+
+router.post(
+    '/fayda/verify-otp',
+    authMiddleware,
+    roleMiddleware('landlord'),
+    verifyFaydaOtp
+);
 
 router.post(
     '/submit-identity',

@@ -107,6 +107,7 @@ function NavIcon({ name }: { name: string }) {
               <Link
                 key={item.label}
                 href={item.href}
+                prefetch={true}
                 className={`flex items-center gap-3 rounded px-3 py-2.5 text-sm transition-colors ${
                   active ? 'bg-rust text-white' : 'text-cream/70 hover:bg-white/5 hover:text-cream'
                 }`}
@@ -119,11 +120,11 @@ function NavIcon({ name }: { name: string }) {
         </nav>
 
         <div className="border-t border-white/10 pt-3">
-          <Link href="/admin/settings" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
+          <Link href="/admin/settings" prefetch={true} className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="settings" />
             {t.sidebar.settings}
           </Link>
-          <Link href="/logout" className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
+          <Link href="/logout" prefetch={false} className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="logout" />
             {t.sidebar.logout}
           </Link>

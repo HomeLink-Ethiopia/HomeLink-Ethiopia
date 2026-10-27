@@ -38,23 +38,6 @@ function LoginForm() {
     }
   }
 
-  const handleDevLogin = async (devEmail: string) => {
-    setEmail(devEmail)
-    setPassword('Password123!')
-    setError('')
-    setLoading(true)
-    try {
-      const result = await login(devEmail, 'Password123!', redirectUrl || undefined)
-      if (!result.success) {
-        setError(result.error || 'Dev login failed.')
-      }
-    } catch {
-      setError('Dev login failed.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4 py-12">
       <div className="w-full max-w-md">
@@ -131,42 +114,6 @@ function LoginForm() {
               Create one
             </a>
           </p>
-
-          {/* Dev Quick Login for testing without typing */}
-          <div className="mt-6 border-t border-charcoal/10 pt-4">
-            <div className="mb-2.5 flex items-center justify-between">
-              <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-charcoal/45">
-                ⚡ Dev Quick Login
-              </span>
-              <span className="font-mono text-[10px] text-charcoal/35">1-click test login</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDevLogin('dev.tenant@homelink.test')}
-                disabled={loading}
-                className="rounded-lg border border-charcoal/15 bg-sand/30 py-2 text-center text-xs font-semibold text-charcoal transition-all hover:border-rust hover:bg-white hover:text-rust disabled:opacity-50"
-              >
-                Tenant
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDevLogin('dev.landlord@homelink.test')}
-                disabled={loading}
-                className="rounded-lg border border-charcoal/15 bg-sand/30 py-2 text-center text-xs font-semibold text-charcoal transition-all hover:border-rust hover:bg-white hover:text-rust disabled:opacity-50"
-              >
-                Landlord
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDevLogin('dev.admin@homelink.test')}
-                disabled={loading}
-                className="rounded-lg border border-charcoal/15 bg-sand/30 py-2 text-center text-xs font-semibold text-charcoal transition-all hover:border-rust hover:bg-white hover:text-rust disabled:opacity-50"
-              >
-                Admin
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

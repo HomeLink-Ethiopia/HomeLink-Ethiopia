@@ -15,9 +15,10 @@ interface MaintenanceRequest {
   category?: string
   priority?: string
   status?: string
-  assignedTo?: string
+  assignedTo?: string | { firstName?: string; lastName?: string; phone?: string }
   response?: string
   respondedAt?: string
+  tenantConfirmedResolution?: boolean
   images?: { url: string; uploadedAt?: string }[]
   createdAt?: string
   propertyId?: { title?: string; location?: string } | string
@@ -201,6 +202,18 @@ export default function MaintenancePage() {
                     {request.createdAt && (
                       <p className="text-xs text-charcoal/40 mt-2">
                         Submitted {new Date(request.createdAt).toLocaleDateString()}
+                      </p>
+                    )}
+                    {request.assignedTo && (
+                      <p className="text-xs font-semibold text-blue-700 mt-2 flex items-center gap-1.5">
+                        <span>🛠️</span>
+                        <span>Worker: {typeof request.assignedTo === 'object' ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''} ${request.assignedTo.phone || ''}`.trim() : String(request.assignedTo)}</span>
+                      </p>
+                    )}
+                    {request.tenantConfirmedResolution && (
+                      <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center gap-1.5">
+                        <span>✓</span>
+                        <span>Tenant inspected and confirmed resolution</span>
                       </p>
                     )}
                     {request.response && (

@@ -16,6 +16,7 @@ interface Agreement {
   tenantId?: { firstName?: string; lastName?: string; email?: string; phone?: string } | string
   landlordId?: { firstName?: string; lastName?: string; email?: string; phone?: string } | string
   monthlyRentEtb?: number
+  rentAmount?: number
   depositAmount?: number
   startDate?: string
   endDate?: string
@@ -293,8 +294,8 @@ export default function LandlordAgreementsPage() {
                       </div>
                       <p className="mt-0.5 text-sm text-charcoal/60">Tenant: {tenantName(a)}</p>
                       <div className="mt-3 grid gap-2 text-sm text-charcoal/70 sm:grid-cols-4">
-                        <p><span className="font-medium text-charcoal">Rent:</span> {fmtEtb(a.monthlyRentEtb)}/mo</p>
-                        <p><span className="font-medium text-charcoal">Deposit:</span> {fmtEtb(a.depositAmount)}</p>
+                        <p><span className="font-medium text-charcoal">Rent:</span> <span className="font-bold text-charcoal">{fmtEtb(a.rentAmount || a.monthlyRentEtb)}</span>/mo</p>
+                        <p><span className="font-medium text-charcoal">Security Deposit:</span> <span className="font-semibold text-emerald-700">{fmtEtb(a.depositAmount)}</span></p>
                         <p><span className="font-medium text-charcoal">Start:</span> {fmtDate(a.startDate)}</p>
                         <p><span className="font-medium text-charcoal">End:</span> {fmtDate(a.endDate)}</p>
                       </div>
@@ -369,8 +370,8 @@ export default function LandlordAgreementsPage() {
                           </p>
                         </div>
                         <div className="text-right text-xs">
-                          <p className="font-semibold text-charcoal">{fmtEtb(a.monthlyRentEtb)} / month</p>
-                          <p className="text-charcoal/50">Deposit held: {fmtEtb(a.depositAmount)}</p>
+                          <p className="font-semibold text-charcoal">{fmtEtb(a.rentAmount || a.monthlyRentEtb)} / month</p>
+                          <p className="text-emerald-700 font-medium">Refundable Deposit in Escrow: {fmtEtb(a.depositAmount)}</p>
                         </div>
                       </div>
 

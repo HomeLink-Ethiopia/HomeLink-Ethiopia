@@ -27,6 +27,7 @@ function ensureMockMaintenance() {
                 scheduledDate: new Date(Date.now() + 86400000).toISOString(),
                 assignedTo: { firstName: "Alemayehu", lastName: "Plumbing Services", phone: "+251911445566" },
                 resolutionNote: "Technician dispatched to inspect pressure switch.",
+                response: "Technician dispatched to inspect pressure switch.",
                 tenantConfirmedResolution: false,
                 updates: [
                     { status: "reported", note: "Issue reported by tenant.", timestamp: new Date(Date.now() - 2 * 86400000).toISOString() },
@@ -48,6 +49,7 @@ function ensureMockMaintenance() {
                 status: "resolved",
                 resolvedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
                 resolutionNote: "Waterproof LED fixture installed and sealed.",
+                response: "Waterproof LED fixture installed and sealed.",
                 tenantConfirmedResolution: true,
                 updates: [
                     { status: "reported", note: "Reported by tenant.", timestamp: new Date(Date.now() - 5 * 86400000).toISOString() },
@@ -56,8 +58,42 @@ function ensureMockMaintenance() {
                 createdAt: new Date(Date.now() - 5 * 86400000).toISOString()
             }
         ];
-        mockStore.maintenance = mockStore.maintenanceRequests;
     }
+    // Ensure Tsedenia's agreement has an active maintenance ticket
+    const tsedeniaAgr = (mockStore.agreements || []).find(a => String(a._id) === 'mock-agreement-tsedenia-3br');
+    if (tsedeniaAgr && !mockStore.maintenanceRequests.some(m => String(m.agreementId) === 'mock-agreement-tsedenia-3br')) {
+        const p = tsedeniaAgr.propertyId || {};
+        mockStore.maintenanceRequests.unshift({
+            _id: "mock-maint-tsedenia-1",
+            agreementId: "mock-agreement-tsedenia-3br",
+            propertyId: { _id: p._id || "mock-prop-1793127878397", title: p.title || "3bedroom", location: p.location || { city: "Addis Ababa", subCity: "Bole" } },
+            tenantId: {
+                _id: "mock-user-1793083864425",
+                firstName: "Tsedenia",
+                lastName: "Worku",
+                phone: "0987654321",
+                email: "kidkinfe7@gmail.com"
+            },
+            landlordId: "mock-user-1793084104793",
+            title: "Master Bedroom Bathroom Water Heater Sensor",
+            description: "Instant water heater cuts off power after 3 minutes. Thermostat and breaker check requested.",
+            category: "electrical",
+            priority: "high",
+            mediaKeys: [],
+            status: "in_progress",
+            scheduledDate: new Date(Date.now() + 86400000).toISOString(),
+            assignedTo: "Kassahun Electrical (+251911778899)",
+            response: "Technician Kassahun dispatched to inspect the water heater switch tomorrow morning.",
+            resolutionNote: "Technician Kassahun dispatched to inspect the water heater switch tomorrow morning.",
+            tenantConfirmedResolution: false,
+            updates: [
+                { status: "reported", note: "Reported by tenant via HomeLink portal.", timestamp: new Date(Date.now() - 86400000).toISOString() },
+                { status: "in_progress", note: "Landlord reviewed and dispatched Kassahun Electrical.", timestamp: new Date().toISOString() }
+            ],
+            createdAt: new Date(Date.now() - 86400000).toISOString()
+        });
+    }
+    mockStore.maintenance = mockStore.maintenanceRequests;
 }
 
 const createNotification = async (userId, type, title, body, entityType, entityId) => {
@@ -86,16 +122,37 @@ const createTicket = async (req, res) => {
 
         if (isMockMode()) {
             ensureMockMaintenance();
-            let prop = (mockStore.properties || []).find(p => String(p._id) === String(propertyId));
+            let agr = (mockStore.agreements || []).find(a => String(a._id) === String(agreementId));
+            if (!agr) {
+                agr = (mockStore.agreements || []).find(a => {
+                    const tId = String(a.tenantId?._id || a.tenantId || '');
+                    return (tId === String(tenantId) || tId.includes('1793083864425')) && a.status === 'active';
+                });
+            }
+            let propId = propertyId || agr?.propertyId?._id || agr?.propertyId;
+            let prop = (mockStore.properties || []).find(p => String(p._id) === String(propId));
+            if (!prop && agr?.propertyId && typeof agr.propertyId === 'object') {
+                prop = agr.propertyId;
+            }
             if (!prop && mockStore.properties && mockStore.properties.length > 0) {
                 prop = mockStore.properties[0];
             }
+            const landlordId = String((agr && (agr.landlordId?._id || agr.landlordId)) || (prop && (prop.landlordId?._id || prop.landlordId)) || "mock-landlord-1");
+            const tenantUser = [...(mockStore.users ? mockStore.users.values() : [])].find(u => String(u._id) === String(tenantId));
+            const tenantObj = tenantUser ? {
+                _id: tenantUser._id,
+                firstName: tenantUser.firstName,
+                lastName: tenantUser.lastName,
+                phone: tenantUser.phone,
+                email: tenantUser.email
+            } : { _id: tenantId, firstName: "Tenant" };
+
             const ticket = {
                 _id: "mock-ticket-" + Date.now(),
-                agreementId: agreementId || "mock-agreement-1",
+                agreementId: agr?._id || agreementId || "mock-agreement-1",
                 propertyId: prop ? { _id: prop._id, title: prop.title, location: prop.location } : { _id: "prop-1", title: "Rental Property" },
-                tenantId,
-                landlordId: (prop && prop.landlordId) || "mock-landlord-1",
+                tenantId: tenantObj,
+                landlordId: landlordId,
                 title: title || "Maintenance Request",
                 description: description || "",
                 category: category || "other",
@@ -108,7 +165,7 @@ const createTicket = async (req, res) => {
             };
             mockStore.maintenanceRequests.unshift(ticket);
             mockStore.maintenance = mockStore.maintenanceRequests;
-            createNotification(ticket.landlordId, 'maintenance_update', 'New Maintenance Request', `Tenant submitted maintenance request: ${title}`, 'MaintenanceRequest', ticket._id);
+            createNotification(landlordId, 'maintenance_update', 'New Maintenance Request', `Tenant submitted maintenance request: ${title}`, 'MaintenanceRequest', ticket._id);
             if (typeof persistMockData === 'function') persistMockData();
             return res.status(201).json({ message: "Maintenance request submitted", ticket, data: ticket });
         }
@@ -155,23 +212,29 @@ const updateTicketStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const { status, assignedTo, scheduledDate, resolutionNote } = req.body;
+        const { status, assignedTo, scheduledDate, resolutionNote, response } = req.body;
+        const note = response || resolutionNote;
 
         if (isMockMode()) {
             ensureMockMaintenance();
             const ticket = mockStore.maintenanceRequests.find(t => String(t._id) === String(id));
             if (!ticket) return res.status(404).json({ message: "Ticket not found or unauthorized" });
-            ticket.status = status;
+            if (status) ticket.status = status;
             if (assignedTo) ticket.assignedTo = assignedTo;
             if (scheduledDate) ticket.scheduledDate = scheduledDate;
-            if (resolutionNote) ticket.resolutionNote = resolutionNote;
+            if (note) {
+                ticket.resolutionNote = note;
+                ticket.response = note;
+                ticket.respondedAt = new Date().toISOString();
+            }
             if (status === 'resolved') ticket.resolvedAt = new Date().toISOString();
             if (status === 'closed') ticket.closedAt = new Date().toISOString();
             
             if (!ticket.updates) ticket.updates = [];
-            ticket.updates.push({ status, note: resolutionNote || `Status updated to ${status}`, updatedBy: userId, timestamp: new Date().toISOString() });
+            ticket.updates.push({ status: ticket.status, note: note || `Status updated to ${ticket.status}`, updatedBy: userId, timestamp: new Date().toISOString() });
             
-            createNotification(ticket.tenantId, 'maintenance_update', `Maintenance Update: ${status}`, `Maintenance status changed to ${status}`, 'MaintenanceRequest', ticket._id);
+            const tenantUserId = String(ticket.tenantId?._id || ticket.tenantId || '');
+            createNotification(tenantUserId, 'maintenance_update', `Maintenance Update: ${ticket.status}`, note || `Maintenance status changed to ${ticket.status}`, 'MaintenanceRequest', ticket._id);
             if (typeof persistMockData === 'function') persistMockData();
             return res.status(200).json({ message: "Ticket updated", ticket, data: ticket });
         }
@@ -179,20 +242,23 @@ const updateTicketStatus = async (req, res) => {
         const ticket = await MaintenanceRequest.findOne({ _id: id, landlordId: userId }).populate('propertyId', 'title');
         if (!ticket) return res.status(404).json({ message: "Ticket not found or unauthorized" });
 
-        ticket.status = status;
+        if (status) ticket.status = status;
         if (assignedTo) ticket.assignedTo = assignedTo;
         if (scheduledDate) ticket.scheduledDate = scheduledDate;
+        if (note) {
+            ticket.resolutionNote = note;
+            ticket.response = note;
+        }
         
         if (status === 'resolved') {
             ticket.resolvedAt = new Date();
-            if (resolutionNote) ticket.resolutionNote = resolutionNote;
         } else if (status === 'closed') {
             ticket.closedAt = new Date();
         }
 
         ticket.updates.push({
-            status,
-            note: resolutionNote || `Status updated to ${status}`,
+            status: ticket.status,
+            note: note || `Status updated to ${ticket.status}`,
             updatedBy: userId
         });
 
@@ -201,8 +267,8 @@ const updateTicketStatus = async (req, res) => {
         await createNotification(
             ticket.tenantId, 
             status === 'resolved' ? 'maintenance_resolved' : 'maintenance_update', 
-            `Maintenance Update: ${status}`,
-            `The status of your maintenance request for ${ticket.propertyId.title} has changed to ${status}.`,
+            `Maintenance Update: ${ticket.status}`,
+            `The status of your maintenance request for ${ticket.propertyId.title} has changed to ${ticket.status}.`,
             'MaintenanceRequest', ticket._id
         );
 
@@ -260,21 +326,70 @@ const addUpdateNote = async (req, res) => {
 
 const getTickets = async (req, res) => {
     try {
-        const userId = String(req.user.id || '');
+        const userId = String(req.user.id || req.user.userId || '');
         const role = req.user.role;
-        const userEmail = req.user?.email || '';
+        const userEmail = (req.user?.email || '').toLowerCase().trim();
         const isSeedTenant = userEmail === 'dev.tenant@homelink.test' || userId === 'mock-user-seed-1';
         const isSeedLandlord = userEmail === 'dev.landlord@homelink.test' || userId === 'mock-landlord-1';
         
         if (isMockMode()) {
             ensureMockMaintenance();
+            const allProps = mockStore.properties || [];
+            const allAgrs = mockStore.agreements || [];
+            
+            // Find all properties owned by this landlord
+            const landlordPropIds = new Set(
+                allProps.filter(p => {
+                    const lId = String(p.landlordId?._id || p.landlordId || '');
+                    return lId === userId || (p.landlordId?.email && p.landlordId.email.toLowerCase() === userEmail);
+                }).map(p => String(p._id))
+            );
+            // Also add agreement properties for this landlord
+            allAgrs.filter(a => {
+                const lId = String(a.landlordId?._id || a.landlordId || '');
+                return lId === userId || (a.landlordId?.email && a.landlordId.email.toLowerCase() === userEmail);
+            }).forEach(a => {
+                const pId = String(a.propertyId?._id || a.propertyId || '');
+                if (pId) landlordPropIds.add(pId);
+            });
+
             const tickets = (mockStore.maintenanceRequests || []).filter(t => {
-                const tTenant = String(t.tenantId || '');
-                const tLandlord = String(t.landlordId || '');
+                const tTenantId = String(t.tenantId?._id || t.tenantId || '');
+                const tLandlordId = String(t.landlordId?._id || t.landlordId || '');
+                const tPropId = String(t.propertyId?._id || t.propertyId || '');
+                
                 if (role === 'tenant') {
-                    return tTenant === userId || (isSeedTenant && (tTenant === 'mock-user-seed-1' || !tTenant));
+                    if (tTenantId === userId) return true;
+                    if (isSeedTenant && (tTenantId === 'mock-user-seed-1' || !tTenantId)) return true;
+                    const isMyAgr = allAgrs.some(a => String(a._id) === String(t.agreementId) && String(a.tenantId?._id || a.tenantId) === userId);
+                    if (isMyAgr) return true;
+                    return false;
                 }
-                return tLandlord === userId || (isSeedLandlord && (tLandlord === 'mock-landlord-1' || !tLandlord));
+                
+                // Landlord role
+                if (tLandlordId === userId) return true;
+                if (landlordPropIds.has(tPropId)) return true;
+                if (isSeedLandlord && (tLandlordId === 'mock-landlord-1' || !tLandlordId)) return true;
+                const isMyAgr = allAgrs.some(a => String(a._id) === String(t.agreementId) && String(a.landlordId?._id || a.landlordId) === userId);
+                if (isMyAgr) return true;
+                return false;
+            }).map(t => {
+                const pId = String(t.propertyId?._id || t.propertyId || '');
+                const foundProp = allProps.find(p => String(p._id) === pId);
+                const assigned = typeof t.assignedTo === 'object' && t.assignedTo
+                    ? `${t.assignedTo.firstName || ''} ${t.assignedTo.lastName || ''} ${t.assignedTo.phone ? `(${t.assignedTo.phone})` : ''}`.trim()
+                    : (t.assignedTo || '');
+                return {
+                    ...t,
+                    propertyId: (typeof t.propertyId === 'object' && t.propertyId?.title) ? t.propertyId : {
+                        _id: pId,
+                        title: foundProp?.title || 'Rental Property',
+                        location: foundProp?.location || { city: 'Addis Ababa' }
+                    },
+                    assignedTo: assigned,
+                    response: t.response || t.resolutionNote || '',
+                    resolutionNote: t.resolutionNote || t.response || ''
+                };
             });
             return res.status(200).json({ success: true, data: tickets, requests: tickets });
         }

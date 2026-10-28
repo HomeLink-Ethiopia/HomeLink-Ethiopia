@@ -98,6 +98,15 @@ export default function TenantDisputesPage() {
       .then((j) => {
         const list: AgreementRow[] = j.data || []
         setAgreements(list)
+        if (typeof window !== 'undefined') {
+          const p = new URLSearchParams(window.location.search)
+          const aId = p.get('agreementId')
+          if (aId && list.some(a => a._id === aId)) {
+            setAgreementId(aId)
+            setShowForm(true)
+            return
+          }
+        }
         if (list.length > 0) {
           setAgreementId((prev) => prev || list[0]._id)
         }
@@ -163,6 +172,15 @@ export default function TenantDisputesPage() {
     await fetch(`${API_URL}/api/v1/disputes/${id}/withdraw`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    await load()
+  }
+
+  async function resolveDispute(id: string) {
+    await fetch(`${API_URL}/api/v1/disputes/${id}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ resolution: 'Resolved amicably between tenant and landlord.' }),
     })
     await load()
   }
@@ -311,15 +329,26 @@ export default function TenantDisputesPage() {
                       Filed {new Date(active.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  {['open', 'under_review'].includes(active.status) && (
-                    <button
-                      type="button"
-                      onClick={() => withdraw(active._id)}
-                      className="shrink-0 rounded border border-charcoal/20 px-3 py-1.5 text-xs text-charcoal/70 hover:bg-sand"
-                    >
-                      Withdraw
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {['open', 'under_review'].includes(active.status) && (
+                      <button
+                        type="button"
+                        onClick={() => resolveDispute(active._id)}
+                        className="shrink-0 rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-xs"
+                      >
+                        ✓ Mark as Resolved
+                      </button>
+                    )}
+                    {['open', 'under_review'].includes(active.status) && (
+                      <button
+                        type="button"
+                        onClick={() => withdraw(active._id)}
+                        className="shrink-0 rounded border border-charcoal/20 px-3 py-1.5 text-xs text-charcoal/70 hover:bg-sand"
+                      >
+                        Withdraw
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <p className="mt-3 rounded bg-cream p-3 text-sm text-charcoal/80">{active.description}</p>
@@ -334,17 +363,35 @@ export default function TenantDisputesPage() {
                 )}
 
                 <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-charcoal/50">
-                  Communication
+                  Negotiation &amp; Mediation Thread
                 </h3>
                 <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
-                  {(active.thread || []).map((m, i) => (
-                    <div key={i} className="rounded bg-cream p-2.5">
-                      <p className="text-xs font-medium capitalize text-charcoal">
-                        {m.from} <span className="font-normal text-charcoal/40">{m.fromName ? `· ${m.fromName}` : ''}</span>
-                      </p>
-                      <p className="mt-0.5 text-sm text-charcoal/70">{m.text}</p>
-                    </div>
-                  ))}
+                  {(active.thread || []).length === 0 ? (
+                    <p className="text-xs text-charcoal/40 italic p-3 bg-sand/20 rounded-lg">No messages posted yet. Use the input below to reply to your landlord or mediator.</p>
+                  ) : (
+                    (active.thread || []).map((m, i) => {
+                      const isMe = m.from === 'tenant'
+                      return (
+                        <div
+                          key={i}
+                          className={`rounded-xl p-3 border text-sm ${
+                            isMe
+                              ? 'bg-emerald-50/70 border-emerald-200/80 ml-6 text-emerald-950'
+                              : 'bg-white border-charcoal/15 mr-6 text-charcoal'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-xs font-bold capitalize">
+                              {isMe ? 'You (Tenant)' : (m.from === 'landlord' ? 'Landlord' : m.from)}
+                              {m.fromName && !isMe ? ` · ${m.fromName}` : ''}
+                            </span>
+                            {m.at && <span className="text-[10px] text-charcoal/40">{new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                          </div>
+                          <p className="text-sm leading-relaxed">{m.text}</p>
+                        </div>
+                      )
+                    })
+                  )}
                 </div>
                 {!['resolved', 'rejected', 'withdrawn'].includes(active.status) && (
                   <div className="mt-3 flex gap-2">

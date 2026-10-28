@@ -50,7 +50,7 @@
           "originalName": "Commercial_Bank_Payslip.pdf"
         }
       ],
-      "createdAt": "2026-10-27T19:06:06.305Z"
+      "createdAt": "2026-10-27T21:56:23.826Z"
     },
     {
       "_id": "mock-application-2",
@@ -101,7 +101,7 @@
           "originalName": "Employment_Verification_Letter.pdf"
         }
       ],
-      "createdAt": "2026-10-26T19:06:06.305Z"
+      "createdAt": "2026-10-26T21:56:23.826Z"
     },
     {
       "_id": "mock-app-1793092825899",
@@ -370,7 +370,7 @@
       "landlordId": "mock-landlord-1",
       "requestedSlots": [
         {
-          "date": "2026-10-30T19:06:06.305Z",
+          "date": "2026-10-30T21:56:23.826Z",
           "startTime": "10:00"
         }
       ],
@@ -378,7 +378,7 @@
       "preferredTime": "10:00",
       "tenantNote": "Coming with my sister, is parking available?",
       "status": "requested",
-      "createdAt": "2026-10-28T19:06:06.305Z"
+      "createdAt": "2026-10-28T21:56:23.826Z"
     },
     {
       "_id": "viewing-1793128275941",
@@ -785,7 +785,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-28T19:06:06.305Z",
+      "createdAt": "2026-10-28T21:56:23.826Z",
       "status": "active"
     },
     {
@@ -822,7 +822,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-28T19:06:06.305Z",
+      "createdAt": "2026-10-28T21:56:23.826Z",
       "status": "active"
     },
     {
@@ -860,7 +860,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-28T19:06:06.305Z",
+      "createdAt": "2026-10-28T21:56:23.826Z",
       "status": "active"
     },
     {
@@ -898,7 +898,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-28T19:06:06.305Z",
+      "createdAt": "2026-10-28T21:56:23.826Z",
       "status": "active"
     },
     {
@@ -933,7 +933,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-28T18:06:06.305Z",
+      "createdAt": "2026-10-28T20:56:23.826Z",
       "status": "active"
     },
     {
@@ -969,7 +969,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-28T17:06:06.305Z",
+      "createdAt": "2026-10-28T19:56:23.826Z",
       "status": "active"
     },
     {
@@ -1006,7 +1006,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-28T16:06:06.305Z",
+      "createdAt": "2026-10-28T18:56:23.826Z",
       "status": "active"
     },
     {
@@ -1146,13 +1146,18 @@
       "paymentType": "deposit",
       "periodMonth": "Security Deposit",
       "amountDue": 60000,
-      "amountPaid": 0,
-      "balance": 60000,
+      "amountPaid": 60000,
+      "balance": 0,
       "currency": "ETB",
       "dueDate": "2026-11-01T00:00:00.000Z",
-      "status": "pending",
-      "notes": "Refundable security deposit held in escrow",
-      "createdAt": "2026-10-28T18:35:47.811Z"
+      "status": "paid",
+      "notes": "Settled online via Chapa Gateway (TX-1793222026189-mock-pay-dep-1793212547811-953)",
+      "createdAt": "2026-10-28T18:35:47.811Z",
+      "transactionReference": "TX-1793222026189-mock-pay-dep-1793212547811-953",
+      "paymentMethod": "chapa",
+      "paidAt": "2026-10-28T21:13:47.772Z",
+      "receiptNumber": "RCPT-CHAPA-027772",
+      "receiptUrl": "/api/v1/payments/mock-pay-dep-1793212547811-953/receipt"
     },
     {
       "_id": "mock-pay-1793212547812-1-800",
@@ -1422,13 +1427,16 @@
       "paymentType": "rent",
       "periodMonth": "2027-04",
       "amountDue": 40000,
-      "amountPaid": 0,
-      "balance": 40000,
+      "amountPaid": 40000,
+      "balance": 0,
       "currency": "ETB",
       "dueDate": "2027-04-04T21:00:00.000Z",
-      "status": "pending",
+      "status": "paid",
       "notes": "Monthly rent for 2027-04",
-      "createdAt": "2026-10-28T18:35:47.812Z"
+      "createdAt": "2026-10-28T18:35:47.812Z",
+      "proofSubmitted": false,
+      "paidAt": "2026-10-28T21:35:13.772Z",
+      "receiptNumber": "RCPT--6-100"
     },
     {
       "_id": "mock-pay-1793212547812-7-731",
@@ -2146,8 +2154,8 @@
         "lastName": "Worku"
       },
       "revieweeId": "mock-user-1793084104793",
-      "propertyId": "66d1f801e12a4b001a111111",
-      "propertyTitle": "Modern 2BR Apartment in Bole",
+      "propertyId": "mock-prop-1793127878397",
+      "propertyTitle": "3bedroom",
       "agreementId": "mock-agreement-tsedenia-3br",
       "reviewType": "tenant_to_property",
       "rating": 5,
@@ -2166,40 +2174,12 @@
         "conductAndRules": 5,
         "wouldRentAgain": "yes"
       },
-      "comment": "Excellent move-in experience. Apartment was handed over sparkling clean and all contract terms were transparent.",
+      "comment": "",
       "status": "published",
-      "createdAt": "2026-10-28T19:06:15.258Z"
+      "createdAt": "2026-10-28T20:29:20.135Z"
     }
   ],
   "disputes": [
-    {
-      "_id": "mock-dispute-1793214375177",
-      "raisedBy": "mock-user-1793083864425",
-      "filedByRole": "tenant",
-      "againstUserId": "mock-user-1793084104793",
-      "agreementId": "mock-agreement-tsedenia-3br",
-      "propertyId": "mock-prop-1793127878397",
-      "category": "deposit_refund",
-      "reason": "deposit_refund",
-      "description": "Landlord has not confirmed deposit receipt terms as agreed in initial signing.",
-      "evidenceKeys": [],
-      "communications": [],
-      "thread": [],
-      "history": [
-        {
-          "status": "open",
-          "note": "Dispute opened by user.",
-          "at": "2026-10-28T19:06:15.177Z"
-        },
-        {
-          "status": "withdrawn",
-          "note": "Dispute withdrawn by filer.",
-          "at": "2026-10-28T19:06:15.248Z"
-        }
-      ],
-      "createdAt": "2026-10-28T19:06:15.177Z",
-      "status": "withdrawn"
-    },
     {
       "_id": "mock-dispute-1",
       "raisedBy": {
@@ -2240,6 +2220,173 @@
         }
       ],
       "createdAt": "2026-10-25T19:06:06.306Z"
+    },
+    {
+      "_id": "mock-dispute-1793221695250",
+      "raisedBy": "mock-user-1793083864425",
+      "filedByRole": "tenant",
+      "againstUserId": "mock-user-1793084104793",
+      "agreementId": "mock-agreement-tsedenia-3br",
+      "propertyId": "mock-prop-1793127878397",
+      "category": "deposit_refund",
+      "reason": "deposit_refund",
+      "description": "sdqd1wd",
+      "evidenceKeys": [],
+      "communications": [
+        {
+          "fromUserId": "mock-user-1793083864425",
+          "message": "gdn",
+          "attachments": [],
+          "isAdminNote": false,
+          "timestamp": "2026-10-28T21:08:37.902Z"
+        },
+        {
+          "fromUserId": "mock-user-1793084104793",
+          "message": "Hello Tsedenia, I reviewed your deposit dispute note. We can verify escrow terms together today.",
+          "attachments": [],
+          "isAdminNote": false,
+          "timestamp": "2026-10-28T21:59:36.252Z"
+        }
+      ],
+      "thread": [
+        {
+          "from": "tenant",
+          "fromName": "Tsedenia Worku",
+          "text": "gdn",
+          "at": "2026-10-28T21:08:37.902Z"
+        },
+        {
+          "from": "landlord",
+          "fromName": "Tsedenia Worku",
+          "text": "Hello Tsedenia, I reviewed your deposit dispute note. We can verify escrow terms together today.",
+          "at": "2026-10-28T21:59:36.252Z"
+        }
+      ],
+      "history": [
+        {
+          "status": "open",
+          "note": "Dispute opened by user.",
+          "at": "2026-10-28T21:08:15.250Z"
+        }
+      ],
+      "createdAt": "2026-10-28T21:08:15.250Z",
+      "status": "open",
+      "updatedAt": "2026-10-28T21:59:36.252Z"
+    },
+    {
+      "_id": "mock-dispute-1793214375177",
+      "raisedBy": "mock-user-1793083864425",
+      "filedByRole": "tenant",
+      "againstUserId": "mock-user-1793084104793",
+      "agreementId": "mock-agreement-tsedenia-3br",
+      "propertyId": "mock-prop-1793127878397",
+      "category": "deposit_refund",
+      "reason": "deposit_refund",
+      "description": "Landlord has not confirmed deposit receipt terms as agreed in initial signing.",
+      "evidenceKeys": [],
+      "communications": [],
+      "thread": [],
+      "history": [
+        {
+          "status": "open",
+          "note": "Dispute opened by user.",
+          "at": "2026-10-28T19:06:15.177Z"
+        },
+        {
+          "status": "withdrawn",
+          "note": "Dispute withdrawn by filer.",
+          "at": "2026-10-28T19:06:15.248Z"
+        }
+      ],
+      "createdAt": "2026-10-28T19:06:15.177Z",
+      "status": "withdrawn"
+    }
+  ],
+  "maintenanceRequests": [
+    {
+      "_id": "mock-maint-tsedenia-1",
+      "agreementId": "mock-agreement-tsedenia-3br",
+      "propertyId": {
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "location": {
+          "city": "Addis Ababa",
+          "subCity": "Bole",
+          "address": "bole road"
+        }
+      },
+      "tenantId": {
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "phone": "0987654321",
+        "email": "kidkinfe7@gmail.com"
+      },
+      "landlordId": "mock-user-1793084104793",
+      "title": "Master Bedroom Bathroom Water Heater Sensor",
+      "description": "Instant water heater cuts off power after 3 minutes. Thermostat and breaker check requested.",
+      "category": "electrical",
+      "priority": "high",
+      "mediaKeys": [],
+      "status": "in_progress",
+      "scheduledDate": "2026-10-29T21:59:08.880Z",
+      "assignedTo": "Kassahun Electrical (+251911778899)",
+      "response": "Technician Kassahun dispatched to inspect the water heater switch tomorrow morning.",
+      "resolutionNote": "Technician Kassahun dispatched to inspect the water heater switch tomorrow morning.",
+      "tenantConfirmedResolution": true,
+      "updates": [
+        {
+          "status": "reported",
+          "note": "Reported by tenant via HomeLink portal.",
+          "timestamp": "2026-10-27T21:59:08.880Z"
+        },
+        {
+          "status": "in_progress",
+          "note": "Landlord reviewed and dispatched Kassahun Electrical.",
+          "timestamp": "2026-10-28T21:59:08.880Z"
+        },
+        {
+          "status": "resolved",
+          "note": "Thermostat switch replaced and sensor test passed.",
+          "updatedBy": "mock-user-1793084104793",
+          "timestamp": "2026-10-28T21:59:36.228Z"
+        },
+        {
+          "status": "closed",
+          "note": "Tenant confirmed the resolution and closed ticket.",
+          "updatedBy": "mock-user-1793083864425",
+          "timestamp": "2026-10-28T21:59:36.237Z"
+        },
+        {
+          "status": "in_progress",
+          "note": "Technician Kassahun dispatched to inspect the water heater switch tomorrow morning.",
+          "updatedBy": "mock-user-1793084104793",
+          "timestamp": "2026-10-28T21:59:36.243Z"
+        }
+      ],
+      "createdAt": "2026-10-27T21:59:08.880Z",
+      "respondedAt": "2026-10-28T21:59:36.243Z",
+      "resolvedAt": "2026-10-28T21:59:36.228Z"
+    },
+    {
+      "_id": "mock-maintenance-1",
+      "propertyId": {
+        "_id": "66d1f801e12a4b001a111111",
+        "title": "Modern 2BR Apartment in Bole"
+      },
+      "tenantId": "mock-user-seed-1",
+      "landlordId": "mock-landlord-1",
+      "issue": "Kitchen faucet dripping",
+      "description": "Hot water tap drips continuously.",
+      "priority": "medium",
+      "status": "in_progress",
+      "createdAt": "2026-10-26T21:56:23.826Z",
+      "updates": [
+        {
+          "note": "Plumber scheduled for Thursday.",
+          "at": "2026-10-28T21:56:23.826Z"
+        }
+      ]
     }
   ],
   "landlordProfiles": [
@@ -2276,7 +2423,7 @@
             "name": "ownership-lease.pdf"
           }
         ],
-        "createdAt": "2026-10-27T19:06:06.306Z"
+        "createdAt": "2026-10-27T21:56:23.829Z"
       }
     ],
     [

@@ -227,6 +227,7 @@ const createDispute = async (req, res) => {
 const getMyDisputes = async (req, res) => {
     try {
         const userId = String(req.user.id || req.user.userId || '');
+        const userEmail = (req.user?.email || '').toLowerCase().trim();
 
         if (isMockMode()) {
             mockStore.disputes = mockStore.disputes || [];
@@ -234,7 +235,20 @@ const getMyDisputes = async (req, res) => {
                 .filter(d => {
                     const rId = String(d.raisedBy?._id || d.raisedBy || '');
                     const aId = String(d.againstUserId?._id || d.againstUserId || '');
-                    return rId === userId || aId === userId;
+                    if (rId === userId || aId === userId) return true;
+                    // Check email match in mockStore.users
+                    const rUser = [...(mockStore.users ? mockStore.users.values() : [])].find(u => String(u._id) === rId);
+                    const aUser = [...(mockStore.users ? mockStore.users.values() : [])].find(u => String(u._id) === aId);
+                    if (rUser && rUser.email && rUser.email.toLowerCase() === userEmail) return true;
+                    if (aUser && aUser.email && aUser.email.toLowerCase() === userEmail) return true;
+                    // Also check if dispute is tied to an agreement that belongs to this user
+                    const userAgr = (mockStore.agreements || []).find(a => String(a._id) === String(d.agreementId));
+                    if (userAgr) {
+                        const tId = String(userAgr.tenantId?._id || userAgr.tenantId || '');
+                        const lId = String(userAgr.landlordId?._id || userAgr.landlordId || '');
+                        if (tId === userId || lId === userId) return true;
+                    }
+                    return false;
                 })
                 .map(enrichDispute);
 
@@ -454,10 +468,60 @@ const withdrawDispute = async (req, res) => {
     }
 };
 
+const resolveDisputeHandler = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = String(req.user.id || req.user.userId || '');
+        const { resolution, settlementNotes, outcome } = req.body;
+        const resolutionText = resolution || settlementNotes || outcome || "Settled by mutual agreement between parties.";
+
+        if (isMockMode()) {
+            mockStore.disputes = mockStore.disputes || [];
+            const dispute = mockStore.disputes.find(d => String(d._id) === String(id));
+            if (!dispute) return res.status(404).json({ message: "Dispute not found" });
+
+            dispute.status = 'resolved';
+            dispute.resolution = resolutionText;
+            dispute.history = dispute.history || [];
+            dispute.history.push({
+                status: 'resolved',
+                note: `Dispute marked resolved: ${resolutionText}`,
+                at: new Date().toISOString()
+            });
+            if (typeof persistMockData === 'function') persistMockData();
+
+            const rId = String(dispute.raisedBy?._id || dispute.raisedBy || '');
+            const otherId = (rId === userId) ? dispute.againstUserId : dispute.raisedBy;
+            mockCreateNotification(otherId, 'system', 'Dispute Resolved', `Active dispute has been resolved: ${resolutionText}`);
+
+            return res.status(200).json({ message: "Dispute resolved successfully", data: enrichDispute(dispute) });
+        }
+
+        const dispute = await Dispute.findById(id);
+        if (!dispute) return res.status(404).json({ message: "Dispute not found" });
+
+        dispute.status = 'resolved';
+        dispute.resolution = resolutionText;
+        dispute.history.push({
+            status: 'resolved',
+            note: `Dispute marked resolved: ${resolutionText}`,
+            changedBy: userId,
+            changedAt: new Date()
+        });
+        await dispute.save();
+
+        res.status(200).json({ message: "Dispute resolved successfully", data: dispute });
+    } catch (error) {
+        console.error("Resolve dispute error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 module.exports = {
     createDispute,
     getMyDisputes,
     getDisputeById,
     addDisputeMessage,
-    withdrawDispute
+    withdrawDispute,
+    resolveDisputeHandler
 };

@@ -230,12 +230,15 @@ const getAgreements = async (req, res) => {
                 const tenantObj = typeof agr.tenantId === 'object' ? agr.tenantId : { _id: agr.tenantId, firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" };
                 const landlordObj = typeof agr.landlordId === 'object' ? agr.landlordId : { _id: agr.landlordId, firstName: "Abebe", lastName: "Kebede", email: "abebe@example.com", phone: "+251922334455" };
                 const terms = (Array.isArray(agr.terms) && agr.terms.length > 0) ? agr.terms : STANDARD_RENTAL_TERMS;
+                const rentAmt = Number(agr.rentAmount || agr.monthlyRentEtb || (agr.propertyId && typeof agr.propertyId === 'object' ? agr.propertyId.rentAmount : 0) || 0);
                 return {
                     ...agr,
                     tenantId: tenantObj,
                     landlordId: landlordObj,
                     terms,
-                    depositAmount: agr.depositAmount !== undefined ? agr.depositAmount : (agr.rentAmount || 0),
+                    rentAmount: rentAmt,
+                    monthlyRentEtb: rentAmt,
+                    depositAmount: agr.depositAmount !== undefined ? Number(agr.depositAmount) : rentAmt,
                 };
             }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             return res.status(200).json(rows);
@@ -268,7 +271,15 @@ const getAgreementById = async (req, res) => {
         if (isMockMode()) {
             const agr2 = (mockStore.agreements || []).find((x) => x._id === id);
             if (!agr2) return res.status(404).json({ message: "Agreement not found" });
-            return res.status(200).json({ data: agr2 });
+            const rentAmt = Number(agr2.rentAmount || agr2.monthlyRentEtb || (agr2.propertyId && typeof agr2.propertyId === 'object' ? agr2.propertyId.rentAmount : 0) || 0);
+            return res.status(200).json({
+                data: {
+                    ...agr2,
+                    rentAmount: rentAmt,
+                    monthlyRentEtb: rentAmt,
+                    depositAmount: agr2.depositAmount !== undefined ? Number(agr2.depositAmount) : rentAmt,
+                }
+            });
         }
 
         const agreement = await RentalAgreement.findById(id)

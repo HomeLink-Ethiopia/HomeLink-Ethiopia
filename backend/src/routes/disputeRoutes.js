@@ -8,7 +8,8 @@ const {
     getMyDisputes,
     getDisputeById,
     addDisputeMessage,
-    withdrawDispute
+    withdrawDispute,
+    resolveDisputeHandler
 } = require('../controller/disputeController');
 
 const {
@@ -53,5 +54,9 @@ router.post('/:id/messages', documentUpload.array('attachments', 3), addDisputeM
 
 // Withdraw an active dispute
 router.post('/:id/withdraw', withdrawDispute);
+
+// Resolve dispute between parties
+router.post('/:id/resolve', resolveDisputeHandler);
+router.put('/:id/resolve', resolveDisputeHandler);
 
 module.exports = router;

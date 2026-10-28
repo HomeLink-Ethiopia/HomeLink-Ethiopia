@@ -196,14 +196,28 @@ export default function PaymentsPage() {
     }
   }
 
+  const getAmount = (p?: Payment | null) => {
+    if (!p) return 0
+    return Number(p.amount ?? p.amountDue ?? p.amountPaid ?? p.balance ?? 0)
+  }
+
   // Summary Metrics
   const totalPaid = payments
     .filter((p) => p.status === 'paid' || p.status === 'collected')
-    .reduce((sum, p) => sum + (p.amount || 0), 0)
+    .reduce((sum, p) => sum + (p.amountPaid ?? p.amount ?? 0), 0)
 
   const pendingList = payments.filter((p) => p.status === 'pending' || p.status === 'overdue')
-  const totalPending = pendingList.reduce((sum, p) => sum + (p.amount || 0), 0)
   const nextPayment = pendingList[0]
+
+  // Current Due Now (only overdue bills + bills due in the current month / within 35 days, NOT 12 future months)
+  const dueNowList = pendingList.filter((p) => {
+    if (p.status === 'overdue') return true
+    if (!p.dueDate) return true
+    const diffDays = (new Date(p.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24)
+    return diffDays <= 35
+  })
+  const totalDueNow = dueNowList.reduce((sum, p) => sum + (p.amountDue ?? p.amount ?? p.balance ?? 0), 0)
+  const fullLeaseRemaining = pendingList.reduce((sum, p) => sum + (p.amountDue ?? p.amount ?? p.balance ?? 0), 0)
 
   // Filtered List
   const displayedPayments = payments.filter((p) => {
@@ -222,7 +236,7 @@ export default function PaymentsPage() {
               {t.dashboard.tenant.payments.title}
             </h1>
             <p className="mt-1 text-sm text-charcoal/60">
-              Track rent invoices, complete payments via Telebirr & CBE, and view official digital receipts.
+              Track rent invoices, complete payments via Telebirr, CBE, &amp; Chapa, and view official digital receipts.
             </p>
           </div>
 
@@ -239,7 +253,7 @@ export default function PaymentsPage() {
                 <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
                 <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
               </svg>
-              Pay Next Rent ({fmtEtb(nextPayment.amount)})
+              Pay Next {nextPayment.paymentType === 'deposit' ? 'Security Deposit' : 'Rent'} ({fmtEtb(getAmount(nextPayment))})
             </button>
           )}
         </div>
@@ -287,28 +301,30 @@ export default function PaymentsPage() {
         {/* Financial KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-charcoal/10 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-charcoal/50">Next Payment Due</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-charcoal/50">Next Invoice Due</p>
             <p className="mt-2 font-display text-2xl font-bold text-rust">
-              {nextPayment ? fmtEtb(nextPayment.amount) : 'ETB 0'}
+              {nextPayment ? fmtEtb(getAmount(nextPayment)) : 'ETB 0'}
             </p>
             <p className="mt-1 text-xs text-charcoal/60">
-              {nextPayment ? `Due ${fmtDate(nextPayment.dueDate)}` : 'All invoices settled'}
+              {nextPayment
+                ? `${nextPayment.paymentType === 'deposit' ? 'Security Deposit' : 'Monthly Rent'} · Due ${fmtDate(nextPayment.dueDate)}`
+                : 'All current invoices settled'}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Total Settled to Date</p>
+            <p className="mt-2 font-display text-2xl font-bold text-emerald-800">{fmtEtb(totalPaid)}</p>
+            <p className="mt-1 text-xs text-emerald-700/80">
+              {payments.filter((p) => p.status === 'paid' || p.status === 'collected').length} verified receipt(s) issued
             </p>
           </div>
 
           <div className="rounded-2xl border border-charcoal/10 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-charcoal/50">Total Rent Settled</p>
-            <p className="mt-2 font-display text-2xl font-bold text-verified">{fmtEtb(totalPaid)}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-charcoal/50">Due Now (Current Billing Cycle)</p>
+            <p className="mt-2 font-display text-2xl font-bold text-charcoal">{fmtEtb(totalDueNow)}</p>
             <p className="mt-1 text-xs text-charcoal/60">
-              {payments.filter((p) => p.status === 'paid' || p.status === 'collected').length} verified receipts issued
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-charcoal/10 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-charcoal/50">Outstanding Balance</p>
-            <p className="mt-2 font-display text-2xl font-bold text-charcoal">{fmtEtb(totalPending)}</p>
-            <p className="mt-1 text-xs text-charcoal/60">
-              {pendingList.length} invoice(s) pending
+              {dueNowList.length} current bill due · Full 12-mo schedule: {fmtEtb(fullLeaseRemaining)}
             </p>
           </div>
         </div>
@@ -391,8 +407,19 @@ export default function PaymentsPage() {
                   return (
                     <tr key={p._id} className="transition-colors hover:bg-cream/30">
                       <td className="px-5 py-4">
-                        <div className="font-medium text-charcoal">
-                          {p.periodMonth ? `Rent for ${p.periodMonth}` : (p.paymentType === 'deposit' ? 'Security Deposit' : 'Monthly Rent')}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-charcoal">
+                            {p.paymentType === 'deposit'
+                              ? 'Security Deposit (Refundable Escrow)'
+                              : p.periodMonth && p.periodMonth !== 'Security Deposit'
+                              ? `Rent for ${p.periodMonth}`
+                              : 'Monthly Rent'}
+                          </span>
+                          {p.paymentType === 'deposit' && (
+                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                              Deposit
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-charcoal/50">
                           Due: {fmtDate(p.dueDate)}
@@ -407,9 +434,9 @@ export default function PaymentsPage() {
 
                       <td className="px-5 py-4">
                         <div className="font-display text-base font-bold text-rust">
-                          {fmtEtb(p.amount)}
+                          {fmtEtb(getAmount(p))}
                         </div>
-                        {p.balance !== undefined && p.balance > 0 && (
+                        {p.balance !== undefined && p.balance > 0 && p.status !== 'paid' && (
                           <div className="text-[11px] text-amber-600">Balance: {fmtEtb(p.balance)}</div>
                         )}
                       </td>

@@ -157,7 +157,16 @@ export default function TenantReportsPage() {
   const totalSettled = settledPayments.reduce((s, p) => s + (p.amountPaid || p.amount || 0), 0)
 
   const pendingPayments = payments.filter((p) => p.status === 'pending' || p.status === 'overdue')
-  const totalUpcomingDue = pendingPayments.reduce((s, p) => s + (p.amountDue || p.amount || 0), 0)
+  
+  // Current Due Now (due within 35 days or overdue, NOT 12 future months in 2027)
+  const dueNowPayments = pendingPayments.filter((p) => {
+    if (p.status === 'overdue') return true
+    if (!p.dueDate) return true
+    const diffDays = (new Date(p.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24)
+    return diffDays <= 35
+  })
+  const totalDueNow = dueNowPayments.reduce((s, p) => s + (p.amountDue || p.amount || 0), 0)
+  const fullLeaseRemaining = pendingPayments.reduce((s, p) => s + (p.amountDue || p.amount || 0), 0)
 
   const totalSecurityDeposit = agreements.reduce((s, a) => s + (a.depositAmount || 0), 0)
 
@@ -353,19 +362,19 @@ export default function TenantReportsPage() {
                   </span>
                 </div>
                 <p className="mt-2 font-display text-2xl font-bold text-charcoal sm:text-3xl">
-                  {fmtEtb(totalSecurityDeposit > 0 ? totalSecurityDeposit : 42000)}
+                  {fmtEtb(totalSecurityDeposit)}
                 </p>
                 <p className="mt-1 text-xs text-charcoal/60">Refundable at lease conclusion</p>
               </div>
 
               {/* Upcoming Due */}
               <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-5 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Outstanding Due</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Due Now (Current Cycle)</p>
                 <p className="mt-2 font-display text-2xl font-bold text-amber-800 sm:text-3xl">
-                  {fmtEtb(totalUpcomingDue)}
+                  {fmtEtb(totalDueNow)}
                 </p>
                 <p className="mt-1 text-xs text-amber-700/80">
-                  {pendingPayments.length > 0 ? `${pendingPayments.length} upcoming bill(s)` : 'All current rent settled'}
+                  {dueNowPayments.length > 0 ? `${dueNowPayments.length} bill due now · Annual schedule: ${fmtEtb(fullLeaseRemaining)}` : 'All current rent settled'}
                 </p>
               </div>
 

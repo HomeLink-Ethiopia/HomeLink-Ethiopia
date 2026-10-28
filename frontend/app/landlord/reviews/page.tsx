@@ -635,9 +635,13 @@ export default function LandlordReviewsPage() {
                     </div>
                   )}
 
-                  {review.comment && (
+                  {review.comment ? (
                     <p className="mt-2 text-sm text-charcoal/80 bg-stone-50 rounded-lg p-3 border border-charcoal/5">
                       &ldquo;{review.comment}&rdquo;
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs italic text-charcoal/50 bg-stone-50 rounded-lg p-2.5 border border-charcoal/5">
+                      Verified evaluation submitted by tenant across tenancy criteria.
                     </p>
                   )}
 

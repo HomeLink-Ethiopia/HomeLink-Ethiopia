@@ -13,6 +13,7 @@ interface Agreement {
   _id: string
   propertyId?: { title?: string; location?: { address?: string; subCity?: string } } | string
   monthlyRentEtb?: number
+  rentAmount?: number
   depositAmount?: number
   startDate?: string
   endDate?: string
@@ -57,16 +58,7 @@ function fmtDate(d?: string) {
 
 function isReviewEligible(a?: Agreement | null) {
   if (!a) return false
-  if (a.status === 'expired' || a.status === 'terminated') return true
-  if (a.status !== 'active') return false
-  if (!a.startDate) return false
-  const startMs = new Date(a.startDate).getTime()
-  const nowMs = Date.now()
-  // Move-in date is in the future: tenant has not moved in yet!
-  if (startMs > nowMs) return false
-  // Must have lived in the property for at least 14 days before rating landlord
-  const daysLived = Math.floor((nowMs - startMs) / (1000 * 60 * 60 * 24))
-  return daysLived >= 14
+  return ['active', 'expired', 'terminated', 'completed'].includes(a.status)
 }
 
 export default function AgreementsPage() {
@@ -193,7 +185,7 @@ export default function AgreementsPage() {
                   <StatusBadge status={a.status} />
                 </div>
                 <p className="mt-1 text-sm font-medium text-charcoal">{propTitle(a)}</p>
-                <p className="text-xs text-charcoal/50">{formatEtb(a.monthlyRentEtb)}/mo · {fmtDate(a.startDate)} → {fmtDate(a.endDate)}</p>
+                <p className="text-xs text-charcoal/50">{formatEtb(a.rentAmount || a.monthlyRentEtb)}/mo · {fmtDate(a.startDate)} → {fmtDate(a.endDate)}</p>
               </button>
             ))}
           </div>
@@ -268,21 +260,27 @@ export default function AgreementsPage() {
 
               {/* Financial Terms */}
               <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div className="rounded-lg bg-cream/60 p-3 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-charcoal/40">Monthly Rent</p>
-                  <p className="mt-1 font-display text-lg font-bold text-rust">{formatEtb(active.monthlyRentEtb)}</p>
+                <div className="rounded-lg border border-rust/20 bg-rust-tint/10 p-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-rust">Monthly Rent</p>
+                  <p className="mt-1 font-display text-lg font-bold text-rust">
+                    {formatEtb(active.rentAmount || active.monthlyRentEtb)}
+                  </p>
+                  <p className="text-[10px] text-charcoal/50">Due 5th of each month</p>
                 </div>
-                <div className="rounded-lg bg-cream/60 p-3 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-charcoal/40">Security Deposit</p>
+                <div className="rounded-lg border border-charcoal/10 bg-cream/60 p-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Security Deposit</p>
                   <p className="mt-1 font-display text-lg font-bold text-charcoal">{formatEtb(active.depositAmount)}</p>
+                  <p className="text-[10px] text-emerald-700 font-medium">Refundable in Escrow</p>
                 </div>
-                <div className="rounded-lg bg-cream/60 p-3 text-center">
+                <div className="rounded-lg border border-charcoal/10 bg-cream/60 p-3 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-charcoal/40">Lease Start</p>
                   <p className="mt-1 text-sm font-semibold text-charcoal">{fmtDate(active.startDate)}</p>
+                  <p className="text-[10px] text-charcoal/50">Move-in date</p>
                 </div>
-                <div className="rounded-lg bg-cream/60 p-3 text-center">
+                <div className="rounded-lg border border-charcoal/10 bg-cream/60 p-3 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-charcoal/40">Lease End</p>
                   <p className="mt-1 text-sm font-semibold text-charcoal">{fmtDate(active.endDate)}</p>
+                  <p className="text-[10px] text-charcoal/50">12-month tenure</p>
                 </div>
               </div>
 
@@ -297,26 +295,6 @@ export default function AgreementsPage() {
               {active.status === 'active' && (
                 <div className="mt-5 space-y-3">
                   <RenewalPanel agreement={active} myRole="tenant" onChanged={fetchAgreements} />
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Link
-                      href={`/tenant/reviews?agreementId=${active._id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3.5 py-2 text-xs font-semibold text-charcoal hover:bg-sand transition-colors shadow-xs"
-                    >
-                      ★ Rate Landlord &amp; Home
-                    </Link>
-                    <Link
-                      href={`/tenant/maintenance`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3.5 py-2 text-xs font-semibold text-charcoal hover:bg-sand transition-colors shadow-xs"
-                    >
-                      🔧 Request Maintenance
-                    </Link>
-                    <Link
-                      href={`/tenant/disputes`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3.5 py-2 text-xs font-semibold text-charcoal/70 hover:bg-red-50 hover:text-red-700 transition-colors shadow-xs"
-                    >
-                      ⚖️ Resolution &amp; Disputes
-                    </Link>
-                  </div>
                 </div>
               )}
 
@@ -349,6 +327,36 @@ export default function AgreementsPage() {
                       </li>
                     ))}
                   </ol>
+                </div>
+              )}
+
+              {/* Quick Actions for active tenancies */}
+              {active.status === 'active' && (
+                <div className="mt-6 rounded-xl border border-charcoal/10 bg-cream/40 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-charcoal">Tenancy Support &amp; Services</p>
+                    <p className="text-[11px] text-charcoal/60">Quick actions for your active home stay</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/tenant/reviews?agreementId=${active._id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal hover:bg-sand transition-colors shadow-xs"
+                    >
+                      ★ Rate Landlord &amp; Home
+                    </Link>
+                    <Link
+                      href={`/tenant/maintenance?agreementId=${active._id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal hover:bg-sand transition-colors shadow-xs"
+                    >
+                      🔧 Request Maintenance
+                    </Link>
+                    <Link
+                      href={`/tenant/disputes?agreementId=${active._id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal/70 hover:bg-red-50 hover:text-red-700 transition-colors shadow-xs"
+                    >
+                      ⚖️ Resolution &amp; Disputes
+                    </Link>
+                  </div>
                 </div>
               )}
 

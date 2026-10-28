@@ -33,6 +33,7 @@ const persistMockData = () => {
       messages: mockStore.messages || [],
       reviews: mockStore.reviews || [],
       disputes: mockStore.disputes || [],
+      maintenanceRequests: mockStore.maintenanceRequests || mockStore.maintenance || [],
       landlordProfiles: Array.from((mockStore.landlordProfiles || new Map()).entries()),
     };
     fs.writeFileSync(MOCK_DATA_FILE, JSON.stringify(dataToSave, null, 2));
@@ -129,6 +130,18 @@ const loadMockData = () => {
           }
         }
       }
+      if (Array.isArray(data.maintenanceRequests || data.maintenance)) {
+        mockStore.maintenanceRequests = mockStore.maintenanceRequests || [];
+        for (const req of (data.maintenanceRequests || data.maintenance)) {
+          const idx = mockStore.maintenanceRequests.findIndex((m) => m._id === req._id);
+          if (idx !== -1) {
+            mockStore.maintenanceRequests[idx] = req;
+          } else {
+            mockStore.maintenanceRequests.push(req);
+          }
+        }
+        mockStore.maintenance = mockStore.maintenanceRequests;
+      }
       if (Array.isArray(data.landlordProfiles)) {
         for (const [key, val] of data.landlordProfiles) {
           if (!mockStore.landlordProfiles.has(key)) {
@@ -136,7 +149,7 @@ const loadMockData = () => {
           }
         }
       }
-      console.log(`[MOCK DB] restored persistent applications, viewings, agreements, reviews, disputes from mock-data.json`);
+      console.log(`[MOCK DB] restored persistent applications, viewings, agreements, reviews, disputes, maintenance from mock-data.json`);
     }
   } catch (e) {
     console.warn("[MOCK DB] could not load persistent mock data:", e.message);

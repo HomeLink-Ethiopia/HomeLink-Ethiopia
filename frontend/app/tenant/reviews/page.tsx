@@ -76,9 +76,12 @@ export default function TenantReviewsPage() {
     setLoading(true)
     try {
       const token = getToken()
-      const agrRes = await fetch(`${API_URL}/api/v1/agreements/my`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }
+      const [agrRes, mineRes] = await Promise.all([
+        fetch(`${API_URL}/api/v1/agreements/my`, { headers }),
+        fetch(`${API_URL}/api/v1/reviews/mine`, { headers }),
+      ])
+
       if (agrRes.ok) {
         const agrData = await agrRes.json()
         const agrs: AgreementRow[] = agrData.data || []
@@ -97,15 +100,12 @@ export default function TenantReviewsPage() {
         } else if (agrs.length > 0 && !selectedAgreement) {
           setSelectedAgreement(agrs[0]._id)
         }
+      }
 
-        const mineRes = await fetch(`${API_URL}/api/v1/reviews/mine`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (mineRes.ok) {
-          const mineData = await mineRes.json()
-          const mine = mineData.data || []
-          setReviews(mine)
-        }
+      if (mineRes.ok) {
+        const mineData = await mineRes.json()
+        const mine = mineData.data || []
+        setReviews(mine)
       }
     } catch {
       /* ignore */

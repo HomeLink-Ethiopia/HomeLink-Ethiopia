@@ -79,9 +79,12 @@ export default function LandlordReviewsPage() {
   async function fetchAgreements() {
     try {
       const token = getToken()
-      const res = await fetch(`${API_URL}/api/v1/agreements/landlord`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }
+      const [res, mine] = await Promise.all([
+        fetch(`${API_URL}/api/v1/agreements/landlord`, { headers }),
+        fetch(`${API_URL}/api/v1/reviews/mine`, { headers }),
+      ])
+
       if (res.ok) {
         const data = await res.json()
         const rows: AgreementRow[] = Array.isArray(data) ? data : (data.data || data.agreements || [])
@@ -95,13 +98,10 @@ export default function LandlordReviewsPage() {
             setActiveEvalId(targetId)
           }
         }
+      }
 
-        // Which agreements has this landlord already rated?
-        const mine = await fetch(`${API_URL}/api/v1/reviews/mine`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
-        if (mine.ok) {
-          const md = await mine.json()
+      if (mine.ok) {
+        const md = await mine.json()
           const myRatings = (md.data || []).filter((r: any) => r.agreementId && r.reviewType === 'landlord_to_tenant')
           const rated = new Set<string>(myRatings.map((r: any) => String(r.agreementId)))
           setRatedAgreements(rated)
@@ -122,7 +122,6 @@ export default function LandlordReviewsPage() {
           }
           setEvalForms(prev => ({ ...initialForms, ...prev }))
         }
-      }
     } catch (e) {
       console.error('Fetch agreements error:', e)
     }

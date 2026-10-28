@@ -17,11 +17,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const sessionRole = request.cookies.get('session_role')?.value
 
-  // Bypass static files, api routes, and next internals
+  // Bypass static files, api routes, uploads, and next internals
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/images') ||
+    pathname.startsWith('/uploads') ||
+    pathname.startsWith('/homes') ||
     pathname === '/favicon.ico'
   ) {
     return NextResponse.next()
@@ -57,6 +59,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on all paths so we can intercept public pages too
-  matcher: ['/((?!api|_next/static|_next/image|images|favicon.ico).*)'],
+  // Run on all paths except static assets
+  matcher: ['/((?!api|_next/static|_next/image|images|uploads|homes|favicon.ico).*)'],
 }

@@ -119,7 +119,7 @@ function NavIcon({ name }: { name: string }) {
 
         <nav className="mt-8 flex flex-1 flex-col gap-1" aria-label="Landlord dashboard" onClick={() => setSidebarOpen(false)}>
           {MAIN_NAV.map((item) => (
-            <Link key={item.label} href={item.href} prefetch={item.href !== '/logout'} className={itemClass(item)}>
+            <Link key={item.label} href={item.href} prefetch={false} className={itemClass(item)}>
               <NavIcon name={item.icon} />
               <span className="flex-1">{item.label}</span>
             </Link>
@@ -128,7 +128,7 @@ function NavIcon({ name }: { name: string }) {
           <div className="my-3 border-t border-white/10" />
 
           {FOOTER_NAV.map((item) => (
-            <Link key={item.label} href={item.href} prefetch={item.href !== '/logout'} className={itemClass(item)}>
+            <Link key={item.label} href={item.href} prefetch={false} className={itemClass(item)}>
               <NavIcon name={item.icon} />
               {item.label}
             </Link>
@@ -136,7 +136,7 @@ function NavIcon({ name }: { name: string }) {
         </nav>
 
         <div className="space-y-1 border-t border-white/10 pt-3">
-          <Link href="/support" prefetch={true} className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
+          <Link href="/support" prefetch={false} className="flex items-center gap-3 rounded px-3 py-2.5 text-sm text-cream/70 transition-colors hover:bg-white/5 hover:text-cream">
             <NavIcon name="help" />
             {t.sidebar.helpCenter}
           </Link>

@@ -661,8 +661,8 @@ const connectDB = async () => {
   try {
     // Disable operation buffering so queries don't hang if disconnected
     mongoose.set('bufferCommands', false);
-    // 30s: slow networks (e.g. mobile/DoH-resolved DNS) need more than a few seconds
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 30000 });
+    // 2s timeout: detect local MongoDB instantly or fall back to mock mode without blocking
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 2000 });
     mockMode = false;
     console.log("✅ MongoDB connected successfully to:", uri);
   } catch (error) {

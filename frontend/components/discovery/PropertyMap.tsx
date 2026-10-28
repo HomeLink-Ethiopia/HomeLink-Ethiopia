@@ -48,6 +48,30 @@ if (typeof window !== 'undefined' && L && L.DomUtil) {
         }
       }
     }
+
+    // Fix "Map container is already initialized" during React 18 Fast Refresh / StrictMode / reappearLayoutEffects
+    const origInitContainer = (L.Map.prototype as any)._initContainer
+    if (origInitContainer) {
+      ;(L.Map.prototype as any)._initContainer = function (id: any) {
+        const container = L.DomUtil.get(id)
+        if (container && (container as any)._leaflet_id) {
+          try {
+            if ((container as any)._leaflet_map && typeof (container as any)._leaflet_map.remove === 'function') {
+              (container as any)._leaflet_map.remove()
+            }
+          } catch {}
+          ;(container as any)._leaflet_id = null
+          while (container.firstChild) {
+            container.removeChild(container.firstChild)
+          }
+        }
+        const res = origInitContainer.call(this, id)
+        if (container) {
+          ;(container as any)._leaflet_map = this
+        }
+        return res
+      }
+    }
   }
 }
 
@@ -164,6 +188,22 @@ export default function PropertyMap({ properties, hoveredId = null, onHoverChang
       } catch {}
     })
   }, [hoveredId])
+
+  useEffect(() => {
+    return () => {
+      if (containerRef.current) {
+        const el = containerRef.current.querySelector('.leaflet-container') as any
+        if (el) {
+          try {
+            if (el._leaflet_map && typeof el._leaflet_map.remove === 'function') {
+              el._leaflet_map.remove()
+            }
+          } catch {}
+          el._leaflet_id = null
+        }
+      }
+    }
+  }, [])
 
   return (
     <div ref={containerRef} className="h-full w-full">

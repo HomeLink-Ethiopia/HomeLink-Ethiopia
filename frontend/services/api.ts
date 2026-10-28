@@ -116,32 +116,6 @@ export function mapApiProperty(raw: any): Property {
     lng,
     description: raw.description,
     propertyType: raw.propertyType,
-    buildingDetails: raw.buildingDetails
-      ? {
-          ...raw.buildingDetails,
-          units: (raw.buildingDetails.units || []).map((u: any, idx: number) => {
-            const rent = typeof u.monthlyRent === 'number' ? u.monthlyRent : (typeof u.rentAmount === 'number' ? u.rentAmount : 0)
-            const dep = typeof u.depositAmount === 'number' ? u.depositAmount : rent * 2
-            const uid = u.id || u.unitId || u._id || `unit-${idx + 1}`
-            return {
-              ...u,
-              id: uid,
-              unitId: uid,
-              unitNumber: u.unitNumber || `Unit ${idx + 1}`,
-              name: u.name || u.unitNumber || `Unit ${idx + 1}`,
-              spaceType: u.spaceType || 'office_room',
-              floorNumber: typeof u.floorNumber === 'number' ? u.floorNumber : 0,
-              sizeM2: u.sizeM2 || u.sizeSqm || 0,
-              monthlyRent: rent,
-              rentAmount: rent,
-              depositAmount: dep,
-              suitableFor: Array.isArray(u.suitableFor) ? u.suitableFor : [],
-              status: u.status || 'available',
-              amenities: Array.isArray(u.amenities) ? u.amenities : [],
-            }
-          }),
-        }
-      : undefined,
     amenities: raw.amenities,
     images: (raw.images || []).map((img: any) => {
       const u = typeof img === 'string' ? img : img.url

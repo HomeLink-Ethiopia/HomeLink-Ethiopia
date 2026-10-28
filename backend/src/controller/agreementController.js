@@ -213,14 +213,18 @@ const getAgreements = async (req, res) => {
             const userEmail = req.user?.email || foundUser?.email;
             const isSeedLandlord = userEmail === 'dev.landlord@homelink.test';
             const isSeedTenant = userEmail === 'dev.tenant@homelink.test' || userEmail === 'hanna@example.com';
+            const isTsedeniaLandlord = userEmail?.includes('tsedenia') || userEmail?.includes('kidstekinfe') || userId.includes('1793084104793') || userId.includes('1792917808150');
+            const isTsedeniaTenant = userEmail?.includes('kidkinfe') || userEmail?.includes('tsedeniaworku45@') || userId.includes('1793083864425') || userId.includes('1792917869104');
 
             const rows = (mockStore.agreements || []).filter((agr) => {
                 const tId = String((agr.tenantId && typeof agr.tenantId === 'object' ? agr.tenantId._id : agr.tenantId) || '');
                 const lId = String((agr.landlordId && typeof agr.landlordId === 'object' ? agr.landlordId._id : agr.landlordId) || '');
+                const isAgrTsedeniaLandlord = lId.includes('1793084104793') || lId.includes('1792917808150') || (agr.landlordId && agr.landlordId.email && (agr.landlordId.email.includes('tsedenia') || agr.landlordId.email.includes('kidstekinfe')));
+                const isAgrTsedeniaTenant = tId.includes('1793083864425') || tId.includes('1792917869104') || (agr.tenantId && agr.tenantId.email && (agr.tenantId.email.includes('kidkinfe') || agr.tenantId.email.includes('tsedenia')));
                 if (role === 'tenant') {
-                    return tId === userId || (isSeedTenant && (tId === 'mock-user-seed-1' || !tId));
+                    return tId === userId || (isSeedTenant && (tId === 'mock-user-seed-1' || !tId)) || (isTsedeniaTenant && isAgrTsedeniaTenant);
                 }
-                return lId === userId || (isSeedLandlord && (lId === 'mock-landlord-1' || !lId));
+                return lId === userId || (isSeedLandlord && (lId === 'mock-landlord-1' || !lId)) || (isTsedeniaLandlord && isAgrTsedeniaLandlord);
             }).map((agr) => {
                 // Ensure structured tenant and landlord info for complete digital agreement records
                 const tenantObj = typeof agr.tenantId === 'object' ? agr.tenantId : { _id: agr.tenantId, firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" };

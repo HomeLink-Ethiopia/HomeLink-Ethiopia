@@ -57,14 +57,22 @@ export default function LandlordDisputesPage() {
   const [submitting, setSubmitting] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [threadText, setThreadText] = useState('')
+  interface AgreementRow {
+    _id: string
+    propertyId?: { title?: string; _id?: string } | string
+    tenantId?: { firstName?: string; lastName?: string; _id?: string } | string
+  }
+
   // Sprint 11 — evidence attachments (receipts, chat screenshots, contracts)
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([])
 
   const [showForm, setShowForm] = useState(false)
+  const [agreementId, setAgreementId] = useState('')
+  const [agreements, setAgreements] = useState<AgreementRow[]>([])
   const [reason, setReason] = useState('payment_issue')
   const [description, setDescription] = useState('')
 
-  const getToken = () => localStorage.getItem('hl_token') || ''
+  const getToken = () => localStorage.getItem('hl_token') || localStorage.getItem('homelink-token') || ''
 
   const load = useCallback(async () => {
     try {
@@ -84,16 +92,41 @@ export default function LandlordDisputesPage() {
 
   useEffect(() => {
     load()
+    fetch(`${API_URL}/api/v1/agreements/landlord`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => {
+        const rows: AgreementRow[] = Array.isArray(j) ? j : (j.data || j.agreements || [])
+        setAgreements(rows)
+        if (rows.length > 0) {
+          setAgreementId((prev) => prev || rows[0]._id)
+        }
+      })
+      .catch(() => {})
   }, [load])
 
   async function fileDispute(e: React.FormEvent) {
     e.preventDefault()
     if (!description.trim()) return
     setSubmitting(true)
+    setError('')
     setSuccess('')
     try {
+      const selectedAgr = agreements.find((a) => a._id === agreementId)
+      const againstId = selectedAgr
+        ? (typeof selectedAgr.tenantId === 'object' && selectedAgr.tenantId ? selectedAgr.tenantId._id : selectedAgr.tenantId)
+        : ''
+      const propId = selectedAgr
+        ? (typeof selectedAgr.propertyId === 'object' && selectedAgr.propertyId ? selectedAgr.propertyId._id : selectedAgr.propertyId)
+        : ''
+
       // Multipart so evidence files (receipts, screenshots, contracts) ride along.
       const fd = new FormData()
+      if (agreementId) fd.append('agreementId', agreementId)
+      if (againstId) fd.append('againstUserId', String(againstId))
+      if (propId) fd.append('propertyId', String(propId))
+      fd.append('category', reason)
       fd.append('reason', reason)
       fd.append('description', description.trim())
       evidenceFiles.slice(0, 5).forEach((f) => fd.append('evidence', f))
@@ -161,20 +194,41 @@ export default function LandlordDisputesPage() {
         {showForm && (
           <form onSubmit={fileDispute} className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-sm">
             <h2 className="font-display text-lg font-semibold text-charcoal">New dispute</h2>
-            <label className="mt-4 block text-sm">
-              <span className="text-charcoal/70">Reason *</span>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="mt-1 w-full rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm focus:border-rust focus:outline-none sm:w-72"
-              >
-                {REASONS.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="text-sm">
+                <span className="text-charcoal/70">Related lease agreement / Tenant</span>
+                <select
+                  value={agreementId}
+                  onChange={(e) => setAgreementId(e.target.value)}
+                  className="mt-1 w-full rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm focus:border-rust focus:outline-none"
+                >
+                  {agreements.length === 0 && <option value="">No active agreements found</option>}
+                  {agreements.map((a) => {
+                    const title = typeof a.propertyId === 'object' && a.propertyId ? a.propertyId.title : 'Property Lease'
+                    const tenant = typeof a.tenantId === 'object' && a.tenantId ? `${a.tenantId.firstName || ''} ${a.tenantId.lastName || ''}`.trim() : 'Tenant'
+                    return (
+                      <option key={a._id} value={a._id}>
+                        {title} (Tenant: {tenant})
+                      </option>
+                    )
+                  })}
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="text-charcoal/70">Reason *</span>
+                <select
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="mt-1 w-full rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm focus:border-rust focus:outline-none"
+                >
+                  {REASONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <label className="mt-4 block text-sm">
               <span className="text-charcoal/70">What happened? *</span>
               <textarea

@@ -55,6 +55,20 @@ function fmtDate(d?: string) {
   return d ? new Date(d).toLocaleDateString() : '—'
 }
 
+function isReviewEligible(a?: Agreement | null) {
+  if (!a) return false
+  if (a.status === 'expired' || a.status === 'terminated') return true
+  if (a.status !== 'active') return false
+  if (!a.startDate) return false
+  const startMs = new Date(a.startDate).getTime()
+  const nowMs = Date.now()
+  // Move-in date is in the future: tenant has not moved in yet!
+  if (startMs > nowMs) return false
+  // Must have lived in the property for at least 14 days before rating landlord
+  const daysLived = Math.floor((nowMs - startMs) / (1000 * 60 * 60 * 24))
+  return daysLived >= 14
+}
+
 export default function AgreementsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -205,12 +219,14 @@ export default function AgreementsPage() {
                     >
                       Rent Schedule &amp; Pay →
                     </Link>
-                    <Link
-                      href={`/tenant/reviews?agreementId=${active._id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-sm transition-colors hover:bg-amber-100"
-                    >
-                      ★ Rate Landlord
-                    </Link>
+                    {isReviewEligible(active) && (
+                      <Link
+                        href={`/tenant/reviews?agreementId=${active._id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-sm transition-colors hover:bg-amber-100"
+                      >
+                        ★ Rate Landlord
+                      </Link>
+                    )}
                     <span className="flex items-center gap-1 rounded-full bg-verified/10 px-3 py-1 text-xs font-semibold text-verified">
                       <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.4 5.4a.75.75 0 00-1-1L7 8.8 5.6 7.4a.75.75 0 10-1 1l2 2c.3.3.8.3 1 0l3.4-3.4z"/></svg>
                       Active Lease
@@ -279,8 +295,28 @@ export default function AgreementsPage() {
 
               {/* Smart Lease Renewal — expiry banner, AI price, one-click signing */}
               {active.status === 'active' && (
-                <div className="mt-5">
+                <div className="mt-5 space-y-3">
                   <RenewalPanel agreement={active} myRole="tenant" onChanged={fetchAgreements} />
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Link
+                      href={`/tenant/reviews?agreementId=${active._id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3.5 py-2 text-xs font-semibold text-charcoal hover:bg-sand transition-colors shadow-xs"
+                    >
+                      ★ Rate Landlord &amp; Home
+                    </Link>
+                    <Link
+                      href={`/tenant/maintenance`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3.5 py-2 text-xs font-semibold text-charcoal hover:bg-sand transition-colors shadow-xs"
+                    >
+                      🔧 Request Maintenance
+                    </Link>
+                    <Link
+                      href={`/tenant/disputes`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/15 bg-white px-3.5 py-2 text-xs font-semibold text-charcoal/70 hover:bg-red-50 hover:text-red-700 transition-colors shadow-xs"
+                    >
+                      ⚖️ Resolution &amp; Disputes
+                    </Link>
+                  </div>
                 </div>
               )}
 

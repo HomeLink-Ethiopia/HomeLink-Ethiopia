@@ -15,6 +15,12 @@ const disputeSchema = new mongoose.Schema({
       "property_damage", 
       "maintenance_neglect", 
       "eviction", 
+      "payment_issue",
+      "property_condition",
+      "deposit_refund",
+      "unauthorized_entry",
+      "misrepresentation",
+      "lease_violation",
       "other"
     ],
     required: true,

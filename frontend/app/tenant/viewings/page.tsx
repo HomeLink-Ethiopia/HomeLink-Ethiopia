@@ -201,6 +201,13 @@ export default function ViewingsPage() {
                               {confTime ? <span className="font-bold text-verified"> at {confTime}</span> : ''}
                             </p>
                           )}
+                          {v.status === 'rescheduled' && (
+                            <p>
+                              <span className="font-medium text-blue-700">Rescheduled for:</span>{' '}
+                              <span className="font-semibold text-charcoal">{fmtDate(confDate)}</span>
+                              {confTime ? <span className="font-bold text-blue-700"> at {confTime}</span> : ''}
+                            </p>
+                          )}
                         </div>
                       )
                     })()}
@@ -208,15 +215,15 @@ export default function ViewingsPage() {
                     {(v.message || v.tenantNote) && (
                       <p className="mt-2 rounded bg-cream/60 px-3 py-2 text-xs text-charcoal/60">Your note: {v.message || v.tenantNote}</p>
                     )}
-                    {v.landlordResponse && (
-                      <p className="mt-2 rounded bg-blue-50 px-3 py-2 text-xs text-blue-800">Landlord: {v.landlordResponse}</p>
+                    {(v.landlordResponse || (v as any).landlordNote) && (
+                      <p className="mt-2 rounded bg-blue-50 px-3 py-2 text-xs text-blue-800">Landlord: {v.landlordResponse || (v as any).landlordNote}</p>
                     )}
                     <p className="mt-2 text-xs text-charcoal/40">
                       Requested {new Date(v.createdAt).toLocaleDateString()}
                     </p>
                   </div>
 
-                  {(v.status === 'requested' || v.status === 'confirmed') && (
+                  {(v.status === 'requested' || v.status === 'confirmed' || v.status === 'rescheduled') && (
                     <button
                       type="button"
                       onClick={() => cancelViewing(v._id)}

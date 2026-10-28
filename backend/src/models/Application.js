@@ -17,16 +17,16 @@ const applicationSchema = new mongoose.Schema({
   employmentStatus: String,
 
   // Ethiopian Tenant Screening & Behavioral Assessment
-  religion: { type: String, default: 'Orthodox Christian' },
-  maritalStatus: { type: String, default: 'single' },
-  smokingHabit: { type: String, default: 'non_smoker' },
-  alcoholHabit: { type: String, default: 'non_drinker' },
+  religion: { type: String, default: null },
+  maritalStatus: { type: String, default: null },
+  smokingHabit: { type: String, default: null },
+  alcoholHabit: { type: String, default: null },
   quietHoursAgreed: { type: Boolean, default: true },
   previousLandlordName: String,
   previousLandlordPhone: String,
   previousRentalDuration: String,
   reasonForMoving: String,
-  tenantBehaviorScore: { type: Number, default: 4.9 },
+  tenantBehaviorScore: { type: Number, default: null },
   tenantReviewBadges: [{ type: String }],
 
   supportingDocuments: [{

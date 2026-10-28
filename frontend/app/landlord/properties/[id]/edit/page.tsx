@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
 import { resolveImageUrl } from '@/lib/image-url'
-import BuildingFloorManager from '@/components/landlord/BuildingFloorManager'
-import type { BuildingDetails } from '@/lib/properties'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -32,8 +30,6 @@ const PROPERTY_TYPES = [
   { value: 'studio', label: 'Studio' },
   { value: 'room', label: 'Room' },
   { value: 'compound', label: 'Compound' },
-  { value: 'building', label: 'Commercial Building / Multi-Unit' },
-  { value: 'commercial', label: 'Commercial Space / Office' },
 ]
 
 interface ImagePreview {
@@ -54,7 +50,6 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   const [errors, setErrors] = useState<string[]>([])
   const [loadError, setLoadError] = useState('')
   const [images, setImages] = useState<ImagePreview[]>([])
-  const [buildingDetails, setBuildingDetails] = useState<BuildingDetails | null>(null)
 
   const [form, setForm] = useState({
     title: '', description: '', propertyType: 'apartment', rentAmount: '', depositAmount: '',
@@ -62,8 +57,6 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     amenities: [] as string[], address: '', subCity: '', woreda: '', city: 'Addis Ababa',
     availableFrom: '', listingStatus: 'active',
   })
-
-  const isBuilding = form.propertyType === 'building' || form.propertyType === 'commercial' || Boolean(buildingDetails?.isMultiUnit)
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -85,9 +78,6 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
             woreda: p.location?.woreda || '', city: p.location?.city || 'Addis Ababa',
             availableFrom: p.availableFrom ? p.availableFrom.split('T')[0] : '', listingStatus: p.listingStatus || 'active',
           })
-          if (p.buildingDetails && p.buildingDetails.units) {
-            setBuildingDetails(p.buildingDetails)
-          }
           // Load existing images
           if (p.images && p.images.length > 0) {
             setImages(p.images.map((img: { url: string; isPrimary: boolean }) => ({
@@ -166,40 +156,16 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
 
     try {
       setSaving(true)
-      const token = localStorage.getItem('hl_token')
-      const effectiveBedrooms = isBuilding && buildingDetails && buildingDetails.units.length > 0
-        ? Number(form.bedrooms || buildingDetails.units.length)
-        : Number(form.bedrooms)
-      const effectiveRent = isBuilding && buildingDetails && buildingDetails.units.length > 0
-        ? Number(form.rentAmount || Math.min(...buildingDetails.units.map(u => u.monthlyRent || 0).filter(Boolean)) || 18000)
-        : Number(form.rentAmount)
-
+      const token = typeof window !== 'undefined' ? localStorage.getItem('hl_token') : null
       const payload: any = {
         title: form.title, description: form.description, propertyType: form.propertyType,
-        rentAmount: effectiveRent, depositAmount: form.depositAmount ? Number(form.depositAmount) : undefined,
-        bedrooms: effectiveBedrooms, bathrooms: Number(form.bathrooms),
+        rentAmount: Number(form.rentAmount), depositAmount: form.depositAmount ? Number(form.depositAmount) : undefined,
+        bedrooms: Number(form.bedrooms), bathrooms: Number(form.bathrooms),
         sizeM2: form.sizeM2 ? Number(form.sizeM2) : undefined,
         floor: form.floor ? Number(form.floor) : undefined, furnished: form.furnished,
         amenities: form.amenities,
         location: { address: form.address, subCity: form.subCity, woreda: form.woreda, city: form.city },
         availableFrom: form.availableFrom || undefined, listingStatus: form.listingStatus,
-      }
-
-      if (isBuilding && buildingDetails && buildingDetails.units && buildingDetails.units.length > 0) {
-        payload.buildingDetails = {
-          isMultiUnit: true,
-          rentalScope: buildingDetails.rentalScope || 'flexible',
-          totalFloors: buildingDetails.totalFloors || 1,
-          totalUnits: buildingDetails.units.length,
-          units: buildingDetails.units.map((u, i) => ({
-            ...u,
-            unitId: u.id || `unit-${i + 1}`,
-            rentAmount: u.monthlyRent ?? (u as any).rentAmount ?? 0,
-            monthlyRent: u.monthlyRent ?? (u as any).rentAmount ?? 0,
-            depositAmount: u.depositAmount ?? ((u.monthlyRent || 0) * 2),
-            status: u.status || 'available',
-          })),
-        }
       }
 
       const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
@@ -398,28 +364,6 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                 </div>
               </div>
             </div>
-
-            {/* ═══ BUILDING FLOORS & ROOMS CONFIGURATOR (FOR BUILDINGS) ═══ */}
-            {isBuilding && (
-              <BuildingFloorManager
-                initialDetails={buildingDetails || undefined}
-                onChange={(details) => {
-                  setBuildingDetails(details)
-                  if (details.units.length > 0) {
-                    const minRent = Math.min(...details.units.map(u => u.monthlyRent || 0).filter(Boolean))
-                    const totalSqm = details.units.reduce((acc, u) => acc + (u.sizeM2 || 0), 0)
-                    setForm(prev => ({
-                      ...prev,
-                      bedrooms: String(details.units.length),
-                      sizeM2: totalSqm > 0 ? String(totalSqm) : prev.sizeM2,
-                      rentAmount: minRent > 0 && isFinite(minRent) ? String(minRent) : prev.rentAmount,
-                      depositAmount: minRent > 0 && isFinite(minRent) ? String(minRent * 2) : prev.depositAmount,
-                    }))
-                  }
-                }}
-                baseRent={Number(form.rentAmount) || 18000}
-              />
-            )}
 
             {/* ═══ PRICING ═══ */}
             <div className="rounded-xl border border-charcoal/10 bg-white p-6">

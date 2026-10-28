@@ -9,8 +9,6 @@ import { useFavoritesStore } from '@/lib/store'
 import ReviewsSection from '@/components/property/ReviewsSection'
 import ActionCard from '@/components/property/ActionCard'
 import ReportButton from '@/components/property/ReportButton'
-import BuildingUnitsSection from '@/components/property/BuildingUnitsSection'
-import type { BuildingUnit } from '@/lib/properties'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -69,7 +67,6 @@ const VERIFICATION_LABEL: Record<string, { text: string; cls: string }> = {
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
   const [property, setProperty] = useState<RawProperty | null>(null)
-  const [selectedUnit, setSelectedUnit] = useState<BuildingUnit | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -121,7 +118,6 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           rentAmount: fallback.priceEtb,
           price: fallback.priceEtb,
           propertyType: fallback.propertyType || 'apartment',
-          buildingDetails: fallback.buildingDetails,
           bedrooms: fallback.beds,
           bathrooms: fallback.baths,
           sizeM2: fallback.sizeSqm,
@@ -164,7 +160,6 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           ...mapped,
           landlord,
           id: raw._id || mapped.id,
-          buildingDetails: mapped.buildingDetails || raw.buildingDetails,
           images: mapped.images,
           image: mapped.image,
         } as RawProperty)
@@ -301,68 +296,32 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             </div>
 
             {/* Quick Stats */}
-            {property.buildingDetails || property.propertyType === 'building' || property.propertyType === 'commercial' ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                  <p className="text-lg font-bold text-charcoal">{property.buildingDetails?.totalFloors || (property as any).totalFloors || 5}</p>
-                  <p className="text-xs text-charcoal/60 font-medium">Floors</p>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                  <p className="text-lg font-bold text-charcoal">{property.buildingDetails?.units?.length || property.beds || 12}</p>
-                  <p className="text-xs text-charcoal/60 font-medium">Total Spaces</p>
-                </div>
-                {property.sizeSqm ? (
-                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                    <p className="text-lg font-bold text-charcoal">{property.sizeSqm}</p>
-                    <p className="text-xs text-charcoal/60 font-medium">m² Total Area</p>
-                  </div>
-                ) : null}
-                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                  <p className="text-sm font-bold text-charcoal">Commercial</p>
-                  <p className="text-xs text-charcoal/60 font-medium">Building</p>
-                </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                <p className="text-lg font-bold text-charcoal">{property.beds}</p>
+                <p className="text-xs text-charcoal/60 font-medium">Bedrooms</p>
               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                  <p className="text-lg font-bold text-charcoal">{property.beds}</p>
-                  <p className="text-xs text-charcoal/60 font-medium">Bedrooms</p>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                  <p className="text-lg font-bold text-charcoal">{property.baths}</p>
-                  <p className="text-xs text-charcoal/60 font-medium">Bathrooms</p>
-                </div>
-                {property.sizeSqm ? (
-                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                    <p className="text-lg font-bold text-charcoal">{property.sizeSqm}</p>
-                    <p className="text-xs text-charcoal/60 font-medium">m²</p>
-                  </div>
-                ) : null}
-                {property.propertyType ? (
-                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
-                    <p className="text-sm font-bold capitalize text-charcoal">{property.propertyType}</p>
-                    <p className="text-xs text-charcoal/60 font-medium">Type</p>
-                  </div>
-                ) : null}
+              <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                <p className="text-lg font-bold text-charcoal">{property.baths}</p>
+                <p className="text-xs text-charcoal/60 font-medium">Bathrooms</p>
               </div>
-            )}
+              {property.sizeSqm ? (
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                  <p className="text-lg font-bold text-charcoal">{property.sizeSqm}</p>
+                  <p className="text-xs text-charcoal/60 font-medium">m²</p>
+                </div>
+              ) : null}
+              {property.propertyType ? (
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-charcoal/10 bg-white px-4 py-3.5">
+                  <p className="text-sm font-bold capitalize text-charcoal">{property.propertyType}</p>
+                  <p className="text-xs text-charcoal/60 font-medium">Type</p>
+                </div>
+              ) : null}
+            </div>
 
-            {/* Building Units & Flexible Workspace Leasing */}
-            {property.buildingDetails && property.buildingDetails.units && (
-              <BuildingUnitsSection
-                buildingDetails={property.buildingDetails}
-                onSelectUnit={setSelectedUnit}
-                selectedUnit={selectedUnit}
-              />
-            )}
-
-            {/* About This Home / Building */}
+            {/* About This Home */}
             <div className="rounded-lg border border-charcoal/10 bg-white p-6">
-              <h2 className="font-display text-lg font-semibold text-charcoal">
-                {property.propertyType === 'building' || property.propertyType === 'commercial'
-                  ? 'About this building & workspace'
-                  : 'About this home'}
-              </h2>
+              <h2 className="font-display text-lg font-semibold text-charcoal">About this home</h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-charcoal/80">
                 {property.description || 'The landlord has not added a description for this property yet.'}
               </p>
@@ -447,7 +406,6 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               propertyTitle={property.title}
               priceEtb={property.priceEtb}
               depositEtb={deposit}
-              selectedUnit={selectedUnit}
               landlordAccountId={
                 (typeof (landlord as any)?.accountId === 'object'
                   ? (landlord as any)?.accountId?._id

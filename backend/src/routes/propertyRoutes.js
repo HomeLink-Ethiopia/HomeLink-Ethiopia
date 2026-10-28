@@ -48,7 +48,7 @@ router.post(
     '/:id/images',
     authMiddleware,
     roleMiddleware('landlord'),
-    upload.array('images', 10),
+    upload.any(),
     uploadPropertyImages
 );
 

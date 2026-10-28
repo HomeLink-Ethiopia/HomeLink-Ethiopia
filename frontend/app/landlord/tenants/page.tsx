@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 import { SkeletonTable } from '@/components/ui/LoadingSkeleton'
@@ -15,6 +16,8 @@ interface Tenant {
   email?: string
   phone?: string
   status?: 'current' | 'past' | string
+  agreementStatus?: string
+  agreementId?: string
   moveInDate?: string
   moveOutDate?: string
   rent?: number
@@ -48,11 +51,15 @@ export default function TenantsPage() {
             continue
           }
           for (const pr of props) {
-            const active = pr.agreementStatus === 'active'
+            // A tenant is ONLY considered 'past' if their agreement is explicitly terminated or expired.
+            // Agreements that are active, pending signatures, or scheduled are Current tenants.
+            const isPast = pr.agreementStatus === 'terminated' || pr.agreementStatus === 'expired'
             rows.push({
               ...tn,
               _id: `${tn._id}_${pr._id}`,
-              status: active ? 'current' : 'past',
+              status: isPast ? 'past' : 'current',
+              agreementStatus: pr.agreementStatus,
+              agreementId: pr.agreementId,
               rent: pr.rentAmount,
               propertyId: { title: pr.title },
               moveInDate: pr.startDate,
@@ -115,8 +122,8 @@ export default function TenantsPage() {
               ) : (
                 <div className="grid gap-4">
                   {currentTenants.map((tenant) => (
-                    <div key={tenant._id} className="bg-white rounded-lg border border-sand p-6">
-                      <div className="flex items-start justify-between">
+                    <div key={tenant._id} className="bg-white rounded-lg border border-sand p-6 shadow-sm">
+                      <div className="flex items-start justify-between gap-4">
                         <div>
                           <h3 className="text-lg font-semibold text-charcoal">{fullName(tenant)}</h3>
                           <p className="text-sm text-charcoal/60 mt-1">{propertyTitle(tenant)}</p>
@@ -125,7 +132,7 @@ export default function TenantsPage() {
                           </p>
                           {tenant.moveInDate && (
                             <p className="text-sm text-charcoal/60 mt-2">
-                              Move-in: {new Date(tenant.moveInDate).toLocaleDateString()}
+                              Lease Start: {new Date(tenant.moveInDate).toLocaleDateString()}
                             </p>
                           )}
                           {tenant.rent ? (
@@ -133,10 +140,35 @@ export default function TenantsPage() {
                               ETB {tenant.rent.toLocaleString()}/month
                             </p>
                           ) : null}
+
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            {tenant.agreementStatus !== 'active' && (
+                              <Link
+                                href="/landlord/agreements"
+                                className="inline-flex items-center gap-1.5 rounded-md bg-rust/10 px-3 py-1.5 text-xs font-semibold text-rust hover:bg-rust/20 transition-colors"
+                              >
+                                ✍️ Review Agreement &amp; Sign →
+                              </Link>
+                            )}
+                            <Link
+                              href={`/landlord/reviews${tenant.agreementId ? `?agreementId=${tenant.agreementId}` : ''}`}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-colors shadow-xs"
+                            >
+                              ★ Rate Tenant
+                            </Link>
+                          </div>
                         </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-verified text-white">
-                          Current
-                        </span>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          {tenant.agreementStatus === 'active' ? (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-verified text-white shadow-sm">
+                              Current
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                              Current · Lease Pending
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -152,7 +184,7 @@ export default function TenantsPage() {
                 </h2>
                 <div className="grid gap-4">
                   {pastTenants.map((tenant) => (
-                    <div key={tenant._id} className="bg-white rounded-lg border border-sand p-6">
+                    <div key={tenant._id} className="bg-white rounded-lg border border-sand p-6 shadow-sm">
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="text-lg font-semibold text-charcoal">{fullName(tenant)}</h3>
@@ -166,6 +198,14 @@ export default function TenantsPage() {
                               {tenant.moveOutDate ? ` - ${new Date(tenant.moveOutDate).toLocaleDateString()}` : ''}
                             </p>
                           )}
+                          <div className="mt-3">
+                            <Link
+                              href={`/landlord/reviews${tenant.agreementId ? `?agreementId=${tenant.agreementId}` : ''}`}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-colors shadow-xs"
+                            >
+                              ★ Rate Past Tenant
+                            </Link>
+                          </div>
                         </div>
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-sand text-charcoal">
                           Past

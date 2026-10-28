@@ -50,7 +50,7 @@
           "originalName": "Commercial_Bank_Payslip.pdf"
         }
       ],
-      "createdAt": "2026-10-26T09:48:36.222Z"
+      "createdAt": "2026-10-27T19:06:06.305Z"
     },
     {
       "_id": "mock-application-2",
@@ -101,7 +101,72 @@
           "originalName": "Employment_Verification_Letter.pdf"
         }
       ],
-      "createdAt": "2026-10-25T09:48:36.222Z"
+      "createdAt": "2026-10-26T19:06:06.305Z"
+    },
+    {
+      "_id": "mock-app-1793092825899",
+      "propertyId": "mock-prop-1793092460808",
+      "tenantId": "mock-user-1793083864425",
+      "landlordId": "mock-user-1793084104793",
+      "fullName": "Tsedenia Worku",
+      "phone": "0987654321",
+      "email": "kidkinfe7@gmail.com",
+      "message": "I am interested in renting this luxury property.",
+      "moveInDate": "2026-11-01",
+      "durationMonths": 12,
+      "numberOfOccupants": 1,
+      "hasPets": null,
+      "petDetails": "",
+      "monthlyIncome": 50000,
+      "monthlyIncomeEtb": 50000,
+      "employmentStatus": "employed",
+      "religion": null,
+      "maritalStatus": null,
+      "smokingHabit": null,
+      "alcoholHabit": null,
+      "quietHoursAgreed": true,
+      "previousLandlordName": "",
+      "previousLandlordPhone": "",
+      "previousRentalDuration": "",
+      "reasonForMoving": "",
+      "tenantBehaviorScore": null,
+      "tenantReviewsCount": 0,
+      "tenantReviewBadges": [],
+      "supportingDocuments": [
+        {
+          "documentType": "kebele_id",
+          "docType": "kebele_id",
+          "fileKey": "/uploads/document-1793092825892-449773365.jpg",
+          "originalName": "national-id.jpg",
+          "mimeType": "image/jpeg",
+          "uploadedAt": "2026-10-27T09:20:25.892Z"
+        }
+      ],
+      "status": "under_review",
+      "history": [
+        {
+          "status": "submitted",
+          "changedBy": "mock-user-1793083864425",
+          "note": "Application submitted",
+          "date": "2026-10-27T09:20:25.899Z"
+        },
+        {
+          "status": "under_review",
+          "changedBy": "mock-user-1793084104793",
+          "note": "Status updated to under_review",
+          "date": "2026-10-28T11:00:25.894Z"
+        },
+        {
+          "status": "rejected",
+          "changedBy": "mock-user-1793084104793",
+          "note": "Status updated to rejected",
+          "date": "2026-10-28T11:30:36.346Z"
+        }
+      ],
+      "createdAt": "2026-10-27T09:20:25.899Z",
+      "landlordFeedback": "",
+      "infoRequested": "",
+      "decidedAt": null
     },
     {
       "_id": "mock-app-1792929749104",
@@ -176,67 +241,6 @@
       "createdAt": "2026-10-25T12:02:55.916Z"
     },
     {
-      "_id": "mock-app-1793092825899",
-      "propertyId": "mock-prop-1793092460808",
-      "tenantId": "mock-user-1793083864425",
-      "landlordId": "mock-user-1793084104793",
-      "fullName": "Tsedenia Worku",
-      "phone": "0987654323",
-      "email": "kidkinfe7@gmail.com",
-      "message": "trutkil",
-      "moveInDate": "2026-10-29",
-      "durationMonths": 12,
-      "numberOfOccupants": 1,
-      "hasPets": false,
-      "monthlyIncome": 30000,
-      "monthlyIncomeEtb": 30000,
-      "employmentStatus": "employed",
-      "religion": "Orthodox Christian",
-      "maritalStatus": "single",
-      "smokingHabit": "non_smoker",
-      "alcoholHabit": "non_drinker",
-      "quietHoursAgreed": true,
-      "previousLandlordName": "ato bekele",
-      "previousLandlordPhone": "0987654321",
-      "previousRentalDuration": "2 years",
-      "reasonForMoving": "Looking for a well-maintained home closer to work",
-      "tenantBehaviorScore": 4.9,
-      "tenantReviewBadges": [
-        "Punctual Payer",
-        "Quiet & Respectful",
-        "Clean Property",
-        "ID Verified"
-      ],
-      "supportingDocuments": [
-        {
-          "documentType": "kebele_id",
-          "docType": "kebele_id",
-          "fileKey": "/uploads/document-1793092825892-449773365.jpg",
-          "originalName": "download (1).jpg",
-          "mimeType": "image/jpeg",
-          "uploadedAt": "2026-10-27T09:20:25.899Z"
-        },
-        {
-          "documentType": "proof_of_income",
-          "docType": "proof_of_income",
-          "fileKey": "/uploads/document-1793092825892-498994990.jpg",
-          "originalName": "download (1).jpg",
-          "mimeType": "image/jpeg",
-          "uploadedAt": "2026-10-27T09:20:25.899Z"
-        }
-      ],
-      "status": "submitted",
-      "history": [
-        {
-          "status": "submitted",
-          "changedBy": "mock-user-1793083864425",
-          "note": "Application submitted",
-          "date": "2026-10-27T09:20:25.899Z"
-        }
-      ],
-      "createdAt": "2026-10-27T09:20:25.899Z"
-    },
-    {
       "_id": "mock-app-1793094558109",
       "propertyId": "66d1f801e12a4b001a222222",
       "tenantId": "mock-user-seed-1",
@@ -279,9 +283,159 @@
         }
       ],
       "createdAt": "2026-10-27T09:49:18.110Z"
+    },
+    {
+      "_id": "mock-app-1793128262550",
+      "propertyId": "mock-prop-1793127878397",
+      "tenantId": "mock-user-1793083864425",
+      "landlordId": "mock-user-1793084104793",
+      "fullName": "Tsedenia Worku",
+      "phone": "09876543465",
+      "email": "kidkinfe7@gmail.com",
+      "message": "",
+      "moveInDate": "2026-10-28",
+      "durationMonths": 12,
+      "numberOfOccupants": 1,
+      "hasPets": null,
+      "petDetails": "",
+      "monthlyIncome": 50000,
+      "monthlyIncomeEtb": 50000,
+      "employmentStatus": "employed",
+      "religion": null,
+      "maritalStatus": null,
+      "smokingHabit": null,
+      "alcoholHabit": null,
+      "quietHoursAgreed": true,
+      "previousLandlordName": "kebe",
+      "previousLandlordPhone": "0987654312",
+      "previousRentalDuration": "2",
+      "reasonForMoving": "Looking for a well-maintained home closer to work",
+      "tenantBehaviorScore": null,
+      "tenantReviewsCount": 0,
+      "tenantReviewBadges": [],
+      "supportingDocuments": [
+        {
+          "documentType": "kebele_id",
+          "docType": "kebele_id",
+          "fileKey": "/uploads/document-1793128262545-150496729.jpg",
+          "originalName": "download (1).jpg",
+          "mimeType": "image/jpeg",
+          "uploadedAt": "2026-10-27T19:11:02.550Z"
+        },
+        {
+          "documentType": "proof_of_income",
+          "docType": "proof_of_income",
+          "fileKey": "/uploads/document-1793128262545-568057099.jpg",
+          "originalName": "download (1).jpg",
+          "mimeType": "image/jpeg",
+          "uploadedAt": "2026-10-27T19:11:02.550Z"
+        }
+      ],
+      "status": "approved",
+      "history": [
+        {
+          "status": "submitted",
+          "changedBy": "mock-user-1793083864425",
+          "note": "Application submitted",
+          "date": "2026-10-27T19:11:02.550Z"
+        },
+        {
+          "status": "rejected",
+          "changedBy": "mock-user-1793084104793",
+          "note": "Status updated to rejected",
+          "date": "2026-10-28T11:30:39.737Z"
+        }
+      ],
+      "createdAt": "2026-10-27T19:11:02.550Z",
+      "landlordFeedback": "",
+      "infoRequested": "",
+      "decidedAt": "2026-10-28T17:01:33.664Z"
     }
   ],
   "viewings": [
+    {
+      "_id": "mock-viewing-1",
+      "propertyId": {
+        "_id": "66d1f801e12a4b001a111111",
+        "title": "Modern 2BR Apartment in Bole",
+        "location": {
+          "subCity": "Bole"
+        }
+      },
+      "tenantId": {
+        "_id": "mock-user-seed-1",
+        "firstName": "Hanna",
+        "lastName": "Tesfaye"
+      },
+      "landlordId": "mock-landlord-1",
+      "requestedSlots": [
+        {
+          "date": "2026-10-30T19:06:06.305Z",
+          "startTime": "10:00"
+        }
+      ],
+      "preferredDate": "2026-10-30",
+      "preferredTime": "10:00",
+      "tenantNote": "Coming with my sister, is parking available?",
+      "status": "requested",
+      "createdAt": "2026-10-28T19:06:06.305Z"
+    },
+    {
+      "_id": "viewing-1793128275941",
+      "propertyId": {
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "location": {
+          "subCity": "Bole",
+          "address": "bole road",
+          "city": "Addis Ababa",
+          "coordinates": {
+            "type": "Point",
+            "coordinates": [
+              38.7578,
+              9.03
+            ]
+          }
+        },
+        "rentAmount": 40000,
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true,
+            "uploadedAt": "2026-10-27T19:04:38.435Z"
+          },
+          {
+            "key": "property-1793127878426-893134824.jpg",
+            "url": "/uploads/property-1793127878426-893134824.jpg",
+            "isPrimary": false,
+            "uploadedAt": "2026-10-27T19:04:38.435Z"
+          }
+        ]
+      },
+      "tenantId": "mock-user-1793083864425",
+      "landlordId": "mock-user-1793084104793",
+      "requestedSlots": [
+        {
+          "date": "2026-10-28T07:30:00.000Z",
+          "startTime": "10:30",
+          "endTime": "10:30"
+        }
+      ],
+      "date": "2026-10-28",
+      "preferredDate": "2026-10-28",
+      "preferredTime": "10:30",
+      "scheduledDate": "2026-10-29",
+      "scheduledTime": "14:00",
+      "status": "rescheduled",
+      "tenantNote": "",
+      "createdAt": "2026-10-27T19:11:15.941Z",
+      "confirmedSlot": {
+        "date": "2026-10-29",
+        "startTime": "14:00"
+      },
+      "landlordNote": "Looking forward to meeting you!"
+    },
     {
       "_id": "viewing-1793094558069",
       "propertyId": {
@@ -318,33 +472,6 @@
       "status": "pending",
       "tenantNote": "Testing viewing schedule hour visibility",
       "createdAt": "2026-10-27T09:49:18.069Z"
-    },
-    {
-      "_id": "mock-viewing-1",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "location": {
-          "subCity": "Bole"
-        }
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye"
-      },
-      "landlordId": "mock-landlord-1",
-      "requestedSlots": [
-        {
-          "date": "2026-10-29T09:48:36.222Z",
-          "startTime": "10:00"
-        }
-      ],
-      "preferredDate": "2026-10-29",
-      "preferredTime": "10:00",
-      "tenantNote": "Coming with my sister, is parking available?",
-      "status": "requested",
-      "createdAt": "2026-10-27T09:48:36.222Z"
     },
     {
       "_id": "viewing-1793092839085",
@@ -522,6 +649,62 @@
       "createdAt": "2026-10-21T09:00:00.000Z"
     },
     {
+      "_id": "mock-agreement-tsedenia-3br",
+      "applicationId": "mock-app-1793128262550",
+      "propertyId": {
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
+        "location": {
+          "city": "Addis Ababa",
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
+      },
+      "tenantId": {
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
+      },
+      "landlordId": {
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
+      },
+      "status": "active",
+      "rentAmount": 40000,
+      "depositAmount": 60000,
+      "paymentDueDay": 5,
+      "paymentFrequency": "monthly",
+      "startDate": "2026-11-01",
+      "endDate": "2027-10-31",
+      "terms": [
+        "Rent is due on the 5th day of every calendar month via verified bank transfer, Telebirr, or CBE.",
+        "A security deposit equal to ETB 60,000 shall be held in escrow until lease expiration.",
+        "The tenant agrees to maintain the premises in good condition and report maintenance issues promptly.",
+        "Subletting without prior written authorization from the landlord is strictly prohibited.",
+        "Utilities (water, electricity, WiFi) shall be settled monthly according to property specifications.",
+        "Either party may terminate or request renewal with 30 days written notice prior to lease expiration.",
+        "Both landlord and tenant agree to comply with the Civil Code of Ethiopia regarding residential tenancies."
+      ],
+      "specialConditions": "Standard residential lease agreement under Ethiopian civil code. 3BR Apartment on Bole Road.",
+      "tenantSignedAt": "2026-10-28T18:35:47.810Z",
+      "landlordSignedAt": "2026-10-28T17:36:22.818Z",
+      "createdAt": "2026-10-28T10:00:00.000Z"
+    },
+    {
       "_id": "mock-agreement-1792910403114",
       "applicationId": "mock-application-1",
       "propertyId": {
@@ -602,7 +785,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T09:48:36.222Z",
+      "createdAt": "2026-10-28T19:06:06.305Z",
       "status": "active"
     },
     {
@@ -639,7 +822,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T09:48:36.222Z",
+      "createdAt": "2026-10-28T19:06:06.305Z",
       "status": "active"
     },
     {
@@ -677,7 +860,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T09:48:36.222Z",
+      "createdAt": "2026-10-28T19:06:06.305Z",
       "status": "active"
     },
     {
@@ -715,7 +898,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T09:48:36.222Z",
+      "createdAt": "2026-10-28T19:06:06.305Z",
       "status": "active"
     },
     {
@@ -750,7 +933,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T08:48:36.222Z",
+      "createdAt": "2026-10-28T18:06:06.305Z",
       "status": "active"
     },
     {
@@ -786,7 +969,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T07:48:36.222Z",
+      "createdAt": "2026-10-28T17:06:06.305Z",
       "status": "active"
     },
     {
@@ -823,248 +1006,71 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T06:48:36.222Z",
+      "createdAt": "2026-10-28T16:06:06.305Z",
       "status": "active"
     },
     {
-      "_id": "66d1f801e12a4b001a888888",
-      "title": "Bole Nexus Commercial Center & Office Tower",
-      "description": "Premier 5-storey commercial tower in Bole with 10 private office rooms, whole floor corporate headquarters, high-speed fiber internet, dual generators, and underground parking.",
-      "propertyType": "building",
-      "rentAmount": 18500,
-      "bedrooms": 10,
-      "bathrooms": 8,
-      "sizeM2": 1400,
-      "furnished": true,
+      "_id": "mock-prop-1793127878397",
+      "landlordId": "mock-user-1793084104793",
+      "title": "3bedroom",
+      "propertyType": "apartment",
+      "rentAmount": 40000,
+      "depositAmount": 60000,
+      "bedrooms": 3,
+      "bathrooms": 2,
+      "sizeM2": 120,
       "location": {
-        "city": "Addis Ababa",
         "subCity": "Bole",
-        "neighborhood": "Cameroon St / Atlas"
+        "address": "bole road",
+        "city": "Addis Ababa",
+        "coordinates": {
+          "type": "Point",
+          "coordinates": [
+            38.7578,
+            9.03
+          ]
+        }
       },
+      "furnished": true,
       "amenities": [
-        "generator",
-        "water_tank",
-        "wifi",
-        "elevator",
-        "parking",
-        "security"
+        "WiFi",
+        "Generator",
+        "Water Tank"
       ],
       "listingStatus": "active",
       "verificationStatus": "verified",
-      "fraudRiskScore": 2,
+      "fraudRiskScore": 0.24,
       "riskLevel": "low",
-      "redFlags": [],
-      "buildingDetails": {
-        "isMultiUnit": true,
-        "rentalScope": "flexible",
-        "totalFloors": 5,
-        "totalUnits": 12,
-        "units": [
-          {
-            "unitId": "unit-tower-all",
-            "unitNumber": "Full Building",
-            "name": "Entire Commercial Tower (Floors 1-5)",
-            "spaceType": "entire_building",
-            "floorNumber": 0,
-            "sizeM2": 1400,
-            "rentAmount": 480000,
-            "depositAmount": 960000,
-            "suitableFor": [
-              "Corporate HQ",
-              "Embassy",
-              "Tech Campus",
-              "Financial Institution"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-floor-2",
-            "unitNumber": "Floor 2",
-            "name": "Whole 2nd Floor (Corporate Workspace)",
-            "spaceType": "whole_floor",
-            "floorNumber": 2,
-            "sizeM2": 280,
-            "rentAmount": 120000,
-            "depositAmount": 240000,
-            "suitableFor": [
-              "IT / Software Company",
-              "Consultancy Group",
-              "Law Chambers"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-floor-3",
-            "unitNumber": "Floor 3",
-            "name": "Whole 3rd Floor (Executive Suites)",
-            "spaceType": "whole_floor",
-            "floorNumber": 3,
-            "sizeM2": 280,
-            "rentAmount": 115000,
-            "depositAmount": 230000,
-            "suitableFor": [
-              "FinTech",
-              "Regional NGO",
-              "Medical Specialist Center"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-101",
-            "unitNumber": "Office 101",
-            "name": "Private Work Suite 101",
-            "spaceType": "office_room",
-            "floorNumber": 1,
-            "sizeM2": 35,
-            "rentAmount": 18500,
-            "depositAmount": 37000,
-            "suitableFor": [
-              "Tech Startup",
-              "Architect Studio",
-              "Accounting Firm"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-102",
-            "unitNumber": "Office 102",
-            "name": "Executive Suite 102 (Balcony View)",
-            "spaceType": "office_room",
-            "floorNumber": 1,
-            "sizeM2": 40,
-            "rentAmount": 20000,
-            "depositAmount": 40000,
-            "suitableFor": [
-              "Legal Advisor",
-              "Import / Export Desk",
-              "Creative Agency"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-103",
-            "unitNumber": "Office 103",
-            "name": "Team Workstation Room 103",
-            "spaceType": "office_room",
-            "floorNumber": 1,
-            "sizeM2": 55,
-            "rentAmount": 27000,
-            "depositAmount": 54000,
-            "suitableFor": [
-              "Software Dev Team (6-8 people)",
-              "Design Lab"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-104",
-            "unitNumber": "Office 104",
-            "name": "Private Consultant Room 104",
-            "spaceType": "office_room",
-            "floorNumber": 1,
-            "sizeM2": 30,
-            "rentAmount": 16000,
-            "depositAmount": 32000,
-            "suitableFor": [
-              "Solo Consultant",
-              "Financial Analyst",
-              "Therapy Clinic"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-105",
-            "unitNumber": "Office 105",
-            "name": "Corner Office Suite 105",
-            "spaceType": "office_room",
-            "floorNumber": 1,
-            "sizeM2": 45,
-            "rentAmount": 23000,
-            "depositAmount": 46000,
-            "suitableFor": [
-              "Managing Director",
-              "Brokerage Office"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-201",
-            "unitNumber": "Office 201",
-            "name": "Open-Plan Team Office 201",
-            "spaceType": "office_room",
-            "floorNumber": 2,
-            "sizeM2": 60,
-            "rentAmount": 30000,
-            "depositAmount": 60000,
-            "suitableFor": [
-              "Call Center / Customer Support",
-              "Data Processing Hub"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-202",
-            "unitNumber": "Office 202",
-            "name": "Conference & Work Suite 202",
-            "spaceType": "office_room",
-            "floorNumber": 2,
-            "sizeM2": 38,
-            "rentAmount": 19000,
-            "depositAmount": 38000,
-            "suitableFor": [
-              "Marketing Agency",
-              "Training Classroom"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-room-203",
-            "unitNumber": "Office 203",
-            "name": "Incubator Lab 203",
-            "spaceType": "office_room",
-            "floorNumber": 2,
-            "sizeM2": 50,
-            "rentAmount": 25000,
-            "depositAmount": 50000,
-            "suitableFor": [
-              "Hardware Prototyping",
-              "Media Production"
-            ],
-            "status": "available"
-          },
-          {
-            "unitId": "unit-ground-retail",
-            "unitNumber": "Shop G-01",
-            "name": "Ground Floor Premium Banking / Retail Hall",
-            "spaceType": "retail_shop",
-            "floorNumber": 0,
-            "sizeM2": 180,
-            "rentAmount": 95000,
-            "depositAmount": 190000,
-            "suitableFor": [
-              "Bank Branch",
-              "Showroom",
-              "Coffee Bistro / Pharmacy"
-            ],
-            "status": "available"
-          }
-        ]
-      },
+      "redFlags": [
+        "Description is very short or missing (common in scam listings)"
+      ],
+      "createdAt": "2026-10-27T19:04:38.397Z",
       "images": [
         {
-          "key": "bole-tower-1.jpg",
-          "url": "/uploads/homes/apartment-tower.png",
-          "isPrimary": true
+          "key": "property-1793127878424-803030818.jpg",
+          "url": "/uploads/property-1793127878424-803030818.jpg",
+          "isPrimary": true,
+          "uploadedAt": "2026-10-27T19:04:38.435Z"
+        },
+        {
+          "key": "property-1793127878426-893134824.jpg",
+          "url": "/uploads/property-1793127878426-893134824.jpg",
+          "isPrimary": false,
+          "uploadedAt": "2026-10-27T19:04:38.435Z"
         }
-      ],
-      "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-27T05:48:36.222Z",
-      "status": "active"
+      ]
     },
     {
       "_id": "mock-prop-1793092460808",
       "landlordId": "mock-user-1793084104793",
       "title": "luxury",
+      "images": [
+        {
+          "key": "apartment-tower.png",
+          "url": "/uploads/homes/apartment-tower.png",
+          "isPrimary": true
+        }
+      ],
       "description": "hjg",
       "propertyType": "apartment",
       "rentAmount": 20000,
@@ -1103,1651 +1109,602 @@
   ],
   "payments": [
     {
-      "_id": "mock-pay-1",
-      "agreementId": "mock-agreement-1",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole"
-      },
+      "_id": "mock-pay-dep-1793212547811-953",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-10",
-      "dueDate": "2026-10-05T00:00:00.000Z",
-      "amountDue": 42000,
-      "amountPaid": 42000,
-      "balance": 0,
-      "status": "paid",
-      "paidAt": "2026-10-04T10:30:00.000Z",
-      "paymentMethod": "chapa",
-      "transactionReference": "TX-CHP-202610-01",
-      "receiptNumber": "RCPT-1001",
-      "receiptKey": "/images/receipts/cbe-receipt.svg",
-      "receiptUrl": "/images/receipts/cbe-receipt.svg",
-      "notes": "October rent paid on time via Chapa"
-    },
-    {
-      "_id": "mock-pay-2",
-      "agreementId": "mock-agreement-1",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-09",
-      "dueDate": "2026-09-05T00:00:00.000Z",
-      "amountDue": 42000,
-      "amountPaid": 42000,
-      "balance": 0,
-      "status": "paid",
-      "paidAt": "2026-09-04T14:15:00.000Z",
-      "paymentMethod": "telebirr",
-      "transactionReference": "TX-TB-202609-02",
-      "receiptNumber": "RCPT-0902",
-      "receiptKey": "/images/receipts/telebirr-receipt.svg",
-      "receiptUrl": "/images/receipts/telebirr-receipt.svg",
-      "notes": "September rent settled via Telebirr"
-    },
-    {
-      "_id": "mock-pay-3",
-      "agreementId": "mock-agreement-1",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-08",
-      "dueDate": "2026-08-05T00:00:00.000Z",
-      "amountDue": 42000,
-      "amountPaid": 42000,
-      "balance": 0,
-      "status": "paid",
-      "paidAt": "2026-08-05T09:00:00.000Z",
-      "paymentMethod": "cbe",
-      "transactionReference": "TX-CBE-202608-03",
-      "receiptNumber": "RCPT-0803",
-      "receiptKey": "/images/receipts/cbe-receipt.svg",
-      "receiptUrl": "/images/receipts/cbe-receipt.svg"
-    },
-    {
-      "_id": "mock-pay-4",
-      "agreementId": "mock-agreement-2",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a222222",
-        "title": "Spacious 3BR Villa in CMC"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-2",
-        "firstName": "Mikias",
-        "lastName": "Bekele",
-        "email": "mikias@example.com",
-        "phone": "+251922334455"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-10",
-      "dueDate": "2026-10-01T00:00:00.000Z",
-      "amountDue": 55000,
-      "amountPaid": 0,
-      "balance": 55000,
-      "status": "overdue",
-      "paymentMethod": "bank_transfer",
-      "notes": "Tenant traveling abroad; reminder sent."
-    },
-    {
-      "_id": "mock-pay-5",
-      "agreementId": "mock-agreement-2",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a222222",
-        "title": "Spacious 3BR Villa in CMC"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-2",
-        "firstName": "Mikias",
-        "lastName": "Bekele",
-        "email": "mikias@example.com",
-        "phone": "+251922334455"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-09",
-      "dueDate": "2026-09-01T00:00:00.000Z",
-      "amountDue": 55000,
-      "amountPaid": 55000,
-      "balance": 0,
-      "status": "paid",
-      "paidAt": "2026-09-01T11:45:00.000Z",
-      "paymentMethod": "bank_transfer",
-      "transactionReference": "TX-AWASH-202609-05",
-      "receiptNumber": "RCPT-0905",
-      "receiptKey": "/images/receipts/cbe-receipt.svg",
-      "receiptUrl": "/images/receipts/cbe-receipt.svg"
-    },
-    {
-      "_id": "mock-pay-6",
-      "agreementId": "mock-agreement-2",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a222222",
-        "title": "Spacious 3BR Villa in CMC"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-2",
-        "firstName": "Mikias",
-        "lastName": "Bekele",
-        "email": "mikias@example.com",
-        "phone": "+251922334455"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-08",
-      "dueDate": "2026-08-01T00:00:00.000Z",
-      "amountDue": 55000,
-      "amountPaid": 55000,
-      "balance": 0,
-      "status": "paid",
-      "paidAt": "2026-08-02T16:00:00.000Z",
-      "paymentMethod": "cbe",
-      "transactionReference": "TX-CBE-202608-06",
-      "receiptNumber": "RCPT-0806",
-      "receiptKey": "/images/receipts/cbe-receipt.svg",
-      "receiptUrl": "/images/receipts/cbe-receipt.svg"
-    },
-    {
-      "_id": "mock-pay-7",
-      "agreementId": "mock-agreement-3",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-10",
-      "dueDate": "2026-10-28T00:00:00.000Z",
-      "amountDue": 30000,
-      "amountPaid": 0,
-      "balance": 30000,
-      "status": "pending",
-      "notes": "Invoice dispatched; due end of month."
-    },
-    {
-      "_id": "mock-pay-8",
-      "agreementId": "mock-agreement-3",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "rent",
-      "periodMonth": "2026-09",
-      "dueDate": "2026-09-28T00:00:00.000Z",
-      "amountDue": 30000,
-      "amountPaid": 30000,
-      "balance": 0,
-      "status": "paid",
-      "paidAt": "2026-09-26T17:10:00.000Z",
-      "paymentMethod": "telebirr",
-      "transactionReference": "TX-TB-202609-08",
-      "receiptNumber": "RCPT-0908",
-      "receiptKey": "/images/receipts/telebirr-receipt.svg",
-      "receiptUrl": "/images/receipts/telebirr-receipt.svg"
-    },
-    {
-      "_id": "mock-pay-9",
-      "agreementId": "mock-agreement-1",
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole"
-      },
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": "mock-landlord-1",
-      "paymentType": "deposit",
-      "periodMonth": "2026-01",
-      "dueDate": "2026-01-01T00:00:00.000Z",
-      "amountDue": 84000,
-      "amountPaid": 84000,
-      "balance": 0,
-      "status": "paid",
-      "paidAt": "2026-01-01T12:00:00.000Z",
-      "paymentMethod": "bank_transfer",
-      "receiptNumber": "RCPT-DEP-001",
-      "receiptKey": "/images/receipts/cbe-receipt.svg",
-      "receiptUrl": "/images/receipts/cbe-receipt.svg",
-      "notes": "Security deposit held in escrow (2 months)"
-    },
-    {
-      "_id": "mock-pay-1792906218431-0-606",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
           "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-01",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-01-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-01",
-      "createdAt": "2026-10-25T05:30:18.431Z",
-      "remindersSent": [
-        {
-          "sentAt": "2026-10-25T11:51:16.805Z",
-          "channel": "in_app"
-        }
-      ]
-    },
-    {
-      "_id": "mock-pay-1792906218431-1-996",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-02",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-02-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-02",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-1792906218431-2-44",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-03",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-03-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-03",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-1792906218431-3-136",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-04",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-04-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-04",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-1792906218431-4-431",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-05",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-05-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-05",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-1792906218431-5-341",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-06",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-06-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-06",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-1792906218431-6-538",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-07",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-07-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-07",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-1792906218431-7-297",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-11",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-11-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2026-11",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-1792906218431-8-45",
-      "agreementId": "mock-agreement-1",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a111111",
-        "title": "Modern 2BR Apartment in Bole",
-        "rentAmount": 42000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole",
-          "neighborhood": "Edna Mall Area"
-        }
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-12",
-      "amountDue": 42000,
-      "amountPaid": 0,
-      "balance": 42000,
-      "currency": "ETB",
-      "dueDate": "2026-12-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2026-12",
-      "createdAt": "2026-10-25T05:30:18.431Z"
-    },
-    {
-      "_id": "mock-pay-dep-1792906227563-552",
-      "agreementId": "mock-agreement-3",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
-      },
-      "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "deposit",
       "periodMonth": "Security Deposit",
-      "amountDue": 30000,
+      "amountDue": 60000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 60000,
       "currency": "ETB",
       "dueDate": "2026-11-01T00:00:00.000Z",
       "status": "pending",
       "notes": "Refundable security deposit held in escrow",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.811Z"
     },
     {
-      "_id": "mock-pay-1792906227563-1-560",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-1-800",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2026-11",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2026-11-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2026-11",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-2-478",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-2-421",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2026-12",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2026-12-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2026-12",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-3-765",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-3-415",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-01",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-01-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-01",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-4-506",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-4-384",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-02",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-02-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-02",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-5-277",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-5-163",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-03",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-03-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-03",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-6-86",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-6-100",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-04",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-04-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-04",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-7-455",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-7-731",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-05",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-05-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-05",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-8-628",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-8-692",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-06",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-06-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-06",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-9-749",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-9-369",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-07",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-07-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-07",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-10-923",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-10-842",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-08",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-08-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-08",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-11-199",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-11-141",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-09",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-09-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-09",
-      "createdAt": "2026-10-25T05:30:27.563Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     },
     {
-      "_id": "mock-pay-1792906227563-12-139",
-      "agreementId": "mock-agreement-3",
+      "_id": "mock-pay-1793212547812-12-252",
+      "agreementId": "mock-agreement-tsedenia-3br",
       "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Hanna",
-        "lastName": "Tesfaye",
-        "email": "hanna@example.com",
-        "phone": "+251911223344"
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321"
       },
       "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.landlord@homelink.test",
-        "phone": "+251922334455"
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321"
       },
       "propertyId": {
-        "_id": "66d1f801e12a4b001a333333",
-        "title": "Executive 1BR Studio in Kazanchis",
-        "rentAmount": 30000,
+        "_id": "mock-prop-1793127878397",
+        "title": "3bedroom",
+        "rentAmount": 40000,
+        "depositAmount": 60000,
         "location": {
           "city": "Addis Ababa",
-          "subCity": "Kazanchis",
-          "neighborhood": "UN ECA Area"
-        }
+          "subCity": "Bole",
+          "address": "bole road"
+        },
+        "images": [
+          {
+            "key": "property-1793127878424-803030818.jpg",
+            "url": "/uploads/property-1793127878424-803030818.jpg",
+            "isPrimary": true
+          }
+        ]
       },
       "paymentType": "rent",
       "periodMonth": "2027-10",
-      "amountDue": 30000,
+      "amountDue": 40000,
       "amountPaid": 0,
-      "balance": 30000,
+      "balance": 40000,
       "currency": "ETB",
       "dueDate": "2027-10-04T21:00:00.000Z",
       "status": "pending",
       "notes": "Monthly rent for 2027-10",
-      "createdAt": "2026-10-25T05:30:27.563Z"
-    },
-    {
-      "_id": "mock-pay-dep-1792933277291-744",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "deposit",
-      "periodMonth": "Security Deposit",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2026-10-25T06:40:03.114Z",
-      "status": "overdue",
-      "notes": "Refundable security deposit held in escrow",
-      "createdAt": "2026-10-25T13:01:17.291Z"
-    },
-    {
-      "_id": "mock-pay-1792933277291-1-987",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-10",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2026-10-04T21:00:00.000Z",
-      "status": "overdue",
-      "notes": "Monthly rent for 2026-10",
-      "createdAt": "2026-10-25T13:01:17.291Z"
-    },
-    {
-      "_id": "mock-pay-1792933277291-2-411",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-11",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2026-11-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2026-11",
-      "createdAt": "2026-10-25T13:01:17.291Z"
-    },
-    {
-      "_id": "mock-pay-1792933277291-3-781",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2026-12",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2026-12-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2026-12",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-4-731",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-01",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-01-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-01",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-5-603",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-02",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-02-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-02",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-6-803",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-03",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-03-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-03",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-7-132",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-04",
-      "amountDue": 25000,
-      "amountPaid": 25000,
-      "balance": 0,
-      "currency": "ETB",
-      "dueDate": "2027-04-04T21:00:00.000Z",
-      "status": "paid",
-      "notes": "Settled online via Chapa Gateway (TX-1792997346466-mock-pay-1792933277292-7-132)",
-      "createdAt": "2026-10-25T13:01:17.292Z",
-      "transactionReference": "TX-1792997346466-mock-pay-1792933277292-7-132",
-      "paymentMethod": "chapa",
-      "paidAt": "2026-10-26T06:49:07.775Z",
-      "receiptNumber": "RCPT-CHAPA-347775",
-      "receiptUrl": "/api/v1/payments/mock-pay-1792933277292-7-132/receipt"
-    },
-    {
-      "_id": "mock-pay-1792933277292-8-262",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-05",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-05-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-05",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-9-589",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-06",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-06-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-06",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-10-937",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-07",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-07-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-07",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-11-137",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-08",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-08-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-08",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-12-252",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-09",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-09-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-09",
-      "createdAt": "2026-10-25T13:01:17.292Z"
-    },
-    {
-      "_id": "mock-pay-1792933277292-13-571",
-      "agreementId": "mock-agreement-1792910403114",
-      "tenantId": {
-        "_id": "mock-user-seed-1",
-        "firstName": "Abebe",
-        "lastName": "Kebede",
-        "email": "dev.tenant@homelink.test",
-        "phone": "+251911223344"
-      },
-      "landlordId": {
-        "_id": "mock-landlord-1",
-        "firstName": "Landlord"
-      },
-      "propertyId": {
-        "_id": {
-          "_id": "66d1f801e12a4b001a111111",
-          "title": "Modern 2BR Apartment in Bole",
-          "rentAmount": 42000
-        },
-        "title": "Selected Property",
-        "location": {
-          "city": "Addis Ababa",
-          "subCity": "Bole"
-        },
-        "rentAmount": 25000,
-        "images": []
-      },
-      "paymentType": "rent",
-      "periodMonth": "2027-10",
-      "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
-      "currency": "ETB",
-      "dueDate": "2027-10-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-10",
-      "createdAt": "2026-10-25T13:01:17.292Z"
+      "createdAt": "2026-10-28T18:35:47.812Z"
     }
   ],
   "conversations": [
@@ -2777,8 +1734,8 @@
         "_id": "mock-prop-1793092460808",
         "title": "luxury"
       },
-      "lastMessage": "hfuk.j;",
-      "lastMessageAt": "2026-10-27T09:20:47.196Z",
+      "lastMessage": "kh.",
+      "lastMessageAt": "2026-10-28T17:12:02.908Z",
       "createdAt": "2026-10-27T09:20:47.196Z"
     },
     {
@@ -3048,6 +2005,241 @@
       "mediaKeys": [],
       "isRead": false,
       "createdAt": "2026-10-27T09:20:47.196Z"
+    },
+    {
+      "_id": "msg-1793128284070",
+      "conversationId": "conv-mock-1793092847196",
+      "senderId": {
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321",
+        "password": "$2b$10$A8pILCrUpkpI1/P1lmQjWediXqKF2xl/.qzm3xpbAPu9dbZt/qRtC",
+        "role": "tenant",
+        "identityStatus": "verified",
+        "emailVerified": true,
+        "emailVerificationCode": "$2b$10$Bx5boP0KCRLJaaMa33/VnemloJ6vnyaz6Fao9.SmAmI3jRJT4NUD6",
+        "emailVerificationExpires": "2026-10-27T07:01:04.158Z"
+      },
+      "receiverId": "mock-user-1793084104793",
+      "text": "edryn",
+      "body": "edryn",
+      "mediaKeys": [],
+      "isRead": false,
+      "createdAt": "2026-10-27T19:11:24.070Z"
+    },
+    {
+      "_id": "msg-1793207522908",
+      "conversationId": "conv-mock-1793092847196",
+      "senderId": {
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidstekinfe21@gmail.com",
+        "phone": "0987654321",
+        "password": "$2b$10$YCOm7eji7.DVXS3ecq2ne.nDH49DECkQUKVNnCA9FTydFViq/9.Mm",
+        "role": "landlord",
+        "identityStatus": "verified",
+        "emailVerified": true,
+        "emailVerificationCode": "$2b$10$Kg7GfMm/OfRUtl1LFPMXkeqw2tPxKzkFOSK8DX6YYSsXQRkscLztC",
+        "emailVerificationExpires": "2026-10-27T07:05:04.620Z",
+        "verificationStatus": "verified"
+      },
+      "receiverId": "mock-user-seed-1",
+      "text": "kh.",
+      "body": "kh.",
+      "mediaKeys": [],
+      "isRead": false,
+      "createdAt": "2026-10-28T17:12:02.908Z"
+    }
+  ],
+  "reviews": [
+    {
+      "_id": "mock-review-1",
+      "reviewerId": {
+        "_id": "mock-user-seed-1",
+        "firstName": "Hanna",
+        "lastName": "Tesfaye",
+        "email": "hanna@example.com"
+      },
+      "revieweeId": "mock-landlord-1",
+      "propertyId": "66d1f801e12a4b001a111111",
+      "agreementId": "mock-agreement-1",
+      "reviewType": "tenant_to_property",
+      "rating": 5,
+      "comment": "Bright, clean apartment exactly as listed. The landlord responded within minutes and the handover was smooth.",
+      "landlordReply": "",
+      "status": "visible",
+      "createdAt": "2026-10-22T18:05:18.306Z"
+    },
+    {
+      "_id": "mock-review-2",
+      "reviewerId": {
+        "_id": "mock-user-seed-2",
+        "firstName": "Mikias",
+        "lastName": "Bekele",
+        "email": "mikias@example.com"
+      },
+      "revieweeId": "mock-landlord-1",
+      "propertyId": "66d1f801e12a4b001a222222",
+      "agreementId": "mock-agreement-2",
+      "reviewType": "tenant_to_property",
+      "rating": 4,
+      "comment": "Spacious villa in a quiet compound. Water pressure dips occasionally but maintenance fixed it fast.",
+      "landlordReply": "Thank you Mikias - the water pump has been upgraded since your note.",
+      "status": "visible",
+      "createdAt": "2026-10-08T18:05:18.306Z"
+    },
+    {
+      "_id": "mock-review-3",
+      "reviewerId": "mock-landlord-1",
+      "revieweeId": {
+        "_id": "mock-user-seed-1",
+        "firstName": "Hanna",
+        "lastName": "Tesfaye"
+      },
+      "propertyId": "66d1f801e12a4b001a111111",
+      "agreementId": "mock-agreement-1",
+      "reviewType": "landlord_to_tenant",
+      "rating": 5,
+      "comment": "Punctual with rent and kept the apartment in great condition.",
+      "landlordReply": "",
+      "status": "visible",
+      "createdAt": "2026-10-24T18:05:18.306Z"
+    },
+    {
+      "_id": "mock-rev-1793212142121",
+      "agreementId": "mock-agreement-tsedenia-3br",
+      "reviewerId": "mock-user-1793084104793",
+      "reviewerName": "Tsedenia Worku",
+      "authorId": {
+        "_id": "mock-user-1793084104793",
+        "firstName": "Tsedenia",
+        "lastName": "Worku"
+      },
+      "revieweeId": "mock-user-1793083864425",
+      "revieweeName": "Tsedenia Worku",
+      "propertyId": "mock-prop-1793127878397",
+      "propertyTitle": "3bedroom",
+      "reviewType": "landlord_to_tenant",
+      "rating": 5,
+      "ratings": {
+        "overall": 5,
+        "paymentReliability": 5,
+        "propertyCare": 5,
+        "conductAndRules": 5,
+        "communication": 5,
+        "wouldRentAgain": "yes"
+      },
+      "comment": "",
+      "status": "published",
+      "createdAt": "2026-10-28T18:30:16.655Z"
+    },
+    {
+      "_id": "mock-rev-1793214321693",
+      "reviewerId": "mock-user-1793083864425",
+      "reviewerName": "Tsedenia Worku",
+      "authorId": {
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku"
+      },
+      "revieweeId": "mock-user-1793084104793",
+      "propertyId": "66d1f801e12a4b001a111111",
+      "propertyTitle": "Modern 2BR Apartment in Bole",
+      "agreementId": "mock-agreement-tsedenia-3br",
+      "reviewType": "tenant_to_property",
+      "rating": 5,
+      "ratings": {
+        "overall": 5,
+        "maintenance": 5,
+        "leaseFairness": 5,
+        "propertyAccuracy": 5,
+        "communication": 5,
+        "moveInHandover": 5,
+        "depositFairness": 5,
+        "tenancyStage": "move_in",
+        "wouldRecommend": "yes",
+        "paymentReliability": 5,
+        "propertyCare": 5,
+        "conductAndRules": 5,
+        "wouldRentAgain": "yes"
+      },
+      "comment": "Excellent move-in experience. Apartment was handed over sparkling clean and all contract terms were transparent.",
+      "status": "published",
+      "createdAt": "2026-10-28T19:06:15.258Z"
+    }
+  ],
+  "disputes": [
+    {
+      "_id": "mock-dispute-1793214375177",
+      "raisedBy": "mock-user-1793083864425",
+      "filedByRole": "tenant",
+      "againstUserId": "mock-user-1793084104793",
+      "agreementId": "mock-agreement-tsedenia-3br",
+      "propertyId": "mock-prop-1793127878397",
+      "category": "deposit_refund",
+      "reason": "deposit_refund",
+      "description": "Landlord has not confirmed deposit receipt terms as agreed in initial signing.",
+      "evidenceKeys": [],
+      "communications": [],
+      "thread": [],
+      "history": [
+        {
+          "status": "open",
+          "note": "Dispute opened by user.",
+          "at": "2026-10-28T19:06:15.177Z"
+        },
+        {
+          "status": "withdrawn",
+          "note": "Dispute withdrawn by filer.",
+          "at": "2026-10-28T19:06:15.248Z"
+        }
+      ],
+      "createdAt": "2026-10-28T19:06:15.177Z",
+      "status": "withdrawn"
+    },
+    {
+      "_id": "mock-dispute-1",
+      "raisedBy": {
+        "_id": "mock-user-seed-1",
+        "firstName": "Hanna",
+        "lastName": "Tesfaye",
+        "email": "hanna@example.com",
+        "role": "tenant"
+      },
+      "againstUserId": {
+        "_id": "mock-landlord-1",
+        "firstName": "Dev",
+        "lastName": "Landlord",
+        "email": "dev.landlord@homelink.test",
+        "role": "landlord"
+      },
+      "agreementId": "mock-agreement-1",
+      "propertyId": {
+        "_id": "66d1f801e12a4b001a111111",
+        "title": "Modern 2BR Apartment in Bole"
+      },
+      "category": "deposit_refund",
+      "reason": "deposit_refund",
+      "description": "Move-out inspection was done together and the apartment was left clean, but the one-month deposit has not been returned after 3 weeks.",
+      "evidence": [
+        "rent-receipt-march.pdf"
+      ],
+      "evidenceKeys": [],
+      "status": "open",
+      "filedByRole": "tenant",
+      "communications": [],
+      "thread": [],
+      "history": [
+        {
+          "status": "open",
+          "note": "Dispute opened by user.",
+          "at": "2026-10-25T19:06:06.306Z"
+        }
+      ],
+      "createdAt": "2026-10-25T19:06:06.306Z"
     }
   ],
   "landlordProfiles": [
@@ -3084,7 +2276,7 @@
             "name": "ownership-lease.pdf"
           }
         ],
-        "createdAt": "2026-10-26T09:48:36.227Z"
+        "createdAt": "2026-10-27T19:06:06.306Z"
       }
     ],
     [

@@ -216,11 +216,38 @@ const getLandlordViewings = async (req, res) => {
             const userEmail = String(req.user?.email || "").toLowerCase();
             const isSeedLandlord = userEmail === 'dev.landlord@homelink.test' || currentUserId === 'mock-landlord-1';
 
-            // Strictly filter by this landlord's ID
-            const list = mockStore.viewings.filter(v => {
-                const vLandlordId = v.landlordId?._id ? String(v.landlordId._id) : String(v.landlordId || "");
-                return vLandlordId === currentUserId || (isSeedLandlord && vLandlordId === 'mock-landlord-1');
-            }).map(normalizeViewing);
+            const myPropIds = new Set(
+                (mockStore.properties || [])
+                    .filter(p => String(p.landlordId) === currentUserId || (isSeedLandlord && String(p.landlordId) === 'mock-landlord-1'))
+                    .map(p => String(p._id))
+            );
+
+            const userList = Array.isArray(mockStore.users) ? mockStore.users : Array.from(mockStore.users?.values() || []);
+
+            const list = mockStore.viewings
+                .filter(v => {
+                    const propId = String(v.propertyId?._id || v.propertyId || "");
+                    const ownsProp = myPropIds.has(propId);
+                    const vLandlordId = v.landlordId?._id ? String(v.landlordId._id) : String(v.landlordId || "");
+                    return ownsProp || vLandlordId === currentUserId || (isSeedLandlord && (vLandlordId === 'mock-landlord-1' || !vLandlordId));
+                })
+                .map(v => {
+                    const normalized = normalizeViewing(v);
+                    let prop = normalized.propertyId;
+                    if (typeof prop === 'string') {
+                        prop = (mockStore.properties || []).find(p => String(p._id) === String(prop)) || { title: "Property" };
+                    }
+                    let tenant = normalized.tenantId;
+                    if (typeof tenant === 'string') {
+                        const found = userList.find(u => String(u._id) === String(tenant) || String(u.id) === String(tenant));
+                        tenant = found || { firstName: "Tenant", lastName: "", phone: "", email: "" };
+                    }
+                    return {
+                        ...normalized,
+                        propertyId: prop,
+                        tenantId: tenant
+                    };
+                });
 
             return res.status(200).json({ success: true, data: list, viewings: list });
         }
@@ -257,7 +284,8 @@ const cancelViewing = async (req, res) => {
                 viewing.status = 'cancelled';
                 viewing.cancellationReason = cancellationReason || 'Cancelled by user';
                 viewing.cancelledBy = req.user?.role || 'tenant';
-                return res.status(200).json({ message: "Viewing cancelled", viewing, data: viewing });
+                if (typeof persistMockData === 'function') persistMockData();
+                return res.status(200).json({ message: "Viewing cancelled", viewing: normalizeViewing(viewing), data: normalizeViewing(viewing) });
             }
             return res.status(404).json({ message: "Viewing not found" });
         }
@@ -282,15 +310,20 @@ const cancelViewing = async (req, res) => {
 const acceptViewing = async (req, res) => {
     try {
         const { id } = req.params;
-        const { confirmedSlot, landlordNote } = req.body;
+        const { confirmedSlot, landlordNote } = req.body || {};
         
         if (isMockMode()) {
             const viewing = (mockStore.viewings || []).find(v => String(v._id) === String(id));
             if (viewing) {
-                viewing.status = 'confirmed';
-                viewing.confirmedSlot = confirmedSlot;
-                viewing.landlordNote = landlordNote;
-                return res.status(200).json({ message: "Viewing confirmed", viewing, data: viewing });
+                const targetDate = req.body?.scheduledDate || req.body?.date || confirmedSlot?.date || viewing.preferredDate || viewing.scheduledDate || viewing.date || new Date().toISOString();
+                const targetTime = req.body?.scheduledTime || req.body?.time || confirmedSlot?.startTime || viewing.preferredTime || viewing.scheduledTime || viewing.time || '10:00';
+                viewing.status = req.body?.reschedule ? 'rescheduled' : 'confirmed';
+                viewing.confirmedSlot = { date: targetDate, startTime: targetTime };
+                viewing.scheduledDate = targetDate;
+                viewing.scheduledTime = targetTime;
+                if (landlordNote) viewing.landlordNote = landlordNote;
+                if (typeof persistMockData === 'function') persistMockData();
+                return res.status(200).json({ message: viewing.status === 'rescheduled' ? "Viewing rescheduled" : "Viewing confirmed", viewing: normalizeViewing(viewing), data: normalizeViewing(viewing) });
             }
             return res.status(404).json({ message: "Viewing not found" });
         }
@@ -323,15 +356,16 @@ const acceptViewing = async (req, res) => {
 const rejectViewing = async (req, res) => {
     try {
         const { id } = req.params;
-        const { cancellationReason } = req.body;
+        const { cancellationReason } = req.body || {};
         
         if (isMockMode()) {
             const viewing = (mockStore.viewings || []).find(v => String(v._id) === String(id));
             if (viewing) {
                 viewing.status = 'cancelled';
-                viewing.cancellationReason = cancellationReason;
+                viewing.cancellationReason = cancellationReason || 'Declined by landlord';
                 viewing.cancelledBy = 'landlord';
-                return res.status(200).json({ message: "Viewing cancelled", viewing, data: viewing });
+                if (typeof persistMockData === 'function') persistMockData();
+                return res.status(200).json({ message: "Viewing cancelled", viewing: normalizeViewing(viewing), data: normalizeViewing(viewing) });
             }
             return res.status(404).json({ message: "Viewing not found" });
         }
@@ -364,15 +398,20 @@ const rejectViewing = async (req, res) => {
 const rescheduleViewing = async (req, res) => {
     try {
         const { id } = req.params;
-        const { confirmedSlot, landlordNote } = req.body;
+        const { confirmedSlot, landlordNote, scheduledDate, scheduledTime, date, time } = req.body || {};
         
         if (isMockMode()) {
             const viewing = (mockStore.viewings || []).find(v => String(v._id) === String(id));
             if (viewing) {
+                const targetDate = scheduledDate || date || confirmedSlot?.date || viewing.preferredDate || new Date().toISOString();
+                const targetTime = scheduledTime || time || confirmedSlot?.startTime || viewing.preferredTime || '10:00';
                 viewing.status = 'rescheduled';
-                viewing.confirmedSlot = confirmedSlot;
-                viewing.landlordNote = landlordNote;
-                return res.status(200).json({ message: "Viewing rescheduled", viewing, data: viewing });
+                viewing.confirmedSlot = { date: targetDate, startTime: targetTime };
+                viewing.scheduledDate = targetDate;
+                viewing.scheduledTime = targetTime;
+                if (landlordNote) viewing.landlordNote = landlordNote;
+                if (typeof persistMockData === 'function') persistMockData();
+                return res.status(200).json({ message: "Viewing rescheduled", viewing: normalizeViewing(viewing), data: normalizeViewing(viewing) });
             }
             return res.status(404).json({ message: "Viewing not found" });
         }
@@ -405,14 +444,15 @@ const rescheduleViewing = async (req, res) => {
 const completeViewing = async (req, res) => {
     try {
         const { id } = req.params;
-        const { tenantInterested, tenantFeedback } = req.body;
+        const { tenantInterested, tenantFeedback } = req.body || {};
         
         if (isMockMode()) {
             const viewing = (mockStore.viewings || []).find(v => String(v._id) === String(id));
             if (viewing) {
                 viewing.status = 'completed';
                 viewing.outcome = { tenantInterested, tenantFeedback };
-                return res.status(200).json({ message: "Viewing marked as completed", viewing, data: viewing });
+                if (typeof persistMockData === 'function') persistMockData();
+                return res.status(200).json({ message: "Viewing marked as completed", viewing: normalizeViewing(viewing), data: normalizeViewing(viewing) });
             }
             return res.status(404).json({ message: "Viewing not found" });
         }

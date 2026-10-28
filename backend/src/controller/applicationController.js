@@ -75,7 +75,8 @@ const applyForProperty = async (req, res) => {
 
         let landlordProfile;
         if (isMockMode()) {
-            landlordProfile = Array.from(mockStore.landlordProfiles.values() || []).find(l => String(l._id) === String(property.landlordId)) || { accountId: 'mock-landlord-1' };
+            const lpList = Array.from((mockStore.landlordProfiles && mockStore.landlordProfiles.values()) || []);
+            landlordProfile = lpList.find(l => String(l._id) === String(property.landlordId) || String(l.accountId) === String(property.landlordId)) || { accountId: property.landlordId || 'mock-landlord-1' };
         } else {
             landlordProfile = await LandlordProfile.findById(property.landlordId);
         }
@@ -97,6 +98,10 @@ const applyForProperty = async (req, res) => {
             }
         }
 
+        const parsedHasPets = (hasPets === undefined || hasPets === null || hasPets === '')
+            ? null
+            : (hasPets === true || hasPets === 'true' || hasPets === 'has_pets');
+
         let application;
         if (isMockMode()) {
             application = {
@@ -112,22 +117,22 @@ const applyForProperty = async (req, res) => {
                 moveInDate,
                 durationMonths: Number(durationMonths) || 12,
                 numberOfOccupants: Number(numberOfOccupants) || 1,
-                hasPets: hasPets === true || hasPets === 'true' || hasPets === 'has_pets',
+                hasPets: parsedHasPets,
                 petDetails: petDetails || req.body.petDetails || '',
                 monthlyIncome: Number(monthlyIncome) || Number(monthlyIncomeEtb) || 0,
                 monthlyIncomeEtb: Number(monthlyIncomeEtb) || Number(monthlyIncome) || 0,
                 employmentStatus: employmentStatus || 'employed',
-                religion: religion || 'Orthodox Christian',
-                maritalStatus: maritalStatus || 'single',
-                smokingHabit: smokingHabit || 'non_smoker',
-                alcoholHabit: alcoholHabit || 'non_drinker',
+                religion: religion || null,
+                maritalStatus: maritalStatus || null,
+                smokingHabit: smokingHabit || null,
+                alcoholHabit: alcoholHabit || null,
                 quietHoursAgreed: quietHoursAgreed !== false && quietHoursAgreed !== 'false',
                 previousLandlordName: previousLandlordName || '',
                 previousLandlordPhone: previousLandlordPhone || '',
                 previousRentalDuration: previousRentalDuration || '',
                 reasonForMoving: reasonForMoving || '',
-                tenantBehaviorScore: 4.9,
-                tenantReviewBadges: ['Punctual Payer', 'Quiet & Respectful', 'Clean Property', 'ID Verified'],
+                tenantBehaviorScore: null,
+                tenantReviewBadges: [],
                 supportingDocuments,
                 status: 'submitted',
                 history: [{ status: 'submitted', changedBy: tenantId, note: 'Application submitted', date: new Date() }],
@@ -145,21 +150,21 @@ const applyForProperty = async (req, res) => {
                 moveInDate,
                 durationMonths,
                 numberOfOccupants,
-                hasPets: hasPets === true || hasPets === 'true' || hasPets === 'has_pets',
+                hasPets: parsedHasPets,
                 petDetails: petDetails || req.body.petDetails || '',
                 monthlyIncome,
                 employmentStatus,
-                religion: religion || 'Orthodox Christian',
-                maritalStatus: maritalStatus || 'single',
-                smokingHabit: smokingHabit || 'non_smoker',
-                alcoholHabit: alcoholHabit || 'non_drinker',
+                religion: religion || null,
+                maritalStatus: maritalStatus || null,
+                smokingHabit: smokingHabit || null,
+                alcoholHabit: alcoholHabit || null,
                 quietHoursAgreed: quietHoursAgreed !== false && quietHoursAgreed !== 'false',
                 previousLandlordName,
                 previousLandlordPhone,
                 previousRentalDuration,
                 reasonForMoving,
-                tenantBehaviorScore: 4.9,
-                tenantReviewBadges: ['Punctual Payer', 'Quiet & Respectful', 'Clean Property', 'ID Verified'],
+                tenantBehaviorScore: null,
+                tenantReviewBadges: [],
                 supportingDocuments,
                 history: [{
                     status: 'submitted',
@@ -192,11 +197,26 @@ const getTenantApplications = async (req, res) => {
     try {
         if (isMockMode()) {
             if (!mockStore.applications) mockStore.applications = [];
-            let apps = mockStore.applications.filter(a => String(a.tenantId) === String(req.user.id));
-            apps = apps.map(a => ({
-                ...a,
-                propertyId: Array.from(mockStore.properties || []).find(p => String(p._id) === String(a.propertyId)) || { title: "Mock Property", location: {}, rentAmount: 0 }
-            }));
+            const tenantUserId = String(req.user.id);
+            const userList = Array.isArray(mockStore.users) ? mockStore.users : Array.from(mockStore.users?.values() || []);
+            const foundUser = userList.find(u => String(u._id) === tenantUserId || String(u.id) === tenantUserId);
+            const userEmail = (req.user?.email || foundUser?.email || '').toLowerCase();
+            const isSeedTenant = userEmail === 'dev.tenant@homelink.test' || tenantUserId === 'mock-user-seed-1';
+
+            let apps = mockStore.applications.filter(a => {
+                const aTenantId = String(a.tenantId?._id || a.tenantId || '');
+                const aEmail = String(a.email || '').toLowerCase();
+                return aTenantId === tenantUserId || (userEmail && aEmail === userEmail) || (isSeedTenant && (aTenantId === 'mock-user-seed-1' || aTenantId === 'mock-user-tenant'));
+            });
+
+            apps = apps.map(a => {
+                const propIdStr = String(a.propertyId?._id || a.propertyId || '');
+                const prop = (mockStore.properties || []).find(p => String(p._id) === propIdStr) || (typeof a.propertyId === 'object' ? a.propertyId : { title: "Rental Property", location: { city: "Addis Ababa", subCity: "Bole" }, rentAmount: 25000 });
+                return {
+                    ...a,
+                    propertyId: prop
+                };
+            });
             return res.status(200).json(apps);
         }
 
@@ -221,34 +241,57 @@ const getLandlordApplications = async (req, res) => {
             const userEmail = req.user?.email || foundUser?.email;
             const isSeedLandlord = userEmail === 'dev.landlord@homelink.test' || userId === 'mock-landlord-1';
 
+            const myPropIds = new Set(
+                (mockStore.properties || [])
+                    .filter(p => String(p.landlordId) === userId || (isSeedLandlord && String(p.landlordId) === 'mock-landlord-1'))
+                    .map(p => String(p._id))
+            );
+
             let apps = mockStore.applications.filter(a => {
-                const matchLandlord = String(a.landlordId) === userId || (isSeedLandlord && (String(a.landlordId) === 'mock-landlord-1' || !a.landlordId));
-                const matchProp = propertyId ? String(a.propertyId) === String(propertyId) : true;
+                const targetPropId = String(a.propertyId?._id || a.propertyId || '');
+                const ownsTargetProperty = myPropIds.has(targetPropId);
+                const matchLandlord = ownsTargetProperty || String(a.landlordId) === userId || (isSeedLandlord && (String(a.landlordId) === 'mock-landlord-1' || !a.landlordId));
+                const matchProp = propertyId ? targetPropId === String(propertyId) : true;
                 return matchLandlord && matchProp;
             });
             apps = apps.map(a => {
-                const prop = Array.from(mockStore.properties || []).find(p => String(p._id) === String(a.propertyId)) || {
+                const targetPropId = String(a.propertyId?._id || a.propertyId || '');
+                const prop = Array.from(mockStore.properties || []).find(p => String(p._id) === targetPropId) || (typeof a.propertyId === 'object' ? a.propertyId : {
                     title: "Bole Apartment",
                     location: { city: "Addis Ababa", subCity: "Bole" },
                     rentAmount: 25000
-                };
-                const tenant = Array.from(mockStore.users || []).find(u => String(u._id) === String(a.tenantId)) || {
-                    firstName: "Abebe",
-                    lastName: "Kebede",
-                    email: "dev.tenant@homelink.test",
-                    phone: "+251911223344"
+                });
+                const userList = Array.isArray(mockStore.users) ? mockStore.users : Array.from(mockStore.users?.values() || []);
+                const foundTenant = userList.find(u => String(u._id) === String(a.tenantId) || String(u.id) === String(a.tenantId));
+                const nameParts = (a.fullName || (foundTenant ? `${foundTenant.firstName} ${foundTenant.lastName}` : '') || '').trim().split(' ');
+                const tenant = foundTenant || {
+                    _id: a.tenantId || "mock-user-seed-1",
+                    firstName: nameParts[0] || "Tenant",
+                    lastName: nameParts.slice(1).join(' ') || "Applicant",
+                    email: a.email || "applicant@homelink.et",
+                    phone: a.phone || "+251911000000"
                 };
                 const tenantReviews = (mockStore.reviews || []).filter(r => String(r.revieweeId) === String(a.tenantId) || String(r.revieweeId) === String(tenant._id));
-                const calculatedScore = tenantReviews.length > 0
+                const hasReviews = tenantReviews.length > 0;
+                const calculatedScore = hasReviews
                     ? Number((tenantReviews.reduce((sum, r) => sum + (r.ratings?.overall || r.rating || 5), 0) / tenantReviews.length).toFixed(1))
-                    : (a.tenantBehaviorScore || 4.9);
+                    : (a.tenantBehaviorScore ? Number(a.tenantBehaviorScore) : null);
+                const paymentScore = hasReviews
+                    ? Number((tenantReviews.reduce((sum, r) => sum + (r.ratings?.payment || r.rating || 5), 0) / tenantReviews.length).toFixed(1))
+                    : null;
+                const propertyCareScore = hasReviews
+                    ? Number((tenantReviews.reduce((sum, r) => sum + (r.ratings?.propertyCare || r.rating || 5), 0) / tenantReviews.length).toFixed(1))
+                    : null;
+                const commScore = hasReviews
+                    ? Number((tenantReviews.reduce((sum, r) => sum + (r.ratings?.communication || r.rating || 5), 0) / tenantReviews.length).toFixed(1))
+                    : null;
                 return {
                     ...a,
-                    religion: a.religion || 'Orthodox Christian',
-                    maritalStatus: a.maritalStatus || 'single',
-                    smokingHabit: a.smokingHabit || 'non_smoker',
-                    alcoholHabit: a.alcoholHabit || 'non_drinker',
-                    hasPets: a.hasPets || false,
+                    religion: a.religion || null,
+                    maritalStatus: a.maritalStatus || null,
+                    smokingHabit: a.smokingHabit || null,
+                    alcoholHabit: a.alcoholHabit || null,
+                    hasPets: a.hasPets !== undefined ? a.hasPets : null,
                     petDetails: a.petDetails || '',
                     numberOfOccupants: a.numberOfOccupants || 1,
                     durationMonths: a.durationMonths || 12,
@@ -258,8 +301,15 @@ const getLandlordApplications = async (req, res) => {
                     reasonForMoving: a.reasonForMoving || '',
                     quietHoursAgreed: a.quietHoursAgreed !== false,
                     tenantBehaviorScore: calculatedScore,
-                    tenantReviewsCount: tenantReviews.length || 2,
-                    tenantReviewBadges: a.tenantReviewBadges || ['Punctual Payer', 'Quiet & Respectful', 'Clean Property', 'ID Verified'],
+                    tenantReviewsCount: tenantReviews.length,
+                    tenantRatingsBreakdown: hasReviews ? {
+                        payment: paymentScore,
+                        propertyCare: propertyCareScore,
+                        communication: commScore
+                    } : null,
+                    tenantReviewBadges: hasReviews
+                        ? (a.tenantReviewBadges && a.tenantReviewBadges.length > 0 ? a.tenantReviewBadges : ['Verified Tenant'])
+                        : [],
                     propertyId: prop,
                     tenantId: tenant
                 };
@@ -334,12 +384,15 @@ const reviewApplication = async (req, res) => {
                 if (!mockStore.agreements) mockStore.agreements = [];
                 const existingAgr = mockStore.agreements.find(ag => String(ag.applicationId) === String(app._id));
                 if (!existingAgr) {
-                    const tenant = Array.from(mockStore.users || []).find(u => String(u._id) === String(app.tenantId)) || {
+                    const userList = Array.isArray(mockStore.users) ? mockStore.users : Array.from(mockStore.users?.values() || []);
+                    const foundTenant = userList.find(u => String(u._id) === String(app.tenantId) || String(u.id) === String(app.tenantId));
+                    const nameParts = (app.fullName || (foundTenant ? `${foundTenant.firstName} ${foundTenant.lastName}` : '') || '').trim().split(' ');
+                    const tenant = foundTenant || {
                         _id: app.tenantId || "mock-user-seed-1",
-                        firstName: "Abebe",
-                        lastName: "Kebede",
-                        email: "dev.tenant@homelink.test",
-                        phone: "+251911223344"
+                        firstName: nameParts[0] || "Tenant",
+                        lastName: nameParts.slice(1).join(' ') || "Applicant",
+                        email: app.email || "applicant@homelink.et",
+                        phone: app.phone || "+251911000000"
                     };
 
                     const draftAgreement = {

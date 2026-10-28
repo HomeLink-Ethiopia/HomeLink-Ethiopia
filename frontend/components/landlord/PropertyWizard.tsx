@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import { submitPropertyListing } from '@/services/api'
 import { Field, inputClass, SubmitButton, SuccessState } from '@/components/modals/FormFields'
-import BuildingFloorManager from '@/components/landlord/BuildingFloorManager'
 
 const AMENITY_OPTIONS = [
   'Wi-Fi',
@@ -25,7 +24,7 @@ const schema = z.object({
   title: z.string().min(5, 'Give the listing a short, descriptive title'),
   neighborhood: z.enum(['Bole', 'Kazanchis', 'CMC', 'Saris', 'Yeka']),
   address: z.string().min(5, 'Enter the street address'),
-  propertyType: z.enum(['apartment', 'house', 'studio', 'villa', 'building', 'commercial']),
+  propertyType: z.enum(['apartment', 'house', 'studio', 'villa']),
   beds: z.coerce.number().min(0, 'Enter number of bedrooms'),
   baths: z.coerce.number().min(1, 'Enter number of bathrooms'),
   sizeSqm: z.coerce.number().min(10, 'Enter the size in m²'),
@@ -80,63 +79,6 @@ export default function PropertyWizard() {
   })
 
   const amenities = watch('amenities')
-  const propertyType = watch('propertyType')
-  const isBuilding = propertyType === 'building' || propertyType === 'commercial'
-
-  const [rentalScope, setRentalScope] = useState<'entire_building' | 'by_floor' | 'individual_rooms' | 'flexible'>('flexible')
-  const [totalFloors, setTotalFloors] = useState<number>(4)
-  const [buildingUnits, setBuildingUnits] = useState<Array<{
-    unitNumber: string
-    name: string
-    spaceType: string
-    floorNumber: number
-    sizeM2: number
-    monthlyRent: number
-    status: string
-  }>>([])
-
-  function generateTenOfficeRooms() {
-    const generated = Array.from({ length: 10 }, (_, i) => {
-      const roomNum = 101 + i
-      const floor = i < 5 ? 1 : 2
-      const size = 30 + (i % 4) * 10
-      const rent = 16000 + (i % 4) * 4000
-      return {
-        unitNumber: `Office ${roomNum}`,
-        name: `Private Office Suite ${roomNum}`,
-        spaceType: 'office_room',
-        floorNumber: floor,
-        sizeM2: size,
-        monthlyRent: rent,
-        status: 'available',
-      }
-    })
-    setBuildingUnits(generated)
-    setValue('beds', 10)
-    setValue('sizeSqm', 480)
-    setValue('priceEtb', 16000)
-    setValue('depositEtb', 32000)
-  }
-
-  function addSingleUnit() {
-    const nextIdx = buildingUnits.length + 1
-    setBuildingUnits([
-      ...buildingUnits,
-      {
-        unitNumber: `Unit ${nextIdx}`,
-        name: `Commercial Space ${nextIdx}`,
-        spaceType: 'office_room',
-        floorNumber: 1,
-        sizeM2: 40,
-        monthlyRent: 18000,
-        status: 'available',
-      },
-    ])
-  }
-
-  function removeUnit(index: number) {
-    setBuildingUnits(buildingUnits.filter((_, i) => i !== index))
-  }
 
   function toggleAmenity(name: string) {
     const next = amenities.includes(name) ? amenities.filter((a) => a !== name) : [...amenities, name]
@@ -168,15 +110,6 @@ export default function PropertyWizard() {
       photoUrls: values.photos.map((p) => p.url),
       ownershipDocUrl: values.ownershipDocUrl,
       landlordIdDocUrl: values.landlordIdDocUrl,
-      buildingDetails: isBuilding
-        ? {
-            isMultiUnit: true,
-            rentalScope,
-            totalFloors,
-            totalUnits: buildingUnits.length > 0 ? buildingUnits.length : 1,
-            units: buildingUnits,
-          }
-        : undefined,
     })
     setSubmitted(true)
   }
@@ -245,39 +178,10 @@ export default function PropertyWizard() {
                       <option value="house">House</option>
                       <option value="studio">Studio</option>
                       <option value="villa">Villa</option>
-                      <option value="building">Commercial Building / Multi-Unit</option>
-                      <option value="commercial">Commercial Space / Office</option>
                     </select>
                   </Field>
                 </div>
 
-                {/* Building & Multi-Unit Workspace Configurator */}
-                {isBuilding && (
-                  <BuildingFloorManager
-                    initialDetails={{
-                      isMultiUnit: true,
-                      rentalScope,
-                      totalFloors,
-                      totalUnits: buildingUnits.length > 0 ? buildingUnits.length : 1,
-                      units: buildingUnits as any,
-                    }}
-                    onChange={(details) => {
-                      setRentalScope(details.rentalScope)
-                      setTotalFloors(details.totalFloors)
-                      setBuildingUnits(details.units as any)
-                      if (details.units.length > 0) {
-                        setValue('beds', details.units.length)
-                        const totalSqm = details.units.reduce((acc, u) => acc + (u.sizeM2 || 0), 0)
-                        if (totalSqm > 0) setValue('sizeSqm', totalSqm)
-                        const minRent = Math.min(...details.units.map(u => u.monthlyRent || 0).filter(Boolean))
-                        if (minRent > 0 && isFinite(minRent)) {
-                          setValue('priceEtb', minRent)
-                          setValue('depositEtb', minRent * 2)
-                        }
-                      }
-                    }}
-                  />
-                )}
                 <Field label="Street address" error={errors.address}>
                   <input className={inputClass} placeholder="Full address (kept private until an application is approved)" {...register('address')} />
                 </Field>

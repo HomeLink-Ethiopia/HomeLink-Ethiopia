@@ -259,7 +259,9 @@ export default function ApplicationsPage() {
                         <p><strong className="text-charcoal">Preferred Move-in Date:</strong> {application.moveInDate ? new Date(application.moveInDate).toLocaleDateString() : 'Flexible'}</p>
                         <p><strong className="text-charcoal">Lease Duration:</strong> {application.durationMonths ? `${application.durationMonths} months` : '12 months'}</p>
                         <p><strong className="text-charcoal">Occupants:</strong> {application.numberOfOccupants || 1} person(s)</p>
-                        <p><strong className="text-charcoal">Pets:</strong> {application.hasPets ? (application.petDetails ? `Yes (${application.petDetails})` : 'Yes (Has pets)') : 'No pets'}</p>
+                        {application.hasPets !== undefined && application.hasPets !== null && (
+                          <p><strong className="text-charcoal">Pets:</strong> {application.hasPets ? (application.petDetails ? `Yes (${application.petDetails})` : 'Yes (Has pets)') : 'No pets'}</p>
+                        )}
                         {application.smokingHabit && (
                           <p><strong className="text-charcoal">Smoking:</strong> {application.smokingHabit.replace(/_/g, ' ')}</p>
                         )}

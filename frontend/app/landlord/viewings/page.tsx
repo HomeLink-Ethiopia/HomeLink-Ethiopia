@@ -20,12 +20,14 @@ interface Viewing {
   requestedSlots?: any[]
   tenantNote?: string
   message?: string
+  landlordNote?: string
   status: 'requested' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled' | 'pending'
   createdAt: string
 }
 
 const STATUS_STYLE: Record<string, string> = {
   requested: 'bg-gold text-charcoal',
+  pending: 'bg-gold text-charcoal',
   confirmed: 'bg-verified text-white',
   completed: 'bg-charcoal/15 text-charcoal',
   cancelled: 'bg-charcoal/10 text-charcoal/50',
@@ -42,6 +44,7 @@ export default function LandlordViewingsPage() {
   const [rescheduleId, setRescheduleId] = useState<string | null>(null)
   const [newDate, setNewDate] = useState('')
   const [newTime, setNewTime] = useState('')
+  const [rescheduleNote, setRescheduleNote] = useState('')
 
   const fetchViewings = useCallback(async () => {
     setLoading(true)
@@ -68,7 +71,7 @@ export default function LandlordViewingsPage() {
 
   useEffect(() => { fetchViewings() }, [fetchViewings])
 
-  async function act(id: string, action: 'accept' | 'reject' | 'complete', extra?: Record<string, unknown>) {
+  async function act(id: string, action: 'accept' | 'reject' | 'complete' | 'reschedule', extra?: Record<string, unknown>) {
     setBusyId(id)
     setError('')
     try {
@@ -194,15 +197,27 @@ export default function LandlordViewingsPage() {
                                 {confTime ? <span className="font-bold text-verified"> at {confTime}</span> : ''}
                               </p>
                             )}
+                            {v.status === 'rescheduled' && (
+                              <p>
+                                <span className="font-medium text-blue-700">Rescheduled for:</span>{' '}
+                                <span className="font-semibold text-charcoal">{fmtDate(confDate)}</span>
+                                {confTime ? <span className="font-bold text-blue-700"> at {confTime}</span> : ''}
+                              </p>
+                            )}
                           </div>
                         )
                       })()}
                       {(v.message || v.tenantNote) && (
                         <p className="mt-2 rounded bg-cream/60 px-3 py-2 text-xs text-charcoal/60">Tenant note: {v.message || v.tenantNote}</p>
                       )}
+                      {v.landlordNote && (
+                        <p className="mt-2 rounded bg-blue-50/80 border border-blue-100 px-3 py-2 text-xs text-blue-900">
+                          <strong>Your note to tenant:</strong> {v.landlordNote}
+                        </p>
+                      )}
                     </div>
 
-                    {v.status === 'requested' && (
+                    {(v.status === 'requested' || v.status === 'pending') && (
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -214,7 +229,7 @@ export default function LandlordViewingsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setRescheduleId(isRescheduling ? null : v._id); setNewDate(''); setNewTime('') }}
+                          onClick={() => { setRescheduleId(isRescheduling ? null : v._id); setNewDate(''); setNewTime(''); setRescheduleNote('') }}
                           disabled={isBusy}
                           className="rounded-lg border border-charcoal/15 px-4 py-2 text-sm font-medium text-charcoal transition-colors hover:border-rust hover:text-rust disabled:opacity-50"
                         >
@@ -231,50 +246,79 @@ export default function LandlordViewingsPage() {
                       </div>
                     )}
 
-                    {v.status === 'confirmed' && (
-                      <button
-                        type="button"
-                        onClick={() => act(v._id, 'complete')}
-                        disabled={isBusy}
-                        className="rounded-lg border border-charcoal/15 px-4 py-2 text-sm font-medium text-charcoal/70 transition-colors hover:border-verified hover:text-verified disabled:opacity-50"
-                      >
-                        {isBusy ? '…' : 'Mark completed'}
-                      </button>
+                    {(v.status === 'confirmed' || v.status === 'rescheduled') && (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => act(v._id, 'complete')}
+                          disabled={isBusy}
+                          className="rounded-lg border border-charcoal/15 px-4 py-2 text-sm font-medium text-charcoal/70 transition-colors hover:border-verified hover:text-verified disabled:opacity-50"
+                        >
+                          {isBusy ? '…' : 'Mark completed'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setRescheduleId(isRescheduling ? null : v._id); setNewDate(''); setNewTime(''); setRescheduleNote('') }}
+                          disabled={isBusy}
+                          className="rounded-lg border border-charcoal/15 px-3 py-1.5 text-xs font-medium text-charcoal/70 transition-colors hover:border-rust hover:text-rust disabled:opacity-50"
+                        >
+                          Reschedule
+                        </button>
+                      </div>
                     )}
                   </div>
 
                   {isRescheduling && (
                     <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
-                      <p className="mb-3 text-sm font-medium text-charcoal">Propose a new time</p>
-                      <div className="flex flex-wrap items-end gap-3">
+                      <p className="mb-3 text-sm font-bold text-charcoal">Propose a new viewing schedule</p>
+                      <div className="grid gap-3 sm:grid-cols-3 items-end">
                         <div>
-                          <label className="mb-1 block text-xs text-charcoal/60">New date</label>
+                          <label className="mb-1 block text-xs font-medium text-charcoal/70">New date</label>
                           <input
                             type="date"
                             min={new Date().toISOString().slice(0, 10)}
                             value={newDate}
                             onChange={(e) => setNewDate(e.target.value)}
-                            className="rounded-lg border border-charcoal/15 px-3 py-2 text-sm"
+                            className="w-full rounded-lg border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal"
                           />
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs text-charcoal/60">New time</label>
+                          <label className="mb-1 block text-xs font-medium text-charcoal/70">New time slot</label>
                           <select
                             value={newTime}
                             onChange={(e) => setNewTime(e.target.value)}
-                            className="rounded-lg border border-charcoal/15 px-3 py-2 text-sm"
+                            className="w-full rounded-lg border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal"
                           >
-                            <option value="">Select…</option>
+                            <option value="">Select time…</option>
                             {TIME_SLOTS.map((s) => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-charcoal/70">Note to tenant (optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Wednesday afternoon works better"
+                            value={rescheduleNote}
+                            onChange={(e) => setRescheduleNote(e.target.value)}
+                            className="w-full rounded-lg border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => act(v._id, 'accept', { scheduledDate: newDate, scheduledTime: newTime, reschedule: true })}
+                          onClick={() => act(v._id, 'reschedule', { scheduledDate: newDate, scheduledTime: newTime, landlordNote: rescheduleNote })}
                           disabled={!newDate || !newTime || isBusy}
-                          className="rounded-lg bg-rust px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                          className="rounded-lg bg-rust px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-rust-dark disabled:opacity-50"
                         >
-                          Send new time
+                          {isBusy ? 'Sending…' : 'Send new time to tenant'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setRescheduleId(null); setNewDate(''); setNewTime(''); setRescheduleNote('') }}
+                          className="rounded-lg border border-charcoal/15 bg-white px-4 py-2 text-sm font-medium text-charcoal transition-colors hover:bg-sand/30"
+                        >
+                          Cancel
                         </button>
                       </div>
                     </div>

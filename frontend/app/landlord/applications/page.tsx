@@ -25,6 +25,7 @@ interface Application {
   smokingHabit?: string
   alcoholHabit?: string
   hasPets?: boolean
+  petDetails?: string
   numberOfOccupants?: number
   durationMonths?: number
   previousLandlordName?: string
@@ -35,6 +36,11 @@ interface Application {
   tenantBehaviorScore?: number
   tenantReviewBadges?: string[]
   tenantReviewsCount?: number
+  tenantRatingsBreakdown?: {
+    payment?: number
+    propertyCare?: number
+    communication?: number
+  }
   supportingDocuments?: {
     documentType?: string
     docType?: string
@@ -70,14 +76,6 @@ export default function LandlordApplicationsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'submitted' | 'under_review' | 'approved' | 'rejected'>('all')
 
-  // Rating & Review state
-  const [ratingModalApp, setRatingModalApp] = useState<Application | null>(null)
-  const [ratingOverall, setRatingOverall] = useState(5)
-  const [ratingPayment, setRatingPayment] = useState(5)
-  const [ratingProperty, setRatingProperty] = useState(5)
-  const [ratingComm, setRatingComm] = useState(5)
-  const [ratingComment, setRatingComment] = useState('')
-  const [ratingSubmitting, setRatingSubmitting] = useState(false)
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null)
 
   const fetchApps = useCallback(async () => {
@@ -90,7 +88,8 @@ export default function LandlordApplicationsPage() {
       })
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json()
-        setApps(data.data || data.applications || [])
+        const list = Array.isArray(data) ? data : (data.data || data.applications || [])
+        setApps(list)
       } else if (res.status === 401) {
         setError('Please log in as a landlord to review applications.')
       } else {
@@ -140,46 +139,7 @@ export default function LandlordApplicationsPage() {
     }
   }
 
-  async function submitTenantReview() {
-    if (!ratingModalApp) return
-    setRatingSubmitting(true)
-    try {
-      const token = localStorage.getItem('hl_token')
-      const tenantId = typeof ratingModalApp.tenantId === 'object' ? (ratingModalApp.tenantId as any)?._id : ratingModalApp.tenantId
-      const propId = typeof ratingModalApp.propertyId === 'object' ? (ratingModalApp.propertyId as any)?._id : ratingModalApp.propertyId
-      const res = await fetch(`${API_URL}/api/v1/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          revieweeId: tenantId,
-          propertyId: propId,
-          reviewType: 'landlord_to_tenant',
-          ratings: {
-            overall: ratingOverall,
-            payment: ratingPayment,
-            propertyCare: ratingProperty,
-            communication: ratingComm,
-          },
-          comment: ratingComment,
-        }),
-      })
-      if (res.ok) {
-        notify('review_submitted', 'Tenant review recorded', 'Your rating and feedback for the tenant have been published.')
-        setRatingModalApp(null)
-        setRatingComment('')
-      } else {
-        const d = await res.json().catch(() => ({}))
-        setError(d.message || 'Could not save review.')
-      }
-    } catch {
-      setError('Cannot connect to review server.')
-    } finally {
-      setRatingSubmitting(false)
-    }
-  }
+
 
   const propertyTitle = (a: Application) =>
     (typeof a.propertyId === 'object' ? a.propertyId?.title : null) || 'Property'
@@ -298,12 +258,21 @@ export default function LandlordApplicationsPage() {
                           )
                         })()}
                         {/* Tenant Behavioral Rating from past landlords */}
-                        <span
-                          title="Previous Landlord Behavioral Reputation Rating"
-                          className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
-                        >
-                          ★ {app.tenantBehaviorScore || 4.9} / 5.0 Past Landlord Rating
-                        </span>
+                        {app.tenantReviewsCount && app.tenantReviewsCount > 0 && app.tenantBehaviorScore ? (
+                          <span
+                            title="Previous Landlord Behavioral Reputation Rating"
+                            className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
+                          >
+                            ★ {app.tenantBehaviorScore} / 5.0 ({app.tenantReviewsCount} review{app.tenantReviewsCount > 1 ? 's' : ''})
+                          </span>
+                        ) : (
+                          <span
+                            title="First-time applicant on HomeLink"
+                            className="inline-flex items-center gap-1 rounded-full bg-sand/40 border border-charcoal/10 px-2.5 py-0.5 text-xs font-medium text-charcoal/60"
+                          >
+                            New Applicant (No past reviews)
+                          </span>
+                        )}
                         {/* Ethiopian Tenant Fit Tags */}
                         {app.religion && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-sand/40 border border-charcoal/10 px-2 py-0.5 text-[11px] font-medium text-charcoal/70">
@@ -351,21 +320,7 @@ export default function LandlordApplicationsPage() {
                           <span>&rarr;</span>
                         </Link>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRatingModalApp(app)
-                          setRatingOverall(5)
-                          setRatingPayment(5)
-                          setRatingProperty(5)
-                          setRatingComm(5)
-                          setRatingComment('')
-                        }}
-                        className="rounded-lg border border-gold/40 bg-gold/15 px-3 py-1.5 text-xs font-semibold text-charcoal hover:bg-gold/30 transition-colors flex items-center gap-1"
-                      >
-                        <span className="text-amber-600 font-bold">★</span>
-                        <span>Rate Tenant</span>
-                      </button>
+
                       {actionable && (
                         <>
                           <button
@@ -396,37 +351,59 @@ export default function LandlordApplicationsPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-charcoal/10 pb-3">
                           <div>
                             <span className="text-xs font-bold uppercase tracking-wider text-charcoal/50">Tenant Behavioral Track Record</span>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xl font-bold text-charcoal">★ {app.tenantBehaviorScore || 4.9} / 5.0</span>
-                              <span className="text-xs text-charcoal/60">Based on past landlord evaluations</span>
-                            </div>
+                            {app.tenantReviewsCount && app.tenantReviewsCount > 0 && app.tenantBehaviorScore ? (
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-xl font-bold text-charcoal">★ {app.tenantBehaviorScore} / 5.0</span>
+                                <span className="text-xs text-charcoal/60">Based on {app.tenantReviewsCount} past landlord evaluation{app.tenantReviewsCount > 1 ? 's' : ''}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-sm font-semibold text-charcoal">★ No past landlord evaluations yet</span>
+                                <span className="text-xs text-charcoal/50">(First-time applicant / New to HomeLink)</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-1.5">
-                            {(app.tenantReviewBadges || ['Punctual Payer', 'Quiet & Respectful', 'Clean Property', 'ID Verified']).map((badge, bIdx) => (
-                              <span key={bIdx} className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                                ✓ {badge}
+                            {app.tenantReviewBadges && app.tenantReviewBadges.length > 0 ? (
+                              app.tenantReviewBadges.map((badge, bIdx) => (
+                                <span key={bIdx} className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                                  ✓ {badge}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="rounded-full bg-sand/50 border border-charcoal/10 px-2.5 py-0.5 text-[11px] font-medium text-charcoal/60">
+                                New Applicant
                               </span>
-                            ))}
+                            )}
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 pt-3 text-center text-xs">
-                          <div className="rounded-lg bg-sand/30 p-2">
-                            <p className="text-[10px] text-charcoal/50 uppercase font-semibold">Payment Discipline</p>
-                            <p className="font-bold text-charcoal mt-0.5">5.0 / 5.0</p>
-                            <p className="text-[9px] text-emerald-700">100% on-time</p>
+                        {app.tenantReviewsCount && app.tenantReviewsCount > 0 && app.tenantRatingsBreakdown ? (
+                          <div className="grid grid-cols-3 gap-2 pt-3 text-center text-xs">
+                            <div className="rounded-lg bg-sand/30 p-2">
+                              <p className="text-[10px] text-charcoal/50 uppercase font-semibold">Payment Discipline</p>
+                              <p className="font-bold text-charcoal mt-0.5">{app.tenantRatingsBreakdown.payment || 5.0} / 5.0</p>
+                              <p className="text-[9px] text-emerald-700">Verified history</p>
+                            </div>
+                            <div className="rounded-lg bg-sand/30 p-2">
+                              <p className="text-[10px] text-charcoal/50 uppercase font-semibold">House Care & Cleanliness</p>
+                              <p className="font-bold text-charcoal mt-0.5">{app.tenantRatingsBreakdown.propertyCare || 5.0} / 5.0</p>
+                              <p className="text-[9px] text-emerald-700">Verified condition</p>
+                            </div>
+                            <div className="rounded-lg bg-sand/30 p-2">
+                              <p className="text-[10px] text-charcoal/50 uppercase font-semibold">Communication</p>
+                              <p className="font-bold text-charcoal mt-0.5">{app.tenantRatingsBreakdown.communication || 5.0} / 5.0</p>
+                              <p className="text-[9px] text-emerald-700">Landlord feedback</p>
+                            </div>
                           </div>
-                          <div className="rounded-lg bg-sand/30 p-2">
-                            <p className="text-[10px] text-charcoal/50 uppercase font-semibold">House Care & Cleanliness</p>
-                            <p className="font-bold text-charcoal mt-0.5">4.9 / 5.0</p>
-                            <p className="text-[9px] text-emerald-700">Zero damage</p>
+                        ) : (
+                          <div className="mt-3 rounded-lg bg-sand/20 border border-charcoal/8 p-3 text-xs text-charcoal/70">
+                            <p>
+                              <strong>First-time applicant:</strong> This tenant has no previous rental evaluations on HomeLink yet.
+                              Verified performance ratings (payment punctuality, property upkeep, and communication) will automatically be recorded once a lease is completed.
+                            </p>
                           </div>
-                          <div className="rounded-lg bg-sand/30 p-2">
-                            <p className="text-[10px] text-charcoal/50 uppercase font-semibold">Neighbor Relations</p>
-                            <p className="font-bold text-charcoal mt-0.5">5.0 / 5.0</p>
-                            <p className="text-[9px] text-emerald-700">Quiet & polite</p>
-                          </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* 2. Ethiopian Household & Living Habits Fit */}
@@ -434,13 +411,13 @@ export default function LandlordApplicationsPage() {
                         <p className="text-xs font-bold uppercase tracking-wider text-charcoal/50">🇪🇹 Ethiopian Household & Tenancy Profile</p>
                         <div className="grid gap-3 sm:grid-cols-2 text-xs">
                           <div className="space-y-1.5">
-                            <p><span className="font-semibold text-charcoal">Religion / Faith:</span> {app.religion || 'Orthodox Christian'}</p>
-                            <p className="capitalize"><span className="font-semibold text-charcoal">Marital Status:</span> {(app.maritalStatus || 'single').replace(/_/g, ' ')}</p>
+                            <p><span className="font-semibold text-charcoal">Religion / Faith:</span> {app.religion || 'Not specified'}</p>
+                            <p className="capitalize"><span className="font-semibold text-charcoal">Marital Status:</span> {app.maritalStatus ? app.maritalStatus.replace(/_/g, ' ') : 'Not specified'}</p>
                             <p><span className="font-semibold text-charcoal">Household Occupants:</span> {app.numberOfOccupants || 1} person(s)</p>
-                            <p><span className="font-semibold text-charcoal">Pets:</span> {app.hasPets ? (app.petDetails ? `Yes (${app.petDetails})` : 'Yes (Has pets)') : 'No pets'}</p>
+                            <p><span className="font-semibold text-charcoal">Pets:</span> {app.hasPets === true ? (app.petDetails ? `Yes (${app.petDetails})` : 'Yes (Has pets)') : app.hasPets === false ? 'No pets' : 'Not specified'}</p>
                           </div>
                           <div className="space-y-1.5">
-                            <p><span className="font-semibold text-charcoal">Smoking Habit:</span> <span className="font-semibold capitalize text-charcoal">{(app.smokingHabit || 'non_smoker').replace(/_/g, ' ')}</span></p>
+                            <p><span className="font-semibold text-charcoal">Smoking Habit:</span> <span className="font-semibold capitalize text-charcoal">{app.smokingHabit ? app.smokingHabit.replace(/_/g, ' ') : 'Not specified'}</span></p>
                             <p><span className="font-semibold text-charcoal">Peaceful Conduct:</span> <span className="text-emerald-700 font-semibold">✓ Agreed (No Public Disturbance)</span></p>
                             <p><span className="font-semibold text-charcoal">Quiet Hours Agreement:</span> <span className="text-emerald-700 font-semibold">✓ Signed (10 PM – 7 AM)</span></p>
                             <p><span className="font-semibold text-charcoal">Lease Term Requested:</span> {app.durationMonths || 12} Months</p>
@@ -517,118 +494,7 @@ export default function LandlordApplicationsPage() {
         )}
       </main>
 
-      {/* ─── RATE TENANT MODAL ─── */}
-      {ratingModalApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl border border-charcoal/10">
-            <div className="border-b border-charcoal/10 bg-sand/20 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-base font-bold text-charcoal">Rate Tenant</h3>
-                <p className="text-xs text-charcoal/50">For {applicantName(ratingModalApp)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRatingModalApp(null)}
-                className="text-charcoal/40 hover:text-charcoal font-bold text-base"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="p-6 space-y-4 text-xs">
-              {/* Overall Star Rating */}
-              <div>
-                <label className="block text-xs font-semibold text-charcoal mb-1">Overall Tenancy Rating</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRatingOverall(star)}
-                      className={`text-2xl transition-transform hover:scale-110 ${
-                        star <= ratingOverall ? 'text-amber-500' : 'text-charcoal/20'
-                      }`}
-                    >
-                      ★
-                    </button>
-                  ))}
-                  <span className="ml-2 self-center font-mono font-bold text-charcoal">{ratingOverall} / 5</span>
-                </div>
-              </div>
-
-              {/* Sub-ratings */}
-              <div className="grid grid-cols-3 gap-2 border-t border-charcoal/8 pt-3">
-                <div>
-                  <label className="block text-[11px] font-medium text-charcoal/70 mb-1">Payment</label>
-                  <select
-                    value={ratingPayment}
-                    onChange={(e) => setRatingPayment(Number(e.target.value))}
-                    className="w-full rounded border border-charcoal/15 bg-white p-1 text-xs"
-                  >
-                    {[5, 4, 3, 2, 1].map((n) => (
-                      <option key={n} value={n}>{n} Stars</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-charcoal/70 mb-1">Property Care</label>
-                  <select
-                    value={ratingProperty}
-                    onChange={(e) => setRatingProperty(Number(e.target.value))}
-                    className="w-full rounded border border-charcoal/15 bg-white p-1 text-xs"
-                  >
-                    {[5, 4, 3, 2, 1].map((n) => (
-                      <option key={n} value={n}>{n} Stars</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-charcoal/70 mb-1">Communication</label>
-                  <select
-                    value={ratingComm}
-                    onChange={(e) => setRatingComm(Number(e.target.value))}
-                    className="w-full rounded border border-charcoal/15 bg-white p-1 text-xs"
-                  >
-                    {[5, 4, 3, 2, 1].map((n) => (
-                      <option key={n} value={n}>{n} Stars</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Comments */}
-              <div className="border-t border-charcoal/8 pt-3">
-                <label className="block text-xs font-semibold text-charcoal mb-1">Landlord Feedback / Notes</label>
-                <textarea
-                  rows={3}
-                  value={ratingComment}
-                  onChange={(e) => setRatingComment(e.target.value)}
-                  placeholder="Share details about punctuality, lease compliance, or general recommendation..."
-                  className="w-full rounded-xl border border-charcoal/15 p-2.5 text-xs text-charcoal focus:border-rust outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setRatingModalApp(null)}
-                  className="rounded-lg border border-charcoal/15 px-4 py-2 text-xs font-semibold text-charcoal hover:bg-cream"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={submitTenantReview}
-                  disabled={ratingSubmitting}
-                  className="rounded-lg bg-rust px-4 py-2 text-xs font-semibold text-white shadow hover:bg-rust-dark disabled:opacity-50"
-                >
-                  {ratingSubmitting ? 'Submitting…' : 'Publish Rating'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ─── DOCUMENT VIEWER MODAL ─── */}
       {previewDocUrl && (

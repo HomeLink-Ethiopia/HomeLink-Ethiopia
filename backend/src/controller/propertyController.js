@@ -4,7 +4,7 @@ const LandlordProfile = require('../models/LandlordProfile');
 const Favourite = require('../models/Favourite');
 const TenantPreference = require('../models/TenantPreference');
 const aiService = require('../services/aiService');
-const { isMockMode, mockStore } = require('../config/db');
+const { isMockMode, mockStore, persistMockData } = require('../config/db');
 
 const createProperty = async (req, res) => {
     try {
@@ -129,6 +129,9 @@ const createProperty = async (req, res) => {
                     createdAt: new Date()
                 };
                 mockStore.properties.unshift(property);
+                if (typeof persistMockData === 'function') {
+                    persistMockData();
+                }
             } else {
                 throw createErr;
             }
@@ -783,15 +786,21 @@ const uploadPropertyImages = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
+        const files = Array.isArray(req.files)
+            ? req.files
+            : req.files
+                ? Object.values(req.files).flat()
+                : (req.file ? [req.file] : []);
+
         if (isMockMode()) {
-            const property = Array.from(mockStore.properties || []).find(p => p._id === id);
+            const property = Array.from(mockStore.properties || []).find(p => String(p._id) === String(id) || String(p.id) === String(id));
             if (!property) return res.status(404).json({ message: 'Property not found' });
             
-            if (!req.files || req.files.length === 0) {
+            if (!files || files.length === 0) {
                 return res.status(400).json({ message: 'No images uploaded' });
             }
 
-            const imageEntries = req.files.map((file, index) => ({
+            const imageEntries = files.map((file, index) => ({
                 key: file.filename,
                 url: `/uploads/${file.filename}`,
                 isPrimary: (property.images || []).length === 0 && index === 0,
@@ -799,9 +808,12 @@ const uploadPropertyImages = async (req, res) => {
             }));
 
             property.images = [...(property.images || []), ...imageEntries];
+            if (typeof persistMockData === 'function') {
+                persistMockData();
+            }
             
             return res.status(200).json({
-                message: `${req.files.length} image(s) uploaded successfully`,
+                message: `${files.length} image(s) uploaded successfully`,
                 data: {
                     propertyId: property._id,
                     images: property.images,
@@ -824,11 +836,11 @@ const uploadPropertyImages = async (req, res) => {
             return res.status(403).json({ message: 'You do not own this property' });
         }
 
-        if (!req.files || req.files.length === 0) {
+        if (!files || files.length === 0) {
             return res.status(400).json({ message: 'No images uploaded' });
         }
 
-        const imageEntries = req.files.map((file, index) => ({
+        const imageEntries = files.map((file, index) => ({
             key: file.filename,
             url: `/uploads/${file.filename}`,
             isPrimary: property.images.length === 0 && index === 0,
@@ -839,7 +851,7 @@ const uploadPropertyImages = async (req, res) => {
         await property.save();
 
         res.status(200).json({
-            message: `${req.files.length} image(s) uploaded successfully`,
+            message: `${files.length} image(s) uploaded successfully`,
             data: {
                 propertyId: property._id,
                 images: property.images,

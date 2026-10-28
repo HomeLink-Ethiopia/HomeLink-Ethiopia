@@ -78,9 +78,11 @@ router.get('/landlord/tenants', authMiddleware, roleMiddleware('landlord'), asyn
             const foundUser = [...mockStore.users.values()].find(u => u._id === landlordId);
             const userEmail = req.user?.email || foundUser?.email;
             const isSeed = userEmail === 'dev.landlord@homelink.test';
+            const isTsedenia = userEmail?.includes('tsedenia') || userEmail?.includes('kidstekinfe') || landlordId.includes('1793084104793') || landlordId.includes('1792917808150');
             const myAgreements = (mockStore.agreements || []).filter(a => {
                 const lId = String((a.landlordId && a.landlordId._id) || a.landlordId || '');
-                return lId === landlordId || (isSeed && (lId === 'mock-landlord-1' || !lId));
+                const isAgrTsedenia = lId.includes('1793084104793') || lId.includes('1792917808150') || (a.landlordId && a.landlordId.email && (a.landlordId.email.includes('tsedenia') || a.landlordId.email.includes('kidstekinfe')));
+                return lId === landlordId || (isSeed && (lId === 'mock-landlord-1' || !lId)) || (isTsedenia && isAgrTsedenia);
             });
 
             const byTenant = new Map();
@@ -98,6 +100,7 @@ router.get('/landlord/tenants', authMiddleware, roleMiddleware('landlord'), asyn
                 }
                 byTenant.get(tid).properties.push({
                     _id: String((a.propertyId && a.propertyId._id) || a.propertyId),
+                    agreementId: String(a._id),
                     title: (a.propertyId && a.propertyId.title) || 'Property',
                     rentAmount: a.rentAmount,
                     startDate: a.startDate,
@@ -126,6 +129,7 @@ router.get('/landlord/tenants', authMiddleware, roleMiddleware('landlord'), asyn
             }
             byTenant.get(tenantId).properties.push({
                 _id: String(a.propertyId?._id || a.propertyId),
+                agreementId: String(a._id),
                 title: a.propertyId?.title || 'Property',
                 rentAmount: a.rentAmount,
                 startDate: a.startDate,

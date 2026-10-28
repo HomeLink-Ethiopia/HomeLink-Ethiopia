@@ -57,6 +57,12 @@ export default function TenantDisputesPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [threadText, setThreadText] = useState('')
   // Sprint 11 — evidence attachments (photos of damage, receipts, contracts)
+  interface AgreementRow {
+    _id: string
+    propertyId?: { title?: string; _id?: string } | string
+    landlordId?: { firstName?: string; lastName?: string; _id?: string } | string
+  }
+
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([])
 
   // new dispute form
@@ -64,9 +70,9 @@ export default function TenantDisputesPage() {
   const [agreementId, setAgreementId] = useState('')
   const [reason, setReason] = useState('deposit_refund')
   const [description, setDescription] = useState('')
-  const [agreements, setAgreements] = useState<{ _id: string; propertyId?: { title?: string } }[]>([])
+  const [agreements, setAgreements] = useState<AgreementRow[]>([])
 
-  const getToken = () => localStorage.getItem('hl_token') || ''
+  const getToken = () => localStorage.getItem('hl_token') || localStorage.getItem('homelink-token') || ''
 
   const load = useCallback(async () => {
     try {
@@ -89,7 +95,13 @@ export default function TenantDisputesPage() {
     // my agreements for the dispute target dropdown
     fetch(`${API_URL}/api/v1/agreements/my`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((j) => setAgreements(j.data || []))
+      .then((j) => {
+        const list: AgreementRow[] = j.data || []
+        setAgreements(list)
+        if (list.length > 0) {
+          setAgreementId((prev) => prev || list[0]._id)
+        }
+      })
       .catch(() => {})
   }, [load])
 
@@ -97,11 +109,23 @@ export default function TenantDisputesPage() {
     e.preventDefault()
     if (!description.trim()) return
     setSubmitting(true)
+    setError('')
     setSuccess('')
     try {
+      const selectedAgr = agreements.find((a) => a._id === agreementId)
+      const againstId = selectedAgr
+        ? (typeof selectedAgr.landlordId === 'object' && selectedAgr.landlordId ? selectedAgr.landlordId._id : selectedAgr.landlordId)
+        : ''
+      const propId = selectedAgr
+        ? (typeof selectedAgr.propertyId === 'object' && selectedAgr.propertyId ? selectedAgr.propertyId._id : selectedAgr.propertyId)
+        : ''
+
       // Multipart so evidence files (receipts, photos, contracts) ride along.
       const fd = new FormData()
       if (agreementId) fd.append('agreementId', agreementId)
+      if (againstId) fd.append('againstUserId', String(againstId))
+      if (propId) fd.append('propertyId', String(propId))
+      fd.append('category', reason)
       fd.append('reason', reason)
       fd.append('description', description.trim())
       evidenceFiles.slice(0, 5).forEach((f) => fd.append('evidence', f))
@@ -111,8 +135,8 @@ export default function TenantDisputesPage() {
         body: fd,
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.message || 'Failed')
-      setSuccess('Dispute filed. Our team will review it and mediate with the other party.')
+      if (!res.ok) throw new Error(json.message || 'Failed to file dispute')
+      setSuccess('Dispute filed successfully. Our mediation team will review it and notify both parties.')
       setDescription('')
       setEvidenceFiles([])
       setShowForm(false)
@@ -177,12 +201,16 @@ export default function TenantDisputesPage() {
                   onChange={(e) => setAgreementId(e.target.value)}
                   className="mt-1 w-full rounded border border-charcoal/15 bg-cream px-3 py-2 text-sm focus:border-rust focus:outline-none"
                 >
-                  <option value="">No specific agreement</option>
-                  {agreements.map((a) => (
-                    <option key={a._id} value={a._id}>
-                      {a.propertyId?.title || a._id}
-                    </option>
-                  ))}
+                  {agreements.length === 0 && <option value="">No active agreements found</option>}
+                  {agreements.map((a) => {
+                    const title = typeof a.propertyId === 'object' && a.propertyId ? a.propertyId.title : 'Property Lease'
+                    const host = typeof a.landlordId === 'object' && a.landlordId ? `${a.landlordId.firstName || ''} ${a.landlordId.lastName || ''}`.trim() : ''
+                    return (
+                      <option key={a._id} value={a._id}>
+                        {title} {host ? `(Landlord: ${host})` : ''}
+                      </option>
+                    )
+                  })}
                 </select>
               </label>
               <label className="text-sm">

@@ -18,7 +18,6 @@ export default function TopNav() {
   
   const PRIMARY_LINKS = [
     { label: locale === 'AM' ? 'መኖሪያ ቤቶች' : 'Browse Homes', href: '/explore' },
-    { label: locale === 'AM' ? 'የንግድ ህንፃዎችና ቢሮዎች' : 'Commercial Buildings', href: '/buildings' },
     { label: t.common.howItWorks, href: '/how-it-works' },
     { label: locale === 'AM' ? 'ለባለቤቶች' : 'For Landlords', href: user?.role === 'landlord' ? '/landlord/properties/new' : '/signup?role=landlord' },
     { label: t.common.about, href: '/about' },

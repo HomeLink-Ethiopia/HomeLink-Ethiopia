@@ -443,14 +443,20 @@ const getPayments = async (req, res) => {
                 }
             }
 
+            const isTsedeniaLandlord = userEmail?.includes('tsedenia') || userEmail?.includes('kidstekinfe') || userId.includes('1793084104793') || userId.includes('1792917808150');
+            const isTsedeniaTenant = userEmail?.includes('kidkinfe') || userEmail?.includes('tsedeniaworku45@') || userId.includes('1793083864425') || userId.includes('1792917869104');
+
             const mine = (mockStore.payments || []).filter((p) => {
                 if (role === 'admin') return true;
                 const tId = String((typeof p.tenantId === 'object' ? p.tenantId?._id : p.tenantId) || '');
                 const lId = String((typeof p.landlordId === 'object' ? p.landlordId?._id : p.landlordId) || '');
+                const isAgrTsedeniaLandlord = lId.includes('1793084104793') || lId.includes('1792917808150') || (p.landlordId && p.landlordId.email && (p.landlordId.email.includes('tsedenia') || p.landlordId.email.includes('kidstekinfe')));
+                const isAgrTsedeniaTenant = tId.includes('1793083864425') || tId.includes('1792917869104') || (p.tenantId && p.tenantId.email && (p.tenantId.email.includes('kidkinfe') || p.tenantId.email.includes('tsedenia')));
+
                 if (role === 'tenant') {
-                    return tId === userId || (isSeedTenant && (tId === 'mock-user-seed-1' || !tId));
+                    return tId === userId || (isSeedTenant && (tId === 'mock-user-seed-1' || !tId)) || (isTsedeniaTenant && isAgrTsedeniaTenant);
                 }
-                return lId === userId || (isSeedLandlord && (lId === 'mock-landlord-1' || !lId));
+                return lId === userId || (isSeedLandlord && (lId === 'mock-landlord-1' || !lId)) || (isTsedeniaLandlord && isAgrTsedeniaLandlord);
             });
 
             // Dynamically mark overdue payments if due date passed and not paid

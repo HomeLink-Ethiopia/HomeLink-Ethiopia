@@ -4,8 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/landlord/TopBar'
 import RentEstimateGauge from '@/components/property/RentEstimateGauge'
-import BuildingFloorManager from '@/components/landlord/BuildingFloorManager'
-import type { BuildingDetails } from '@/lib/properties'
 import { fetchRentEstimate } from '@/services/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -14,13 +12,6 @@ const RESIDENTIAL_AMENITIES = [
   'Parking', 'WiFi', 'Generator', 'Security Guard', 'CCTV',
   'Water Tank', 'Elevator', 'Furnished', 'Air Conditioning', 'Balcony',
   'Garden', 'Gym', 'Swimming Pool', 'Pet Friendly', 'Laundry'
-]
-
-const BUILDING_FACILITIES = [
-  'Elevator', 'Backup Generator', '3-Phase Electric Power', 'Underground Parking',
-  '24/7 Security Guard', 'CCTV Surveillance', 'Water Reservoir Tank',
-  'Fiber Optic Internet', 'Fire Suppression System', 'Emergency Exits',
-  'Reception Lobby', 'Accessible Ramps'
 ]
 
 const NEIGHBORHOODS = [
@@ -46,9 +37,6 @@ export default function NewPropertyPage() {
   const [success, setSuccess] = useState(false)
   const [images, setImages] = useState<ImagePreview[]>([])
 
-  // Category choice: 'residential' vs 'building'
-  const [propertyCategory, setPropertyCategory] = useState<'residential' | 'building'>('residential')
-
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -68,32 +56,9 @@ export default function NewPropertyPage() {
 
   const [rentEstimate, setRentEstimate] = useState<{ low: number; fair: number; high: number } | null>(null)
   const [estimating, setEstimating] = useState(false)
-  const [buildingDetails, setBuildingDetails] = useState<BuildingDetails | null>(null)
-
-  const isBuilding = propertyCategory === 'building'
-
-  // When switching category, adjust propertyType
-  const handleCategoryChange = (category: 'residential' | 'building') => {
-    setPropertyCategory(category)
-    if (category === 'building') {
-      setFormData(prev => ({
-        ...prev,
-        propertyType: 'building',
-        title: prev.title || 'Bole Commercial Business Tower',
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        propertyType: 'apartment',
-      }))
-    }
-    setErrors([])
-  }
 
   // Auto-estimate rent via XGBoost for residential properties
   useEffect(() => {
-    if (isBuilding) return // AI rent estimation is for residential units
-
     const subCity = formData.subCity
     const bedrooms = Number(formData.bedrooms)
     const bathrooms = Number(formData.bathrooms) || 1
@@ -129,7 +94,7 @@ export default function NewPropertyPage() {
       }, 500)
       return () => clearTimeout(timer)
     }
-  }, [isBuilding, formData.subCity, formData.bedrooms, formData.bathrooms, formData.sizeM2, formData.furnished, formData.amenities])
+  }, [formData.subCity, formData.bedrooms, formData.bathrooms, formData.sizeM2, formData.furnished, formData.amenities])
 
   // Image handling
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,24 +142,23 @@ export default function NewPropertyPage() {
     if (images.length === 0) return true
 
     const token = localStorage.getItem('hl_token')
+    const formDataImg = new FormData()
     for (let i = 0; i < images.length; i++) {
-      const formDataImg = new FormData()
+      formDataImg.append('images', images[i].file)
       formDataImg.append('image', images[i].file)
-      formDataImg.append('isPrimary', images[i].isPrimary ? 'true' : 'false')
-      formDataImg.append('order', String(i))
+    }
 
-      try {
-        const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formDataImg,
-        })
-        if (!res.ok) {
-          console.error(`Failed to upload image ${i + 1}`)
-        }
-      } catch {
-        console.error(`Network error uploading image ${i + 1}`)
+    try {
+      const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}/images`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formDataImg,
+      })
+      if (!res.ok) {
+        console.error('Failed to upload property images')
       }
+    } catch {
+      console.error('Network error uploading images')
     }
     return true
   }
@@ -203,34 +167,16 @@ export default function NewPropertyPage() {
     e.preventDefault()
     setErrors([])
 
-    const effectiveUnits = buildingDetails?.units || []
-    const effectiveBedrooms = isBuilding
-      ? (effectiveUnits.length > 0 ? effectiveUnits.length : 1)
-      : Number(formData.bedrooms)
-
-    const effectiveRent = isBuilding
-      ? (effectiveUnits.length > 0
-          ? Math.min(...effectiveUnits.map(u => u.monthlyRent || 0).filter(Boolean)) || 20000
-          : 20000)
-      : Number(formData.rentAmount)
-
-    const effectiveDeposit = isBuilding
-      ? effectiveRent * 2
-      : (formData.depositAmount ? Number(formData.depositAmount) : effectiveRent * 2)
+    const effectiveRent = Number(formData.rentAmount)
+    const effectiveBedrooms = Number(formData.bedrooms)
+    const effectiveDeposit = formData.depositAmount ? Number(formData.depositAmount) : effectiveRent * 2
 
     const newErrors: string[] = []
-    if (!formData.title.trim()) {
-      newErrors.push(isBuilding ? 'Building Name is required' : 'Property Title is required')
-    }
+    if (!formData.title.trim()) newErrors.push('Property Title is required')
     if (!formData.subCity) newErrors.push('Neighborhood / Sub City is required')
-    if (!isBuilding && (!effectiveRent || effectiveRent <= 0)) newErrors.push('Rent amount is required')
-    if (!isBuilding && (!effectiveBedrooms || effectiveBedrooms <= 0)) newErrors.push('Number of bedrooms is required')
-    if (images.length === 0) {
-      newErrors.push(isBuilding ? 'At least one building exterior / facade photo is required' : 'At least one property photo is required')
-    }
-    if (isBuilding && effectiveUnits.length === 0) {
-      newErrors.push('Please configure at least 1 room or office space in your building structure')
-    }
+    if (!effectiveRent || effectiveRent <= 0) newErrors.push('Rent amount is required')
+    if (!effectiveBedrooms || effectiveBedrooms <= 0) newErrors.push('Number of bedrooms is required')
+    if (images.length === 0) newErrors.push('At least one property photo is required')
 
     if (newErrors.length > 0) {
       setErrors(newErrors)
@@ -241,46 +187,24 @@ export default function NewPropertyPage() {
       setSubmitting(true)
       const token = localStorage.getItem('hl_token')
 
-      const totalBuildingSqm = isBuilding && effectiveUnits.length > 0
-        ? effectiveUnits.reduce((acc, u) => acc + (u.sizeM2 || 0), 0)
-        : Number(formData.sizeM2) || 0
-
       const payload: any = {
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
-        propertyType: isBuilding ? 'building' : formData.propertyType,
+        propertyType: formData.propertyType,
         rentAmount: effectiveRent,
         depositAmount: effectiveDeposit,
         bedrooms: effectiveBedrooms,
-        bathrooms: isBuilding ? 1 : (formData.bathrooms ? Number(formData.bathrooms) : 1),
-        sizeM2: totalBuildingSqm > 0 ? totalBuildingSqm : undefined,
+        bathrooms: formData.bathrooms ? Number(formData.bathrooms) : 1,
+        sizeM2: Number(formData.sizeM2) || undefined,
         location: {
           subCity: formData.subCity,
           address: formData.address.trim() || undefined,
           city: formData.city,
         },
-        furnished: isBuilding ? false : formData.furnished,
+        furnished: formData.furnished,
         amenities: formData.amenities,
         availableFrom: formData.availableFrom || undefined,
         listingStatus: 'active',
-      }
-
-      if (isBuilding && buildingDetails && buildingDetails.units && buildingDetails.units.length > 0) {
-        payload.buildingDetails = {
-          isMultiUnit: true,
-          rentalScope: buildingDetails.rentalScope || 'flexible',
-          totalFloors: buildingDetails.totalFloors || 1,
-          totalUnits: buildingDetails.units.length,
-          units: buildingDetails.units.map((u, i) => ({
-            ...u,
-            unitId: u.id || `unit-${i + 1}`,
-            rentAmount: u.monthlyRent ?? (u as any).rentAmount ?? 0,
-            monthlyRent: u.monthlyRent ?? (u as any).rentAmount ?? 0,
-            depositAmount: u.depositAmount ?? ((u.monthlyRent || 0) * 2),
-            status: u.status || 'available',
-            image: u.image || undefined,
-          })),
-        }
       }
 
       const res = await fetch(`${API_URL}/api/v1/properties`, {
@@ -320,7 +244,7 @@ export default function NewPropertyPage() {
       }
 
       setSuccess(true)
-      setTimeout(() => router.push(isBuilding ? '/buildings' : '/landlord/properties'), 2000)
+      setTimeout(() => router.push('/landlord/properties'), 2000)
     } catch (err) {
       console.error('Create property error:', err)
       setErrors(['An unexpected error occurred while creating the property.'])
@@ -342,7 +266,7 @@ export default function NewPropertyPage() {
     return (
       <>
         <TopBar
-          title={isBuilding ? "Commercial Building Registered" : "Property Created"}
+          title="Property Created"
           subtitle="Your listing is now live on HomeLink"
         />
         <main className="flex-1 flex items-center justify-center px-6 py-12">
@@ -353,12 +277,10 @@ export default function NewPropertyPage() {
               </svg>
             </div>
             <h2 className="text-xl font-bold text-charcoal">
-              {isBuilding ? "Building & Rooms Successfully Listed!" : "Property Listed Successfully!"}
+              Property Listed Successfully!
             </h2>
             <p className="text-sm text-charcoal/60 mt-2">
-              {isBuilding
-                ? "Your commercial building is live in the dedicated Commercial Buildings directory."
-                : "Your residential property has been listed for tenants."}
+              Your residential property has been listed for tenants.
             </p>
             <p className="text-xs text-rust font-semibold mt-4">Redirecting...</p>
           </div>
@@ -371,100 +293,11 @@ export default function NewPropertyPage() {
     <>
       <TopBar
         title="Add New Listing"
-        subtitle="List a residential home or commercial multi-floor building"
+        subtitle="Fill out the property details below to submit your home for verification"
       />
 
       <main className="flex-1 px-4 py-8 sm:px-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* ═══ STEP 0: CHOOSE LISTING TYPE (LIKE SIGNUP) ═══ */}
-          <div className="rounded-2xl border-2 border-rust/30 bg-white p-6 sm:p-8 shadow-sm">
-            <div className="text-center max-w-lg mx-auto mb-6">
-              <span className="inline-block rounded-full bg-rust-tint px-3 py-1 text-xs font-bold uppercase tracking-wider text-rust mb-2">
-                Listing Type
-              </span>
-              <h2 className="font-display text-2xl font-bold text-charcoal">
-                What type of property are you listing?
-              </h2>
-              <p className="text-xs sm:text-sm text-charcoal/60 mt-1">
-                Select your property type below so the form adapts directly to your requirements.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Option 1: Residential Home */}
-              <button
-                type="button"
-                onClick={() => handleCategoryChange('residential')}
-                className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  propertyCategory === 'residential'
-                    ? 'border-rust bg-rust-tint/25 ring-2 ring-rust/30 shadow-md'
-                    : 'border-charcoal/15 bg-white hover:border-rust/40 hover:bg-sand/30'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="p-2.5 rounded-xl bg-sand/40 border border-charcoal/10 text-rust">
-                      <svg viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6">
-                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                      </svg>
-                    </div>
-                    {propertyCategory === 'residential' && (
-                      <span className="rounded-full bg-rust text-white text-[11px] font-bold px-2.5 py-0.5">
-                        Selected ✓
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="font-display text-lg font-bold text-charcoal mt-3">
-                    Residential Home / Apartment
-                  </h3>
-                  <p className="text-xs text-charcoal/70 mt-1 leading-relaxed">
-                    A single apartment, villa, condo, or studio leased to one tenant or household.
-                  </p>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-charcoal/10 flex items-center text-xs font-semibold text-rust">
-                  <span>Standard Residential Form →</span>
-                </div>
-              </button>
-
-              {/* Option 2: Commercial Multi-Floor Building */}
-              <button
-                type="button"
-                onClick={() => handleCategoryChange('building')}
-                className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  propertyCategory === 'building'
-                    ? 'border-rust bg-rust-tint/25 ring-2 ring-rust/30 shadow-md'
-                    : 'border-charcoal/15 bg-white hover:border-rust/40 hover:bg-sand/30'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="p-2.5 rounded-xl bg-sand/40 border border-charcoal/10 text-rust">
-                      <svg viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6">
-                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    {propertyCategory === 'building' && (
-                      <span className="rounded-full bg-rust text-white text-[11px] font-bold px-2.5 py-0.5">
-                        Selected ✓
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="font-display text-lg font-bold text-charcoal mt-3">
-                    Commercial Building / Business Center
-                  </h3>
-                  <p className="text-xs text-charcoal/70 mt-1 leading-relaxed">
-                    A multi-floor building with multiple floors, offices, retail shops, or clinic rooms to rent.
-                  </p>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-charcoal/10 flex items-center text-xs font-semibold text-rust">
-                  <span>Multi-Floor & Room Configurator →</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Errors */}
             {errors.length > 0 && (
@@ -480,14 +313,12 @@ export default function NewPropertyPage() {
             <div className="rounded-2xl border border-charcoal/15 bg-white p-6 shadow-xs">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-base font-bold text-charcoal">
-                  {isBuilding ? "1. Building Facade & Exterior Photos" : "1. Property Photos"}
+                  1. Property Photos
                 </h2>
                 <span className="text-xs text-charcoal/50">{images.length}/10 photos</span>
               </div>
               <p className="text-xs text-charcoal/60 mb-4">
-                {isBuilding
-                  ? "Upload photos of the building entrance, facade, parking, and common lobby. You can attach individual room photos in the room section below."
-                  : "Add up to 10 photos of your home. The first photo will be the main cover image."}
+                Add up to 10 photos of your home. The first photo will be the main cover image.
               </p>
 
               {/* Image Grid */}
@@ -548,7 +379,7 @@ export default function NewPropertyPage() {
                 </div>
                 <p className="text-sm font-bold text-charcoal">
                   {images.length === 0
-                    ? (isBuilding ? 'Click to upload building exterior photos' : 'Click to upload property photos')
+                    ? 'Click to upload property photos'
                     : `Add more photos (${images.length}/10)`}
                 </p>
                 <p className="text-xs text-charcoal/50 mt-1">PNG, JPG, WebP — Up to 5MB each</p>
@@ -563,22 +394,22 @@ export default function NewPropertyPage() {
               />
             </div>
 
-            {/* ═══ 2. BASIC BUILDING OR HOME INFORMATION ═══ */}
+            {/* ═══ 2. BASIC PROPERTY INFORMATION ═══ */}
             <div className="rounded-2xl border border-charcoal/15 bg-white p-6 shadow-xs space-y-4">
               <h2 className="text-base font-bold text-charcoal">
-                {isBuilding ? "2. Building Profile & Location" : "2. Basic Information"}
+                2. Basic Information
               </h2>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-charcoal/80 mb-1.5">
-                  {isBuilding ? "Building Name *" : "Property Title *"}
+                  Property Title *
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
                   className="w-full rounded-xl border border-charcoal/20 px-4 py-2.5 text-sm focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
-                  placeholder={isBuilding ? "e.g., Bole Medhanialem Commercial Center" : "e.g., Luxury 3-Bedroom Villa in CMC"}
+                  placeholder="e.g., Luxury 3-Bedroom Villa in CMC"
                 />
               </div>
 
@@ -590,7 +421,7 @@ export default function NewPropertyPage() {
                   <select
                     value={formData.city}
                     onChange={e => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full rounded-xl border border-charcoal/20 px-4 py-2.5 text-sm focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+                    className="w-full rounded-xl border border-charcoal/20 px-3 py-2.5 text-sm focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
                   >
                     {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -603,7 +434,7 @@ export default function NewPropertyPage() {
                   <select
                     value={formData.subCity}
                     onChange={e => setFormData({ ...formData, subCity: e.target.value })}
-                    className="w-full rounded-xl border border-charcoal/20 px-4 py-2.5 text-sm focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+                    className="w-full rounded-xl border border-charcoal/20 px-3 py-2.5 text-sm focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
                   >
                     <option value="">Select neighborhood</option>
                     {NEIGHBORHOODS.map(n => <option key={n} value={n}>{n}</option>)}
@@ -633,41 +464,14 @@ export default function NewPropertyPage() {
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
                   className="w-full rounded-xl border border-charcoal/20 px-4 py-2.5 text-sm focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
-                  placeholder={
-                    isBuilding
-                      ? "Describe the building: prime location, road access, anchor tenants, security, and parking facilities..."
-                      : "Describe the home, room layouts, natural lighting, quiet neighborhood, and compound..."
-                  }
+                  placeholder="Describe the home, room layouts, natural lighting, quiet neighborhood, and compound..."
                 />
               </div>
             </div>
 
-            {/* ═══ 3. CONDITIONAL: BUILDING FLOORS & ROOMS CONFIGURATOR ═══ */}
-            {isBuilding ? (
-              <div className="space-y-4">
-                <BuildingFloorManager
-                  initialDetails={buildingDetails || undefined}
-                  onChange={(details) => {
-                    setBuildingDetails(details)
-                    if (details.units.length > 0) {
-                      const minRent = Math.min(...details.units.map(u => u.monthlyRent || 0).filter(Boolean))
-                      const totalSqm = details.units.reduce((acc, u) => acc + (u.sizeM2 || 0), 0)
-                      setFormData(prev => ({
-                        ...prev,
-                        bedrooms: String(details.units.length),
-                        sizeM2: totalSqm > 0 ? String(totalSqm) : prev.sizeM2,
-                        rentAmount: minRent > 0 && isFinite(minRent) ? String(minRent) : prev.rentAmount,
-                        depositAmount: minRent > 0 && isFinite(minRent) ? String(minRent * 2) : prev.depositAmount,
-                      }))
-                    }
-                  }}
-                  baseRent={Number(formData.rentAmount) || 18000}
-                />
-              </div>
-            ) : (
-              /* ═══ RESIDENTIAL SPECS & PRICING ═══ */
-              <div className="rounded-2xl border border-charcoal/15 bg-white p-6 shadow-xs space-y-4">
-                <h2 className="text-base font-bold text-charcoal">3. Residential Specifications & Rent</h2>
+            {/* ═══ 3. SPECIFICATIONS & PRICING ═══ */}
+            <div className="rounded-2xl border border-charcoal/15 bg-white p-6 shadow-xs space-y-4">
+              <h2 className="text-base font-bold text-charcoal">3. Specifications & Rent</h2>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
@@ -802,21 +606,18 @@ export default function NewPropertyPage() {
                   )}
                 </div>
               </div>
-            )}
 
-            {/* ═══ 4. AMENITIES / BUILDING FACILITIES ═══ */}
+            {/* ═══ 4. PROPERTY AMENITIES ═══ */}
             <div className="rounded-2xl border border-charcoal/15 bg-white p-6 shadow-xs">
               <h2 className="text-base font-bold text-charcoal mb-1">
-                {isBuilding ? "4. Building Facilities & Infrastructure" : "4. Property Amenities"}
+                4. Property Amenities
               </h2>
               <p className="text-xs text-charcoal/60 mb-4">
-                {isBuilding
-                  ? "Select key commercial infrastructure available to tenants in this building."
-                  : "Select amenities included with this home."}
+                Select amenities included with this home.
               </p>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
-                {(isBuilding ? BUILDING_FACILITIES : RESIDENTIAL_AMENITIES).map(amenity => {
+                {RESIDENTIAL_AMENITIES.map(amenity => {
                   const isChecked = formData.amenities.includes(amenity)
                   return (
                     <button
@@ -864,7 +665,7 @@ export default function NewPropertyPage() {
                     Publishing...
                   </span>
                 ) : (
-                  isBuilding ? 'Publish Commercial Building' : 'Publish Residential Property'
+                  'Publish Property'
                 )}
               </button>
             </div>

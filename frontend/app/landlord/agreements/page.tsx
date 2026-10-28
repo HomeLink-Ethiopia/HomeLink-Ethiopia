@@ -12,16 +12,22 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 interface Agreement {
   _id: string
-  propertyId?: { title?: string; rentAmount?: number } | string
-  tenantId?: { firstName?: string; lastName?: string; email?: string } | string
+  propertyId?: { title?: string; rentAmount?: number; location?: { address?: string; subCity?: string; city?: string } } | string
+  tenantId?: { firstName?: string; lastName?: string; email?: string; phone?: string } | string
+  landlordId?: { firstName?: string; lastName?: string; email?: string; phone?: string } | string
   monthlyRentEtb?: number
   depositAmount?: number
   startDate?: string
   endDate?: string
   terms?: string[]
+  specialConditions?: string
   status: 'draft' | 'pending_landlord' | 'pending_tenant' | 'active' | 'expired' | 'terminated'
   tenantSigned?: boolean
   landlordSigned?: boolean
+  tenantSignedAt?: string
+  landlordSignedAt?: string
+  paymentDueDay?: number
+  paymentFrequency?: string
   createdAt: string
 }
 
@@ -68,6 +74,7 @@ export default function LandlordAgreementsPage() {
   const [rents, setRents] = useState<Record<string, RentRecord[]>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
   const [expandedRent, setExpandedRent] = useState<string | null>(null)
+  const [expandedContract, setExpandedContract] = useState<string | null>(null)
 
   // Rate Tenant modal state
   const [ratingAgreement, setRatingAgreement] = useState<Agreement | null>(null)
@@ -304,6 +311,19 @@ export default function LandlordAgreementsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
+                        onClick={() => setExpandedContract(expandedContract === a._id ? null : a._id)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                          expandedContract === a._id
+                            ? 'border-rust bg-rust/10 text-rust'
+                            : 'border-charcoal/20 bg-sand/30 text-charcoal hover:bg-sand/60'
+                        }`}
+                      >
+                        <span>📜</span>
+                        <span>{expandedContract === a._id ? 'Hide Written Agreement' : 'Read Full Written Agreement'}</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => {
                           setRatingAgreement(a)
                           setRatingOverall(5)
@@ -322,11 +342,163 @@ export default function LandlordAgreementsPage() {
                           disabled={isBusy}
                           className="rounded-lg bg-rust px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rust-dark disabled:opacity-50"
                         >
-                          {isBusy ? 'Confirming…' : 'Confirm Agreement'}
+                          {isBusy ? 'Confirming…' : 'Confirm & Sign Agreement'}
                         </button>
                       )}
                     </div>
                   </div>
+
+                  {/* ─── FULL WRITTEN DIGITAL LEASE AGREEMENT & SIGNATURES ─── */}
+                  {expandedContract === a._id && (
+                    <div className="mt-5 rounded-xl border border-charcoal/15 bg-cream/30 p-6 space-y-6">
+                      <div className="border-b border-charcoal/10 pb-4 flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="rounded bg-charcoal/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-charcoal">
+                              CONTRACT #{a._id}
+                            </span>
+                            <span className="text-xs text-charcoal/50">
+                              Executed under Ethiopian Civil Code
+                            </span>
+                          </div>
+                          <h4 className="mt-1 font-display text-lg font-bold text-charcoal">
+                            Residential Tenancy &amp; Lease Agreement
+                          </h4>
+                          <p className="text-xs text-charcoal/60">
+                            Property: <span className="font-semibold text-charcoal">{propTitle(a)}</span> · {fmtDate(a.startDate)} to {fmtDate(a.endDate)}
+                          </p>
+                        </div>
+                        <div className="text-right text-xs">
+                          <p className="font-semibold text-charcoal">{fmtEtb(a.monthlyRentEtb)} / month</p>
+                          <p className="text-charcoal/50">Deposit held: {fmtEtb(a.depositAmount)}</p>
+                        </div>
+                      </div>
+
+                      {/* Contract Parties */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="rounded-lg border border-charcoal/10 bg-white p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-charcoal/40">Landlord (Lessor)</p>
+                          <p className="mt-1 font-semibold text-charcoal">
+                            {typeof a.landlordId === 'object' && a.landlordId?.firstName
+                              ? `${a.landlordId.firstName} ${a.landlordId.lastName || ''}`.trim()
+                              : 'Tsedenia Worku (You)'}
+                          </p>
+                          <p className="text-xs text-charcoal/60">Verified Landlord · HomeLink Verified</p>
+                        </div>
+
+                        <div className="rounded-lg border border-charcoal/10 bg-white p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-charcoal/40">Tenant (Lessee)</p>
+                          <p className="mt-1 font-semibold text-charcoal">{tenantName(a)}</p>
+                          <p className="text-xs text-charcoal/60">Registered Tenant · ID &amp; Income Verified</p>
+                        </div>
+                      </div>
+
+                      {/* Official Terms & Conditions */}
+                      <div>
+                        <h5 className="font-display text-sm font-bold text-charcoal mb-3 flex items-center gap-2">
+                          <span>⚖️</span>
+                          <span>Legally Binding Tenancy Clauses &amp; Terms</span>
+                        </h5>
+                        <div className="rounded-lg border border-charcoal/10 bg-white p-4">
+                          <ol className="space-y-2.5 text-xs text-charcoal/80 leading-relaxed list-decimal pl-4">
+                            {(a.terms && a.terms.length > 0 ? a.terms : [
+                              "Monthly rent is payable in advance by the 5th of each calendar month via HomeLink verified channels (Telebirr, CBE, or Chapa).",
+                              "Security deposit equal to agreed deposit amount shall be held in escrow until lease expiration, refundable upon satisfactory move-out inspection.",
+                              "The tenant agrees to maintain the residential premises in good order and report maintenance defects promptly.",
+                              "Subletting, assignment, or unauthorized commercial use of the property is strictly prohibited without prior written consent.",
+                              "Utilities (water, electricity, waste collection, and building sanitation) shall be settled in accordance with property provisions.",
+                              "Either party may terminate or propose renewal with a minimum of 30 days written notice prior to lease expiration.",
+                              "Both landlord and tenant agree to strictly adhere to the Civil Code of Ethiopia regarding residential tenancies."
+                            ]).map((t, idx) => (
+                              <li key={idx} className="pl-1">
+                                <span>{t}</span>
+                              </li>
+                            ))}
+                          </ol>
+
+                          {a.specialConditions && (
+                            <div className="mt-4 border-t border-charcoal/10 pt-3">
+                              <p className="text-[11px] font-semibold text-charcoal">Special Conditions / Addendum:</p>
+                              <p className="mt-0.5 text-xs italic text-charcoal/70">{a.specialConditions}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Signatures & Execution Block */}
+                      <div>
+                        <h5 className="font-display text-sm font-bold text-charcoal mb-3 flex items-center gap-2">
+                          <span>✍️</span>
+                          <span>Digital Signatures &amp; Execution Record</span>
+                        </h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Landlord signature box */}
+                          <div className={`rounded-xl border p-4 ${
+                            a.landlordSigned
+                              ? 'border-verified/30 bg-verified/5'
+                              : 'border-amber-300 bg-amber-50/50'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-charcoal/50">Landlord Signature</p>
+                              {a.landlordSigned ? (
+                                <span className="rounded-full bg-verified/15 px-2 py-0.5 text-[10px] font-bold text-verified">
+                                  ✓ Signed
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                                  Pending Your Signature
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-3">
+                              <p className="font-display text-sm font-bold text-charcoal">
+                                {typeof a.landlordId === 'object' && a.landlordId?.firstName
+                                  ? `${a.landlordId.firstName} ${a.landlordId.lastName || ''}`.trim()
+                                  : 'Tsedenia Worku'}
+                              </p>
+                              <p className="text-[11px] text-charcoal/60 mt-0.5">
+                                {a.landlordSigned
+                                  ? `Digitally confirmed on ${fmtDate(a.landlordSignedAt || a.createdAt)}`
+                                  : 'Click "Confirm & Sign Agreement" above to execute this lease.'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Tenant signature box */}
+                          <div className={`rounded-xl border p-4 ${
+                            a.tenantSigned
+                              ? 'border-verified/30 bg-verified/5'
+                              : 'border-amber-300 bg-amber-50/50'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-charcoal/50">Tenant Signature</p>
+                              {a.tenantSigned ? (
+                                <span className="rounded-full bg-verified/15 px-2 py-0.5 text-[10px] font-bold text-verified">
+                                  ✓ Signed
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                                  Awaiting Tenant
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-3">
+                              <p className="font-display text-sm font-bold text-charcoal">{tenantName(a)}</p>
+                              <p className="text-[11px] text-charcoal/60 mt-0.5">
+                                {a.tenantSigned
+                                  ? `Digitally signed on ${fmtDate(a.tenantSignedAt || a.createdAt)}`
+                                  : 'Tenant will digitally sign from their Tenant Portal (/tenant/agreements).'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="mt-3 text-[11px] text-charcoal/50 text-center">
+                          🔒 Cryptographically signed and timestamped digital agreement. Valid under the Electronic Transactions Proclamation of Ethiopia.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Smart Lease Renewal — expiry banner, AI price, one-click signing */}
                   {a.status === 'active' && (

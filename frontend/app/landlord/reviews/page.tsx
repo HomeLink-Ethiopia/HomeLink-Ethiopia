@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -73,7 +74,7 @@ export default function LandlordReviewsPage() {
     fetchAgreements()
   }, [])
 
-  const getToken = () => localStorage.getItem('homelink-token') || localStorage.getItem('hl_token') || ''
+  const getToken = () => localStorage.getItem('hl_token') || localStorage.getItem('homelink-token') || ''
 
   async function fetchAgreements() {
     try {
@@ -83,8 +84,17 @@ export default function LandlordReviewsPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        const rows: AgreementRow[] = data.data || []
-        setAgreements(rows.filter(a => ['active', 'pending_tenant', 'pending_landlord', 'completed', 'terminated'].includes(a.status || '')))
+        const rows: AgreementRow[] = Array.isArray(data) ? data : (data.data || data.agreements || [])
+        setAgreements(rows.filter(a => ['active', 'pending_tenant', 'pending_landlord', 'pending_signatures', 'completed', 'terminated', 'draft'].includes(a.status || '')))
+
+        // Check if specific agreement requested via URL query (?agreementId=...)
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search)
+          const targetId = urlParams.get('agreementId')
+          if (targetId) {
+            setActiveEvalId(targetId)
+          }
+        }
 
         // Which agreements has this landlord already rated?
         const mine = await fetch(`${API_URL}/api/v1/reviews/mine`, {
@@ -92,8 +102,25 @@ export default function LandlordReviewsPage() {
         })
         if (mine.ok) {
           const md = await mine.json()
-          const rated = new Set<string>((md.data || []).filter((r: any) => r.agreementId && r.reviewType === 'landlord_to_tenant').map((r: any) => String(r.agreementId)))
+          const myRatings = (md.data || []).filter((r: any) => r.agreementId && r.reviewType === 'landlord_to_tenant')
+          const rated = new Set<string>(myRatings.map((r: any) => String(r.agreementId)))
           setRatedAgreements(rated)
+
+          // Prepopulate form values with existing evaluations so landlords can view or update them
+          const initialForms: Record<string, TenantEvalState> = {}
+          for (const r of myRatings) {
+            const rts = r.ratings || {}
+            initialForms[String(r.agreementId)] = {
+              overall: r.rating || rts.overall || 5,
+              payment: rts.paymentReliability || r.rating || 5,
+              care: rts.propertyCare || r.rating || 5,
+              conduct: rts.conductAndRules || r.rating || 5,
+              communication: rts.communication || r.rating || 5,
+              wouldRentAgain: rts.wouldRentAgain || 'yes',
+              comment: r.comment || '',
+            }
+          }
+          setEvalForms(prev => ({ ...initialForms, ...prev }))
         }
       }
     } catch (e) {
@@ -259,21 +286,28 @@ export default function LandlordReviewsPage() {
         </div>
 
         {/* Rate your tenants (multi-criteria behavioral evaluations) */}
-        {agreements.length > 0 && (
-          <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-charcoal">Rate Your Tenants</h2>
-              <p className="text-xs text-charcoal/50 mt-0.5">
-                Authentic behavioral ratings by previous landlords ensure trustworthy tenancies. Rate your tenant across verified criteria: payment punctuality, property upkeep, noise &amp; house rules compliance.
-              </p>
+        <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm space-y-4">
+          <div>
+            <h2 className="text-lg font-bold text-charcoal">Rate Your Tenants</h2>
+            <p className="text-xs text-charcoal/50 mt-0.5">
+              Authentic behavioral ratings by previous landlords ensure trustworthy tenancies. Rate your tenant across verified criteria: payment punctuality, property upkeep, noise &amp; house rules compliance.
+            </p>
+          </div>
+
+          {ratingMsg && (
+            <div className={`rounded-xl border p-3.5 text-xs font-medium ${ratingMsg.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+              {ratingMsg.text}
             </div>
+          )}
 
-            {ratingMsg && (
-              <div className={`rounded-xl border p-3.5 text-xs font-medium ${ratingMsg.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
-                {ratingMsg.text}
-              </div>
-            )}
-
+          {agreements.length === 0 ? (
+            <div className="rounded-xl border border-sand bg-cream/20 p-6 text-center">
+              <p className="text-sm text-charcoal/60">No tenant lease agreements found to evaluate yet.</p>
+              <Link href="/landlord/agreements" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-rust hover:underline">
+                View Rental Agreements →
+              </Link>
+            </div>
+          ) : (
             <div className="space-y-4">
               {agreements.map(a => {
                 const tenantName = typeof a.tenantId === 'object' && a.tenantId
@@ -298,14 +332,23 @@ export default function LandlordReviewsPage() {
                       </div>
 
                       {rated ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
-                          ✓ Tenant Evaluated
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
+                            ✓ Evaluated ({form.overall}★)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveEvalId(isEvaluating ? null : a._id)}
+                            className="rounded-lg border border-charcoal/20 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal hover:bg-charcoal/5 shadow-sm transition-colors"
+                          >
+                            {isEvaluating ? 'Close Form' : '✏️ Edit Evaluation'}
+                          </button>
+                        </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => setActiveEvalId(isEvaluating ? null : a._id)}
-                          className="rounded-lg bg-rust px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rust-dark shadow-sm transition-colors"
+                          className="rounded-lg bg-rust px-4 py-2 text-xs font-semibold text-white hover:bg-rust-dark shadow-sm transition-colors"
                         >
                           {isEvaluating ? 'Cancel' : '★ Evaluate Tenant'}
                         </button>
@@ -313,10 +356,10 @@ export default function LandlordReviewsPage() {
                     </div>
 
                     {/* Expandable Multi-Criteria Evaluation Card */}
-                    {isEvaluating && !rated && (
+                    {isEvaluating && (
                       <div className="mt-4 rounded-xl border border-charcoal/10 bg-white p-5 space-y-4 shadow-sm">
                         <p className="text-xs font-bold uppercase tracking-wider text-charcoal/60">
-                          Landlord Evaluation Form for {tenantName}
+                          {rated ? `Update Landlord Evaluation for ${tenantName}` : `Landlord Evaluation Form for ${tenantName}`}
                         </p>
 
                         <div className="space-y-3">
@@ -432,7 +475,7 @@ export default function LandlordReviewsPage() {
                             disabled={submittingRating === a._id}
                             className="rounded-lg bg-rust px-5 py-2 text-xs font-semibold text-white hover:bg-rust-dark disabled:opacity-50 shadow-sm"
                           >
-                            {submittingRating === a._id ? 'Saving Evaluation...' : 'Save Tenant Evaluation'}
+                            {submittingRating === a._id ? 'Saving Evaluation...' : (rated ? 'Update Tenant Evaluation' : 'Save Tenant Evaluation')}
                           </button>
                           <button
                             type="button"
@@ -448,8 +491,8 @@ export default function LandlordReviewsPage() {
                 )
               })}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {/* Ratings You Gave Tenants */}
         {myTenantRatings.length > 0 && (

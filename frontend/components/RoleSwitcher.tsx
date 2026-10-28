@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import type { Role } from '@/types/roles'
 
-// Real accounts seeded in the team's MongoDB (see backend/scripts/seed-dev-accounts.js).
-// Password for all three: Password123!
+// Real accounts and developer demo accounts
+// Password for all: Password123!
 const ROLES: { role: Role; label: string; email: string }[] = [
-  { role: 'tenant', label: 'Tenant', email: 'dev.tenant@homelink.test' },
-  { role: 'landlord', label: 'Landlord', email: 'dev.landlord@homelink.test' },
+  { role: 'landlord', label: 'Landlord (Tsedenia)', email: 'kidstekinfe21@gmail.com' },
+  { role: 'tenant', label: 'Tenant (Tsedenia)', email: 'kidkinfe7@gmail.com' },
   { role: 'admin', label: 'Admin', email: 'dev.admin@homelink.test' },
+  { role: 'tenant', label: 'Demo Tenant', email: 'dev.tenant@homelink.test' },
+  { role: 'landlord', label: 'Demo Landlord', email: 'dev.landlord@homelink.test' },
 ]
 
 const ROLE_HOME: Record<Role, string> = {

@@ -31,6 +31,8 @@ const persistMockData = () => {
       payments: mockStore.payments || [],
       conversations: mockStore.conversations || [],
       messages: mockStore.messages || [],
+      reviews: mockStore.reviews || [],
+      disputes: mockStore.disputes || [],
       landlordProfiles: Array.from((mockStore.landlordProfiles || new Map()).entries()),
     };
     fs.writeFileSync(MOCK_DATA_FILE, JSON.stringify(dataToSave, null, 2));
@@ -89,11 +91,7 @@ const loadMockData = () => {
         }
       }
       if (Array.isArray(data.payments)) {
-        for (const p of data.payments) {
-          if (!mockStore.payments.some((x) => x._id === p._id)) {
-            mockStore.payments.push(p);
-          }
-        }
+        mockStore.payments = data.payments.slice();
       }
       if (Array.isArray(data.conversations)) {
         for (const c of data.conversations) {
@@ -109,6 +107,28 @@ const loadMockData = () => {
           }
         }
       }
+      if (Array.isArray(data.reviews)) {
+        mockStore.reviews = mockStore.reviews || [];
+        for (const rev of data.reviews) {
+          const idx = mockStore.reviews.findIndex((r) => r._id === rev._id);
+          if (idx !== -1) {
+            mockStore.reviews[idx] = rev;
+          } else {
+            mockStore.reviews.push(rev);
+          }
+        }
+      }
+      if (Array.isArray(data.disputes)) {
+        mockStore.disputes = mockStore.disputes || [];
+        for (const disp of data.disputes) {
+          const idx = mockStore.disputes.findIndex((d) => d._id === disp._id);
+          if (idx !== -1) {
+            mockStore.disputes[idx] = disp;
+          } else {
+            mockStore.disputes.push(disp);
+          }
+        }
+      }
       if (Array.isArray(data.landlordProfiles)) {
         for (const [key, val] of data.landlordProfiles) {
           if (!mockStore.landlordProfiles.has(key)) {
@@ -116,7 +136,7 @@ const loadMockData = () => {
           }
         }
       }
-      console.log(`[MOCK DB] restored persistent applications, viewings, agreements from mock-data.json`);
+      console.log(`[MOCK DB] restored persistent applications, viewings, agreements, reviews, disputes from mock-data.json`);
     }
   } catch (e) {
     console.warn("[MOCK DB] could not load persistent mock data:", e.message);
@@ -383,181 +403,6 @@ const mockStore = {
       ],
       landlordId: "mock-landlord-1",
       createdAt: new Date(Date.now() - 10800000)
-    },
-    {
-      _id: "66d1f801e12a4b001a888888",
-      title: "Bole Nexus Commercial Center & Office Tower",
-      description: "Premier 5-storey commercial tower in Bole with 10 private office rooms, whole floor corporate headquarters, high-speed fiber internet, dual generators, and underground parking.",
-      propertyType: "building",
-      rentAmount: 18500,
-      bedrooms: 10,
-      bathrooms: 8,
-      sizeM2: 1400,
-      furnished: true,
-      location: { city: "Addis Ababa", subCity: "Bole", neighborhood: "Cameroon St / Atlas" },
-      amenities: ["generator", "water_tank", "wifi", "elevator", "parking", "security"],
-      listingStatus: "active",
-      verificationStatus: "verified",
-      fraudRiskScore: 2,
-      riskLevel: "low",
-      redFlags: [],
-      buildingDetails: {
-        isMultiUnit: true,
-        rentalScope: "flexible",
-        totalFloors: 5,
-        totalUnits: 12,
-        units: [
-          {
-            unitId: "unit-tower-all",
-            unitNumber: "Full Building",
-            name: "Entire Commercial Tower (Floors 1-5)",
-            spaceType: "entire_building",
-            floorNumber: 0,
-            sizeM2: 1400,
-            rentAmount: 480000,
-            depositAmount: 960000,
-            suitableFor: ["Corporate HQ", "Embassy", "Tech Campus", "Financial Institution"],
-            status: "available"
-          },
-          {
-            unitId: "unit-floor-2",
-            unitNumber: "Floor 2",
-            name: "Whole 2nd Floor (Corporate Workspace)",
-            spaceType: "whole_floor",
-            floorNumber: 2,
-            sizeM2: 280,
-            rentAmount: 120000,
-            depositAmount: 240000,
-            suitableFor: ["IT / Software Company", "Consultancy Group", "Law Chambers"],
-            status: "available"
-          },
-          {
-            unitId: "unit-floor-3",
-            unitNumber: "Floor 3",
-            name: "Whole 3rd Floor (Executive Suites)",
-            spaceType: "whole_floor",
-            floorNumber: 3,
-            sizeM2: 280,
-            rentAmount: 115000,
-            depositAmount: 230000,
-            suitableFor: ["FinTech", "Regional NGO", "Medical Specialist Center"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-101",
-            unitNumber: "Office 101",
-            name: "Private Work Suite 101",
-            spaceType: "office_room",
-            floorNumber: 1,
-            sizeM2: 35,
-            rentAmount: 18500,
-            depositAmount: 37000,
-            suitableFor: ["Tech Startup", "Architect Studio", "Accounting Firm"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-102",
-            unitNumber: "Office 102",
-            name: "Executive Suite 102 (Balcony View)",
-            spaceType: "office_room",
-            floorNumber: 1,
-            sizeM2: 40,
-            rentAmount: 20000,
-            depositAmount: 40000,
-            suitableFor: ["Legal Advisor", "Import / Export Desk", "Creative Agency"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-103",
-            unitNumber: "Office 103",
-            name: "Team Workstation Room 103",
-            spaceType: "office_room",
-            floorNumber: 1,
-            sizeM2: 55,
-            rentAmount: 27000,
-            depositAmount: 54000,
-            suitableFor: ["Software Dev Team (6-8 people)", "Design Lab"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-104",
-            unitNumber: "Office 104",
-            name: "Private Consultant Room 104",
-            spaceType: "office_room",
-            floorNumber: 1,
-            sizeM2: 30,
-            rentAmount: 16000,
-            depositAmount: 32000,
-            suitableFor: ["Solo Consultant", "Financial Analyst", "Therapy Clinic"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-105",
-            unitNumber: "Office 105",
-            name: "Corner Office Suite 105",
-            spaceType: "office_room",
-            floorNumber: 1,
-            sizeM2: 45,
-            rentAmount: 23000,
-            depositAmount: 46000,
-            suitableFor: ["Managing Director", "Brokerage Office"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-201",
-            unitNumber: "Office 201",
-            name: "Open-Plan Team Office 201",
-            spaceType: "office_room",
-            floorNumber: 2,
-            sizeM2: 60,
-            rentAmount: 30000,
-            depositAmount: 60000,
-            suitableFor: ["Call Center / Customer Support", "Data Processing Hub"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-202",
-            unitNumber: "Office 202",
-            name: "Conference & Work Suite 202",
-            spaceType: "office_room",
-            floorNumber: 2,
-            sizeM2: 38,
-            rentAmount: 19000,
-            depositAmount: 38000,
-            suitableFor: ["Marketing Agency", "Training Classroom"],
-            status: "available"
-          },
-          {
-            unitId: "unit-room-203",
-            unitNumber: "Office 203",
-            name: "Incubator Lab 203",
-            spaceType: "office_room",
-            floorNumber: 2,
-            sizeM2: 50,
-            rentAmount: 25000,
-            depositAmount: 50000,
-            suitableFor: ["Hardware Prototyping", "Media Production"],
-            status: "available"
-          },
-          {
-            unitId: "unit-ground-retail",
-            unitNumber: "Shop G-01",
-            name: "Ground Floor Premium Banking / Retail Hall",
-            spaceType: "retail_shop",
-            floorNumber: 0,
-            sizeM2: 180,
-            rentAmount: 95000,
-            depositAmount: 190000,
-            suitableFor: ["Bank Branch", "Showroom", "Coffee Bistro / Pharmacy"],
-            status: "available"
-          }
-        ]
-      },
-      images: [
-        { key: "bole-tower-1.jpg", url: "/uploads/homes/apartment-tower.png", isPrimary: true }
-      ],
-      landlordId: "mock-landlord-1",
-      createdAt: new Date(Date.now() - 14400000)
     }
   ]
 };
@@ -706,183 +551,8 @@ mockStore.agreements.push(
   }
 );
 
-// Sprint 15: seed realistic payment history for landlord and tenant dashboards
+// Real payments are restored from mock-data.json
 mockStore.payments = mockStore.payments || [];
-mockStore.payments.push(
-  {
-    _id: "mock-pay-1",
-    agreementId: "mock-agreement-1",
-    propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole" },
-    tenantId: { _id: "mock-user-seed-1", firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-10",
-    dueDate: "2026-10-05T00:00:00.000Z",
-    amountDue: 42000,
-    amountPaid: 42000,
-    balance: 0,
-    status: "paid",
-    paidAt: "2026-10-04T10:30:00.000Z",
-    paymentMethod: "chapa",
-    transactionReference: "TX-CHP-202610-01",
-    receiptNumber: "RCPT-1001",
-    receiptKey: "/images/receipts/cbe-receipt.svg",
-    receiptUrl: "/images/receipts/cbe-receipt.svg",
-    notes: "October rent paid on time via Chapa",
-  },
-  {
-    _id: "mock-pay-2",
-    agreementId: "mock-agreement-1",
-    propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole" },
-    tenantId: { _id: "mock-user-seed-1", firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-09",
-    dueDate: "2026-09-05T00:00:00.000Z",
-    amountDue: 42000,
-    amountPaid: 42000,
-    balance: 0,
-    status: "paid",
-    paidAt: "2026-09-04T14:15:00.000Z",
-    paymentMethod: "telebirr",
-    transactionReference: "TX-TB-202609-02",
-    receiptNumber: "RCPT-0902",
-    receiptKey: "/images/receipts/telebirr-receipt.svg",
-    receiptUrl: "/images/receipts/telebirr-receipt.svg",
-    notes: "September rent settled via Telebirr",
-  },
-  {
-    _id: "mock-pay-3",
-    agreementId: "mock-agreement-1",
-    propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole" },
-    tenantId: { _id: "mock-user-seed-1", firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-08",
-    dueDate: "2026-08-05T00:00:00.000Z",
-    amountDue: 42000,
-    amountPaid: 42000,
-    balance: 0,
-    status: "paid",
-    paidAt: "2026-08-05T09:00:00.000Z",
-    paymentMethod: "cbe",
-    transactionReference: "TX-CBE-202608-03",
-    receiptNumber: "RCPT-0803",
-    receiptKey: "/images/receipts/cbe-receipt.svg",
-    receiptUrl: "/images/receipts/cbe-receipt.svg",
-  },
-  {
-    _id: "mock-pay-4",
-    agreementId: "mock-agreement-2",
-    propertyId: { _id: "66d1f801e12a4b001a222222", title: "Spacious 3BR Villa in CMC" },
-    tenantId: { _id: "mock-user-seed-2", firstName: "Mikias", lastName: "Bekele", email: "mikias@example.com", phone: "+251922334455" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-10",
-    dueDate: "2026-10-01T00:00:00.000Z",
-    amountDue: 55000,
-    amountPaid: 0,
-    balance: 55000,
-    status: "overdue",
-    paymentMethod: "bank_transfer",
-    notes: "Tenant traveling abroad; reminder sent.",
-  },
-  {
-    _id: "mock-pay-5",
-    agreementId: "mock-agreement-2",
-    propertyId: { _id: "66d1f801e12a4b001a222222", title: "Spacious 3BR Villa in CMC" },
-    tenantId: { _id: "mock-user-seed-2", firstName: "Mikias", lastName: "Bekele", email: "mikias@example.com", phone: "+251922334455" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-09",
-    dueDate: "2026-09-01T00:00:00.000Z",
-    amountDue: 55000,
-    amountPaid: 55000,
-    balance: 0,
-    status: "paid",
-    paidAt: "2026-09-01T11:45:00.000Z",
-    paymentMethod: "bank_transfer",
-    transactionReference: "TX-AWASH-202609-05",
-    receiptNumber: "RCPT-0905",
-    receiptKey: "/images/receipts/cbe-receipt.svg",
-    receiptUrl: "/images/receipts/cbe-receipt.svg",
-  },
-  {
-    _id: "mock-pay-6",
-    agreementId: "mock-agreement-2",
-    propertyId: { _id: "66d1f801e12a4b001a222222", title: "Spacious 3BR Villa in CMC" },
-    tenantId: { _id: "mock-user-seed-2", firstName: "Mikias", lastName: "Bekele", email: "mikias@example.com", phone: "+251922334455" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-08",
-    dueDate: "2026-08-01T00:00:00.000Z",
-    amountDue: 55000,
-    amountPaid: 55000,
-    balance: 0,
-    status: "paid",
-    paidAt: "2026-08-02T16:00:00.000Z",
-    paymentMethod: "cbe",
-    transactionReference: "TX-CBE-202608-06",
-    receiptNumber: "RCPT-0806",
-    receiptKey: "/images/receipts/cbe-receipt.svg",
-    receiptUrl: "/images/receipts/cbe-receipt.svg",
-  },
-  {
-    _id: "mock-pay-7",
-    agreementId: "mock-agreement-3",
-    propertyId: { _id: "66d1f801e12a4b001a333333", title: "Executive 1BR Studio in Kazanchis" },
-    tenantId: { _id: "mock-user-seed-1", firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-10",
-    dueDate: "2026-10-28T00:00:00.000Z",
-    amountDue: 30000,
-    amountPaid: 0,
-    balance: 30000,
-    status: "pending",
-    notes: "Invoice dispatched; due end of month.",
-  },
-  {
-    _id: "mock-pay-8",
-    agreementId: "mock-agreement-3",
-    propertyId: { _id: "66d1f801e12a4b001a333333", title: "Executive 1BR Studio in Kazanchis" },
-    tenantId: { _id: "mock-user-seed-1", firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" },
-    landlordId: "mock-landlord-1",
-    paymentType: "rent",
-    periodMonth: "2026-09",
-    dueDate: "2026-09-28T00:00:00.000Z",
-    amountDue: 30000,
-    amountPaid: 30000,
-    balance: 0,
-    status: "paid",
-    paidAt: "2026-09-26T17:10:00.000Z",
-    paymentMethod: "telebirr",
-    transactionReference: "TX-TB-202609-08",
-    receiptNumber: "RCPT-0908",
-    receiptKey: "/images/receipts/telebirr-receipt.svg",
-    receiptUrl: "/images/receipts/telebirr-receipt.svg",
-  },
-  {
-    _id: "mock-pay-9",
-    agreementId: "mock-agreement-1",
-    propertyId: { _id: "66d1f801e12a4b001a111111", title: "Modern 2BR Apartment in Bole" },
-    tenantId: { _id: "mock-user-seed-1", firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com", phone: "+251911223344" },
-    landlordId: "mock-landlord-1",
-    paymentType: "deposit",
-    periodMonth: "2026-01",
-    dueDate: "2026-01-01T00:00:00.000Z",
-    amountDue: 84000,
-    amountPaid: 84000,
-    balance: 0,
-    status: "paid",
-    paidAt: "2026-01-01T12:00:00.000Z",
-    paymentMethod: "bank_transfer",
-    receiptNumber: "RCPT-DEP-001",
-    receiptKey: "/images/receipts/cbe-receipt.svg",
-    receiptUrl: "/images/receipts/cbe-receipt.svg",
-    notes: "Security deposit held in escrow (2 months)",
-  }
-);
 
 mockStore.landlordProfiles.set("mock-landlord-1", {
   _id: "mock-landlord-1",

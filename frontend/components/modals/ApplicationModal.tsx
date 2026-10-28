@@ -21,11 +21,11 @@ const schema = z.object({
   moveInDate: z.string().min(1, 'Choose a move-in date'),
   durationMonths: z.coerce.number().min(1).default(12),
   numberOfOccupants: z.coerce.number().min(1).default(1),
-  religion: z.string().default('Orthodox Christian'),
-  maritalStatus: z.enum(['single', 'married', 'family_with_kids', 'roommates']).default('single'),
-  smokingHabit: z.enum(['non_smoker', 'balcony_only', 'smoker']).default('non_smoker'),
-  alcoholHabit: z.enum(['non_drinker', 'social_drinker', 'regular']).default('non_drinker'),
-  hasPets: z.enum(['no_pets', 'has_pets']).default('no_pets'),
+  religion: z.string().optional().default(''),
+  maritalStatus: z.string().optional().default(''),
+  smokingHabit: z.string().optional().default(''),
+  alcoholHabit: z.string().optional().default(''),
+  hasPets: z.string().optional().default(''),
   petDetails: z.string().optional(),
   quietHoursAgreed: z.boolean().default(true),
   previousLandlordName: z.string().optional(),
@@ -90,11 +90,11 @@ export default function ApplicationModal() {
       employmentStatus: 'employed',
       durationMonths: 12,
       numberOfOccupants: 1,
-      religion: 'Orthodox Christian',
-      maritalStatus: 'single',
-      smokingHabit: 'non_smoker',
-      alcoholHabit: 'non_drinker',
-      hasPets: 'no_pets',
+      religion: '',
+      maritalStatus: '',
+      smokingHabit: '',
+      alcoholHabit: '',
+      hasPets: '',
       petDetails: '',
       quietHoursAgreed: true,
       previousLandlordName: '',
@@ -120,11 +120,11 @@ export default function ApplicationModal() {
         moveInDate: '',
         durationMonths: 12,
         numberOfOccupants: 1,
-        religion: (effectiveUser as any).religion || 'Orthodox Christian',
-        maritalStatus: 'single',
-        smokingHabit: 'non_smoker',
-        alcoholHabit: 'non_drinker',
-        hasPets: 'no_pets',
+        religion: (effectiveUser as any).religion || '',
+        maritalStatus: (effectiveUser as any).maritalStatus || '',
+        smokingHabit: (effectiveUser as any).smokingHabit || '',
+        alcoholHabit: (effectiveUser as any).alcoholHabit || '',
+        hasPets: (effectiveUser as any).hasPets === true ? 'has_pets' : ((effectiveUser as any).hasPets === false ? 'no_pets' : ''),
         petDetails: '',
         quietHoursAgreed: true,
         previousLandlordName: '',
@@ -196,12 +196,22 @@ export default function ApplicationModal() {
       formData.append('moveInDate', values.moveInDate)
       formData.append('durationMonths', String(values.durationMonths || 12))
       formData.append('numberOfOccupants', String(values.numberOfOccupants || 1))
-      formData.append('hasPets', values.hasPets === 'has_pets' ? 'true' : 'false')
+      if (values.hasPets) {
+        formData.append('hasPets', values.hasPets === 'has_pets' ? 'true' : 'false')
+      }
       formData.append('petDetails', values.petDetails || '')
-      formData.append('religion', values.religion || 'Orthodox Christian')
-      formData.append('maritalStatus', values.maritalStatus || 'single')
-      formData.append('smokingHabit', values.smokingHabit || 'non_smoker')
-      formData.append('alcoholHabit', values.alcoholHabit || 'non_drinker')
+      if (values.religion) {
+        formData.append('religion', values.religion)
+      }
+      if (values.maritalStatus) {
+        formData.append('maritalStatus', values.maritalStatus)
+      }
+      if (values.smokingHabit) {
+        formData.append('smokingHabit', values.smokingHabit)
+      }
+      if (values.alcoholHabit) {
+        formData.append('alcoholHabit', values.alcoholHabit)
+      }
       formData.append('quietHoursAgreed', String(values.quietHoursAgreed ?? true))
       formData.append('previousLandlordName', values.previousLandlordName || '')
       formData.append('previousLandlordPhone', values.previousLandlordPhone || '')
@@ -457,8 +467,9 @@ export default function ApplicationModal() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Religion / Faith" error={errors.religion}>
+              <Field label="Religion / Faith (Optional)" error={errors.religion}>
                 <select className={inputClass} {...register('religion')}>
+                  <option value="">Prefer not to say / Undeclared</option>
                   <option value="Orthodox Christian">Orthodox Christian (የኢትዮጵያ ኦርቶዶክስ ተዋሕዶ)</option>
                   <option value="Muslim">Muslim / Islam (እስልምና)</option>
                   <option value="Protestant">Protestant / Evangelical (ወንጌላዊ / ፔንጤ)</option>
@@ -467,8 +478,9 @@ export default function ApplicationModal() {
                 </select>
               </Field>
 
-              <Field label="Marital Status" error={errors.maritalStatus}>
+              <Field label="Marital Status (Optional)" error={errors.maritalStatus}>
                 <select className={inputClass} {...register('maritalStatus')}>
+                  <option value="">Prefer not to say / Undeclared</option>
                   <option value="single">Single / Bachelor</option>
                   <option value="married">Married Couple</option>
                   <option value="family_with_kids">Family with Children</option>
@@ -479,15 +491,17 @@ export default function ApplicationModal() {
 
             {/* Pets and Smoking declaration */}
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Do you have pets?" error={errors.hasPets}>
+              <Field label="Do you have pets? (Optional)" error={errors.hasPets}>
                 <select className={inputClass} {...register('hasPets')}>
+                  <option value="">Prefer not to say / Undeclared</option>
                   <option value="no_pets">No pets (የቤት እንስሳ የለኝም)</option>
                   <option value="has_pets">Yes, I have pets (የቤት እንስሳ አለኝ)</option>
                 </select>
               </Field>
 
-              <Field label="Smoking Habit" error={errors.smokingHabit}>
+              <Field label="Smoking Habit (Optional)" error={errors.smokingHabit}>
                 <select className={inputClass} {...register('smokingHabit')}>
+                  <option value="">Prefer not to say / Undeclared</option>
                   <option value="non_smoker">Non-smoker (ማያጨስ)</option>
                   <option value="balcony_only">Outdoor / Balcony only</option>
                   <option value="smoker">Smoker</option>

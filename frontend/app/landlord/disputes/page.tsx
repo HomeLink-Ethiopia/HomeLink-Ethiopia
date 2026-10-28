@@ -321,6 +321,7 @@ export default function LandlordDisputesPage() {
                       Filed {new Date(active.createdAt).toLocaleDateString()} by{' '}
                       {active.filedBy?.firstName || 'user'} {active.filedBy?.lastName || ''}
                     </p>
+                  </div>
                   <div className="flex items-center gap-2">
                     {['open', 'under_review'].includes(active.status) && (
                       <button

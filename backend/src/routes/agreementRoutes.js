@@ -1,26 +1,37 @@
+
 const express = require('express');
 const router = express.Router();
+
 const authMiddleware = require('../middleware/authMiddleware');
+const agreementController = require('../controller/agreementController');
 
-// Placeholder routes for Rental Agreements (Sprint 7 WIP)
-router.get('/', (req, res) => {
-    res.json({ message: 'Agreements endpoint ready' });
-});
+// All agreement routes require authentication.
+router.use(authMiddleware);
 
-router.get('/landlord', authMiddleware, (req, res) => {
-    res.json({ data: [] });
-});
+// List agreements belonging to the logged-in user.
+router.get('/', agreementController.getAgreements);
+router.get('/my', agreementController.getAgreements);
 
-router.get('/landlord/tenants', authMiddleware, (req, res) => {
-    res.json({ data: [] });
-});
+// Create an agreement (landlords only).
+router.post('/', (req, res, next) => {
+    if (req.user.role !== 'landlord') {
+        return res.status(403).json({
+            message: 'Only landlords can create rental agreements'
+        });
+    }
+    next();
+}, agreementController.createAgreement);
 
-router.get('/tenant', authMiddleware, (req, res) => {
-    res.json({ data: [] });
-});
+// Retrieve one agreement.
+router.get('/:id', agreementController.getAgreementById);
 
-router.get('/my', authMiddleware, (req, res) => {
-    res.json({ data: [] });
-});
+// Sign an agreement.
+router.post('/:id/sign', agreementController.signAgreement);
+
+// Terminate an agreement.
+router.post('/:id/terminate', agreementController.terminateAgreement);
+
+// Renew an agreement.
+router.patch('/:id/renew', agreementController.renewAgreement);
 
 module.exports = router;

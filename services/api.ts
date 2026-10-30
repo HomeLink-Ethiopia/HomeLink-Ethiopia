@@ -1,6 +1,6 @@
 import { PROPERTIES, type Property } from '@/lib/properties'
 export type { Property }
-import { post, get, patch } from '@/lib/http-client'
+import { post, get, patch, put } from '@/lib/http-client'
 
 /**
  * API Layer with Mock & Real API Support
@@ -79,18 +79,23 @@ export function mapApiProperty(raw: any): Property {
 async function fetchPropertiesFromAPI(filters: PropertyFilters = {}): Promise<Property[]> {
   try {
     const params = new URLSearchParams()
-    if (filters.neighborhood) params.append('neighborhood', filters.neighborhood)
+    if (filters.neighborhood) params.append('subCity', filters.neighborhood)
     if (filters.city) params.append('city', filters.city)
     if (filters.minPrice) params.append('minPrice', String(filters.minPrice))
     if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
-    if (filters.beds) params.append('beds', String(filters.beds))
+    if (filters.beds) params.append('bedrooms', String(filters.beds))
     if (filters.verifiedOnly) params.append('verifiedOnly', 'true')
+    params.append('limit', '50')
 
     const query = params.toString()
-    const endpoint = query ? `/api/public/properties?${query}` : '/api/public/properties'
+    const endpoint = `/api/v1/properties/search?${query}`
 
-    const response = await get<{ data: any[] }>(endpoint)
-    const rawProperties = response.data.data || []
+    const response = await get<{ data?: any[]; properties?: any[] } | any[]>(endpoint)
+    // Backend returns { data: [...], pagination: {...} }
+    const body = response.data as any
+    const rawProperties: any[] = Array.isArray(body)
+      ? body
+      : body?.data || body?.properties || []
     return rawProperties.map(mapApiProperty)
   } catch (error) {
     console.error('Failed to fetch properties from API:', error)
@@ -118,12 +123,23 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
 
 async function fetchPropertyFromAPI(id: string): Promise<Property | null> {
   try {
-    const response = await get<{ data: any }>(`/api/public/properties/${id}`)
-    const raw = response.data.data
-    return raw ? mapApiProperty(raw) : null
+    // Property detail requires auth — try with token, fall back to search
+    const response = await get<any>(`/api/v1/properties/${id}`)
+    const body = response.data as any
+    const raw = body?.data || body
+    return raw && raw._id ? mapApiProperty(raw) : null
   } catch (error) {
     console.error(`Failed to fetch property ${id} from API:`, error)
-    return PROPERTIES.find((p) => p.id === id) ?? null
+    // Fall back to fetching from search results
+    try {
+      const allRes = await get<any>(`/api/v1/properties/search?limit=100`)
+      const body = allRes.data as any
+      const all: any[] = Array.isArray(body) ? body : body?.data || []
+      const found = all.find((p: any) => p._id === id)
+      return found ? mapApiProperty(found) : (PROPERTIES.find((p) => p.id === id) ?? null)
+    } catch {
+      return PROPERTIES.find((p) => p.id === id) ?? null
+    }
   }
 }
 
@@ -485,11 +501,11 @@ export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentE
     };
   }
 
-  const response = await post<any>('/api/v1/properties/estimate-rent', {
-    subCity: input.subCity,
+  const response = await post<any>('/api/ai/estimate-rent', {
+    subcity: input.subCity,
     bedrooms: input.bedrooms,
     bathrooms: input.bathrooms || 1,
-    sizeM2: input.sizeM2 || 50,
+    area_sqm: input.sizeM2 || input.area_sqm || 50,
     is_furnished: input.is_furnished || false,
     has_water_tank: input.has_water_tank || false,
     has_generator: input.has_generator || false,
@@ -497,8 +513,8 @@ export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentE
 
   const data = response.data?.data || response.data;
   
-  // Handle different response structures gracefully
-  const fair = Math.round(data.estimated_market_rent || data.estimated_rent_etb || data.estimate?.fair || 25000)
+  // Backend fallback returns: { estimated_rent_etb, confidence, model_used }
+  const fair = Math.round(data.estimated_rent_etb || data.estimated_market_rent || data.estimate?.fair || 25000)
   const low = Math.round(data.range_low || data.estimate?.low || fair * 0.88)
   const high = Math.round(data.range_high || data.estimate?.high || fair * 1.15)
   
@@ -515,12 +531,16 @@ export async function fetchAIRecommendations(
   prefs?: any
 ): Promise<Array<Property & { matchScore: number; matchReasons: string[] }>> {
   try {
-    const response = await get<{ data: any[] }>('/api/v1/properties/recommendations')
-    if (response.data?.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
-      return response.data.data.map((p: any) => ({
+    const response = await get<any>('/api/v1/properties/recommendations')
+    const body = response.data as any
+    const items: any[] = Array.isArray(body) ? body
+      : body?.recommendations?.map((r: any) => r.property).filter(Boolean)
+      || body?.data || []
+    if (items.length > 0) {
+      return items.map((p: any) => ({
         ...mapApiProperty(p),
-        matchScore: p.matchScore || 85,
-        matchReasons: p.matchReasons || ['Matched to your criteria']
+        matchScore: p.matchScore || p.match_score || 85,
+        matchReasons: p.matchReasons || p.match_reasons || ['Matched to your criteria']
       }))
     }
   } catch (error) {
@@ -563,28 +583,38 @@ export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
       amenities: params.amenities || [],
       furnished: params.amenities?.includes('Furnished') || false
     };
-    await post('/api/v1/properties/preferences', prefsPayload);
+    // Save preferences — use PUT if already exists, POST if new
+    try {
+      await post('/api/v1/properties/preferences', prefsPayload);
+    } catch {
+      await put('/api/v1/properties/preferences', prefsPayload).catch(() => {});
+    }
   } catch (e) {
     console.warn('Failed to save preferences to backend:', e);
   }
 
-  const response = await get<{ data: any[] }>('/api/v1/properties/recommendations');
-  const items = response.data?.data || [];
+  const response = await get<any>('/api/v1/properties/recommendations');
+  const body = response.data as any;
+  // Backend returns { recommendations: [{ property_id, match_score, match_reasons, property? }] }
+  const recs: any[] = body?.recommendations || body?.data || [];
   
   return {
-    matches: items.map((p: any) => ({
-      propertyId: p._id || p.id,
-      score: p.matchScore || 0,
-      title: p.title,
-      location: p.location,
-      rentAmount: p.rentAmount || p.priceEtb || 0,
-      bedrooms: p.bedrooms || 0,
-      bathrooms: p.bathrooms || 0,
-      verificationStatus: p.verificationStatus || 'unverified',
-      images: p.images || (p.image ? [{url: p.image}] : []),
-      matchReasons: p.matchReasons || []
-    })),
-    meta: { total: items.length }
+    matches: recs.map((r: any) => {
+      const p = r.property || r;
+      return {
+        propertyId: r.property_id || p._id || p.id,
+        score: r.match_score || r.matchScore || 0,
+        title: p.title || '',
+        location: p.location,
+        rentAmount: p.rentAmount || p.priceEtb || 0,
+        bedrooms: p.bedrooms || 0,
+        bathrooms: p.bathrooms || 0,
+        verificationStatus: p.verificationStatus || 'unverified',
+        images: p.images || (p.image ? [{url: p.image}] : []),
+        matchReasons: r.match_reasons || r.matchReasons || []
+      };
+    }),
+    meta: { total: recs.length }
   };
 }
 

@@ -13,7 +13,10 @@ const {
     getAllProperties,
     getAllFraudReports,
     getAllDisputes,
-    getAllVerifications
+    getAllVerifications,
+    getAllAgreements,
+    getAllApplications,
+    getAllMaintenance
 } = require('../../controller/admin/adminController');
 
 const {
@@ -44,6 +47,9 @@ router.get('/properties', getAllProperties);
 router.get('/fraud-reports', getAllFraudReports);
 router.get('/disputes', getAllDisputes);
 router.get('/verifications', getAllVerifications);
+router.get('/agreements', getAllAgreements);
+router.get('/applications', getAllApplications);
+router.get('/maintenance', getAllMaintenance);
 
 // Moderation Actions
 router.put('/disputes/:id/resolve', resolveDispute);

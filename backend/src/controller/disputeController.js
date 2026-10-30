@@ -523,5 +523,6 @@ module.exports = {
     getDisputeById,
     addDisputeMessage,
     withdrawDispute,
-    resolveDisputeHandler
+    resolveDisputeHandler,
+    enrichDispute
 };

@@ -13,9 +13,10 @@ interface ManagedUser {
   email: string
   phone: string
   role: string
+  status?: string
   verificationStatus: string
   identityStatus: string
-  isActive: boolean
+  isActive?: boolean
   emailVerified: boolean
   reportsAgainst?: number
   disputesAgainst?: number
@@ -39,7 +40,7 @@ export default function AdminUsersPage() {
   const load = useCallback(async () => {
     try {
       setError('')
-      const res = await fetch(`${API_URL}/api/v1/admin/suspicious/accounts`, {
+      const res = await fetch(`${API_URL}/api/v1/admin/users`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       })
       if (!res.ok) throw new Error()
@@ -119,57 +120,65 @@ export default function AdminUsersPage() {
         ) : (
           <div className="overflow-hidden rounded-xl border border-charcoal/10 bg-white shadow-sm">
             <div className="divide-y divide-charcoal/10">
-              {filtered.map((u) => (
-                <div key={u._id} className="flex flex-wrap items-center gap-3 px-5 py-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium text-charcoal">
-                        {u.firstName} {u.lastName}
+              {filtered.map((u) => {
+                const isUserActive = u.isActive ?? (u.status !== 'suspended')
+                return (
+                  <div key={u._id} className="flex flex-wrap items-center gap-3 px-5 py-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-charcoal">
+                          {u.firstName} {u.lastName}
+                        </p>
+                        <span className="rounded-full bg-charcoal/5 px-2 py-0.5 text-[10px] font-medium capitalize text-charcoal/60">
+                          {u.role}
+                        </span>
+                        {!isUserActive && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                            Suspended
+                          </span>
+                        )}
+                        {!u.emailVerified && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                            Email unverified
+                          </span>
+                        )}
+                        {u.reportsAgainst !== undefined && u.reportsAgainst > 0 && (
+                          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                            {u.reportsAgainst} fraud report{u.reportsAgainst > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {u.disputesAgainst !== undefined && u.disputesAgainst > 0 && (
+                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+                            {u.disputesAgainst} dispute{u.disputesAgainst > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-charcoal/50">
+                        {u.email} · {u.phone} · verification: {u.verificationStatus}/{u.identityStatus}
                       </p>
-                      <span className="rounded-full bg-charcoal/5 px-2 py-0.5 text-[10px] font-medium capitalize text-charcoal/60">
-                        {u.role}
-                      </span>
-                      {!u.isActive && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
-                          Suspended
-                        </span>
-                      )}
-                      {!u.emailVerified && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                          Email unverified
-                        </span>
-                      )}
-                      {u.reportsAgainst && u.reportsAgainst > 0 && (
-                        <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
-                          {u.reportsAgainst} fraud report{u.reportsAgainst > 1 ? 's' : ''}
-                        </span>
-                      )}
                     </div>
-                    <p className="mt-0.5 text-xs text-charcoal/50">
-                      {u.email} · {u.phone} · verification: {u.verificationStatus}/{u.identityStatus}
-                    </p>
+                    {u.role !== 'admin' &&
+                      (isUserActive ? (
+                        <button
+                          type="button"
+                          onClick={() => setSuspendTarget(u)}
+                          className="rounded border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                        >
+                          Suspend
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={busyId === u._id}
+                          onClick={() => setSuspension(u, false)}
+                          className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          Reinstate
+                        </button>
+                      ))}
                   </div>
-                  {u.role !== 'admin' &&
-                    (u.isActive ? (
-                      <button
-                        type="button"
-                        onClick={() => setSuspendTarget(u)}
-                        className="rounded border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
-                      >
-                        Suspend
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={busyId === u._id}
-                        onClick={() => setSuspension(u, false)}
-                        className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        Reinstate
-                      </button>
-                    ))}
-                </div>
-              ))}
+                )
+              })}
               {filtered.length === 0 && (
                 <div className="px-5 py-10 text-center text-sm text-charcoal/40">No users match.</div>
               )}

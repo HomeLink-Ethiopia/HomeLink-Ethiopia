@@ -358,6 +358,7 @@ const getTickets = async (req, res) => {
                 const tLandlordId = String(t.landlordId?._id || t.landlordId || '');
                 const tPropId = String(t.propertyId?._id || t.propertyId || '');
                 
+                if (role === 'admin') return true;
                 if (role === 'tenant') {
                     if (tTenantId === userId) return true;
                     if (isSeedTenant && (tTenantId === 'mock-user-seed-1' || !tTenantId)) return true;
@@ -394,7 +395,7 @@ const getTickets = async (req, res) => {
             return res.status(200).json({ success: true, data: tickets, requests: tickets });
         }
 
-        const filter = role === 'tenant' ? { tenantId: userId } : { landlordId: userId };
+        const filter = role === 'admin' ? {} : (role === 'tenant' ? { tenantId: userId } : { landlordId: userId });
         const tickets = await MaintenanceRequest.find(filter)
             .populate('propertyId', 'title location')
             .sort({ createdAt: -1 });

@@ -20,12 +20,6 @@ const ROLE_HOME: Record<Role, string> = {
   admin: '/admin/dashboard',
 }
 
-/**
- * Testing-only affordance: lets a developer jump between the three role
- * dashboards using three real seeded accounts (tenant / landlord / admin).
- * The accounts exist in the team's MongoDB, so everything downstream —
- * JWT, role middleware, dashboards — behaves exactly like a real login.
- */
 export default function RoleSwitcher() {
   const { user, login } = useAuth()
   const [open, setOpen] = useState(false)
@@ -66,12 +60,12 @@ export default function RoleSwitcher() {
               <span className="h-4 w-px bg-charcoal/15 mx-0.5" />
               {ROLES.map(({ role, label, email }) => (
                 <button
-                  key={role}
+                  key={email}
                   type="button"
                   disabled={busy !== null}
                   onClick={() => switchTo(role, label, email)}
                   className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
-                    user?.role === role
+                    user?.email === email
                       ? 'bg-rust text-white shadow-sm'
                       : 'text-charcoal/70 hover:bg-sand hover:text-charcoal'
                   }`}

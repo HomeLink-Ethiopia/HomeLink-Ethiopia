@@ -19,12 +19,14 @@ interface Dispute {
   reason: string
   description: string
   status: 'open' | 'under_review' | 'resolved' | 'rejected' | 'withdrawn'
-  filedByRole: string
+  filedByRole?: string
   propertyId?: { title?: string } | null
   filedBy?: { firstName?: string; lastName?: string; email?: string; role?: string }
+  raisedBy?: { firstName?: string; lastName?: string; email?: string; role?: string }
   againstUserId?: { firstName?: string; lastName?: string; email?: string; role?: string }
   resolution?: string
-  thread: ThreadMsg[]
+  outcome?: string
+  thread?: ThreadMsg[]
   createdAt: string
 }
 
@@ -48,17 +50,24 @@ export default function AdminDisputesPage() {
   const [resolution, setResolution] = useState('')
   const [actionError, setActionError] = useState('')
 
-  const getToken = () => localStorage.getItem('hl_token') || ''
+  const getToken = () => localStorage.getItem('hl_token') || localStorage.getItem('homelink-token') || ''
 
   const load = useCallback(async () => {
     try {
       setError('')
-      const res = await fetch(`${API_URL}/api/v1/disputes`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      })
-      if (!res.ok) throw new Error()
-      const json = await res.json()
-      setDisputes(json.data || [])
+      const token = getToken()
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }
+      const res = await fetch(`${API_URL}/api/v1/admin/disputes`, { headers })
+      if (res.ok) {
+        const json = await res.json()
+        setDisputes(json.data || [])
+      } else {
+        const fallbackRes = await fetch(`${API_URL}/api/v1/disputes`, { headers })
+        if (fallbackRes.ok) {
+          const fallbackJson = await fallbackRes.json()
+          setDisputes(fallbackJson.data || [])
+        }
+      }
     } catch {
       setError('Could not load disputes. Is the backend running?')
     } finally {
@@ -143,82 +152,96 @@ export default function AdminDisputesPage() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
             {/* queue */}
             <div className="divide-y divide-charcoal/10 rounded-lg border border-charcoal/10 bg-white">
-              {filtered.map((d) => (
-                <button
-                  key={d._id}
-                  type="button"
-                  onClick={() => setActiveId(d._id)}
-                  className={`w-full p-4 text-left transition-colors ${active?._id === d._id ? 'bg-rust-tint/40' : 'hover:bg-sand/30'}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium capitalize text-charcoal/60">
-                      {d.reason.replace(/_/g, ' ')}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[d.status]}`}>
-                      {d.status.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-sm font-medium text-charcoal">
-                    {d.filedBy?.firstName} {d.filedBy?.lastName} vs {d.againstUserId?.firstName || '—'}
-                  </p>
-                  <p className="truncate text-xs text-charcoal/40">{d.description}</p>
-                </button>
-              ))}
+              {filtered.map((d) => {
+                const claimant = d.filedBy || d.raisedBy
+                const claimantName = claimant ? `${claimant.firstName || ''} ${claimant.lastName || ''}`.trim() || claimant.email : 'Claimant'
+                const respondent = d.againstUserId
+                const respondentName = respondent ? `${respondent.firstName || ''} ${respondent.lastName || ''}`.trim() || respondent.email : 'Respondent'
+
+                return (
+                  <button
+                    key={d._id}
+                    type="button"
+                    onClick={() => setActiveId(d._id)}
+                    className={`w-full p-4 text-left transition-colors ${active?._id === d._id ? 'bg-rust-tint/40' : 'hover:bg-sand/30'}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium capitalize text-charcoal/60">
+                        {d.reason.replace(/_/g, ' ')}
+                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[d.status]}`}>
+                        {d.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-sm font-medium text-charcoal">
+                      {claimantName} vs {respondentName}
+                    </p>
+                    <p className="truncate text-xs text-charcoal/40">{d.description}</p>
+                  </button>
+                )
+              })}
             </div>
 
             {/* detail */}
-            {active && (
-              <div className="rounded-lg border border-charcoal/10 bg-white p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[active.status]}`}>
-                        {active.status.replace(/_/g, ' ')}
-                      </span>
-                      <span className="text-xs capitalize text-charcoal/40">{active.filedByRole} filed</span>
+            {active && (() => {
+              const activeClaimant = active.filedBy || active.raisedBy
+              const activeClaimantName = activeClaimant ? `${activeClaimant.firstName || ''} ${activeClaimant.lastName || ''}`.trim() || activeClaimant.email : 'Claimant'
+              const activeRespondent = active.againstUserId
+              const activeRespondentName = activeRespondent ? `${activeRespondent.firstName || ''} ${activeRespondent.lastName || ''}`.trim() || activeRespondent.email : 'Respondent'
+              const decisionText = active.resolution || active.outcome
+
+              return (
+                <div className="rounded-lg border border-charcoal/10 bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[active.status]}`}>
+                          {active.status.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-xs capitalize text-charcoal/40">{active.filedByRole || activeClaimant?.role || 'User'} filed</span>
+                      </div>
+                      <h2 className="mt-1 font-display text-lg font-semibold capitalize text-charcoal">
+                        {active.reason.replace(/_/g, ' ')}
+                      </h2>
+                      <p className="text-xs text-charcoal/40">
+                        Filed {new Date(active.createdAt).toLocaleString()}
+                      </p>
                     </div>
-                    <h2 className="mt-1 font-display text-lg font-semibold capitalize text-charcoal">
-                      {active.reason.replace(/_/g, ' ')}
-                    </h2>
-                    <p className="text-xs text-charcoal/40">
-                      Filed {new Date(active.createdAt).toLocaleString()}
-                    </p>
                   </div>
-                </div>
 
-                {/* parties */}
-                <div className="mt-4 grid grid-cols-1 gap-3 border-y border-charcoal/10 py-3 sm:grid-cols-2">
-                  <div className="rounded bg-cream p-3">
-                    <p className="text-xs text-charcoal/40">Filed by ({active.filedBy?.role})</p>
-                    <p className="text-sm font-medium text-charcoal">
-                      {active.filedBy?.firstName} {active.filedBy?.lastName}
-                    </p>
-                    <p className="text-xs text-charcoal/50">{active.filedBy?.email}</p>
+                  {/* parties */}
+                  <div className="mt-4 grid grid-cols-1 gap-3 border-y border-charcoal/10 py-3 sm:grid-cols-2">
+                    <div className="rounded bg-cream p-3">
+                      <p className="text-xs text-charcoal/40">Filed by ({activeClaimant?.role || 'Claimant'})</p>
+                      <p className="text-sm font-medium text-charcoal">
+                        {activeClaimantName}
+                      </p>
+                      <p className="text-xs text-charcoal/50">{activeClaimant?.email}</p>
+                    </div>
+                    <div className="rounded bg-cream p-3">
+                      <p className="text-xs text-charcoal/40">Against ({activeRespondent?.role || 'Respondent'})</p>
+                      <p className="text-sm font-medium text-charcoal">
+                        {activeRespondentName}
+                      </p>
+                      <p className="text-xs text-charcoal/50">{activeRespondent?.email}</p>
+                    </div>
                   </div>
-                  <div className="rounded bg-cream p-3">
-                    <p className="text-xs text-charcoal/40">Against ({active.againstUserId?.role || '—'})</p>
-                    <p className="text-sm font-medium text-charcoal">
-                      {active.againstUserId?.firstName} {active.againstUserId?.lastName}
-                    </p>
-                    <p className="text-xs text-charcoal/50">{active.againstUserId?.email}</p>
-                  </div>
-                </div>
 
-                <p className="mt-3 rounded bg-cream p-3 text-sm text-charcoal/80">{active.description}</p>
+                  <p className="mt-3 rounded bg-cream p-3 text-sm text-charcoal/80">{active.description}</p>
 
-                {active.resolution && (
-                  <div className="mt-3 rounded border border-emerald-200 bg-emerald-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Decision</p>
-                    <p className="mt-1 text-sm text-emerald-800">{active.resolution}</p>
-                  </div>
-                )}
+                  {decisionText && (
+                    <div className="mt-3 rounded border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Decision</p>
+                      <p className="mt-1 text-sm text-emerald-800">{decisionText}</p>
+                    </div>
+                  )}
 
                 {/* thread */}
                 <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-charcoal/50">
                   Communication thread
                 </h3>
                 <div className="mt-2 max-h-56 space-y-2 overflow-y-auto">
-                  {active.thread.map((m, i) => (
+                  {(active.thread || []).map((m, i) => (
                     <div key={i} className="rounded bg-cream p-2.5">
                       <p className="text-xs font-medium capitalize text-charcoal">
                         {m.from}{' '}
@@ -232,7 +255,7 @@ export default function AdminDisputesPage() {
                       <p className="mt-0.5 text-sm text-charcoal/70">{m.text}</p>
                     </div>
                   ))}
-                  {active.thread.length === 0 && (
+                  {(!active.thread || active.thread.length === 0) && (
                     <p className="text-xs text-charcoal/40">No messages yet.</p>
                   )}
                 </div>
@@ -291,7 +314,8 @@ export default function AdminDisputesPage() {
                   </p>
                 )}
               </div>
-            )}
+            )
+          })()}
           </div>
         )}
       </main>

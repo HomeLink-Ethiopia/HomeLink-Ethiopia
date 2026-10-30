@@ -10,14 +10,19 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 interface FraudReport {
   _id: string
   reporterId?: { firstName?: string; lastName?: string; email?: string } | string
+  reportedBy?: { firstName?: string; lastName?: string; email?: string } | string
   propertyId?: { title?: string; _id?: string } | string
+  reportedPropertyId?: { title?: string; _id?: string } | string
   reportedUserId?: string
-  reportType: string
+  reportType?: string
+  category?: string
   description?: string
   status: string
   adminNotes?: string
   riskScore?: number
+  aiRiskScore?: number
   riskLevel?: string
+  aiRiskLevel?: string
   aiSignals?: string[]
   createdAt: string
 }
@@ -33,7 +38,9 @@ const STATUS_CLASSES: Record<string, string> = {
 // Model enum (FraudReport.category) + the user-facing names from Sprint 10.
 const TYPE_LABELS: Record<string, string> = {
   fake_listing: 'Fake Property',
+  fake_property: 'Fake Property',
   impersonation: 'Fake Landlord',
+  fake_landlord: 'Fake Landlord',
   scam: 'Scam',
   duplicate_listing: 'Duplicate Listing',
   suspicious_payment: 'Suspicious Payment Request',
@@ -61,12 +68,17 @@ export default function FraudReportsPage() {
   async function fetchReports() {
     try {
       const token = localStorage.getItem('homelink-token') || localStorage.getItem('hl_token')
-      const res = await fetch(`${API_URL}/api/v1/fraud-reports`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }
+      const res = await fetch(`${API_URL}/api/v1/admin/fraud-reports`, { headers })
       if (res.ok) {
         const data = await res.json()
         setReports(data.data || [])
+      } else {
+        const fallbackRes = await fetch(`${API_URL}/api/v1/fraud-reports`, { headers })
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json()
+          setReports(fallbackData.data || [])
+        }
       }
     } catch (e) {
       console.error('Fetch fraud reports error:', e)
@@ -128,12 +140,18 @@ export default function FraudReportsPage() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">
             <div className="divide-y divide-charcoal/10 rounded-lg border border-charcoal/10 bg-white">
               {reports.map(r => {
-                const reporterName = typeof r.reporterId === 'object' && r.reporterId
-                  ? `${r.reporterId.firstName || ''} ${r.reporterId.lastName || ''}`.trim() || r.reporterId.email || 'User'
-                  : 'User'
-                const propertyTitle = typeof r.propertyId === 'object' && r.propertyId
-                  ? r.propertyId.title || 'Property'
-                  : r.propertyId || 'General'
+                const reporter = r.reportedBy || r.reporterId
+                const reporterName = typeof reporter === 'object' && reporter
+                  ? `${reporter.firstName || ''} ${reporter.lastName || ''}`.trim() || reporter.email || 'Tenant'
+                  : 'Tenant'
+                const prop = r.reportedPropertyId || r.propertyId
+                const propertyTitle = typeof prop === 'object' && prop
+                  ? prop.title || 'Property'
+                  : (prop || 'Listing')
+                const reportCat = r.reportType || r.category || 'other'
+                const rScore = r.riskScore ?? (r.aiRiskScore != null ? Math.round(r.aiRiskScore * 100) : undefined)
+                const rLevel = r.riskLevel || r.aiRiskLevel || (rScore != null && rScore >= 60 ? 'HIGH' : rScore != null && rScore >= 30 ? 'MEDIUM' : 'LOW')
+
                 return (
                   <button
                     key={r._id}
@@ -147,10 +165,10 @@ export default function FraudReportsPage() {
                       </svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-charcoal">{TYPE_LABELS[r.reportType] || r.reportType}</p>
+                      <p className="text-sm font-medium text-charcoal">{TYPE_LABELS[reportCat] || reportCat}</p>
                       <p className="truncate text-xs text-charcoal/50">{reporterName} reported {propertyTitle}</p>
                     </div>
-                    <RiskBadge level={r.riskLevel} score={r.riskScore} />
+                    <RiskBadge level={rLevel} score={rScore} />
                     <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_CLASSES[r.status] || 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
                       {r.status.replace(/_/g, ' ')}
                     </span>
@@ -162,32 +180,39 @@ export default function FraudReportsPage() {
             <div className="h-fit rounded-lg border border-charcoal/10 bg-white p-5">
               {!active ? (
                 <p className="text-sm text-charcoal/40">Select a report to view details.</p>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[active.status] || 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
-                      {active.status.replace(/_/g, ' ')}
-                    </span>
-                    <RiskBadge level={active.riskLevel} score={active.riskScore} />
-                  </div>
-                  <h2 className="mt-2 font-display text-lg font-semibold text-charcoal">
-                    {TYPE_LABELS[active.reportType] || active.reportType}
-                  </h2>
-                  <p className="text-xs text-charcoal/40">
-                    Filed {new Date(active.createdAt).toLocaleDateString()}
-                    {typeof active.propertyId === 'object' && active.propertyId?.title ? ` · ${active.propertyId.title}` : ''}
-                  </p>
-                  {active.description && (
-                    <p className="mt-3 text-sm text-charcoal/70">{active.description}</p>
-                  )}
-                  {active.riskScore != null && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-charcoal/50">AI Risk Score:</span>
-                      <span className={`text-sm font-bold ${active.riskScore >= 60 ? 'text-red-600' : active.riskScore >= 30 ? 'text-amber-600' : 'text-green-600'}`}>
-                        {active.riskScore}/100
+              ) : (() => {
+                const activeProp = active.reportedPropertyId || active.propertyId
+                const activePropTitle = typeof activeProp === 'object' && activeProp ? activeProp.title : (activeProp || '')
+                const activeCat = active.reportType || active.category || 'other'
+                const activeScore = active.riskScore ?? (active.aiRiskScore != null ? Math.round(active.aiRiskScore * 100) : undefined)
+                const activeLevel = active.riskLevel || active.aiRiskLevel || (activeScore != null && activeScore >= 60 ? 'HIGH' : activeScore != null && activeScore >= 30 ? 'MEDIUM' : 'LOW')
+
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[active.status] || 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
+                        {active.status.replace(/_/g, ' ')}
                       </span>
+                      <RiskBadge level={activeLevel} score={activeScore} />
                     </div>
-                  )}
+                    <h2 className="mt-2 font-display text-lg font-semibold text-charcoal">
+                      {TYPE_LABELS[activeCat] || activeCat}
+                    </h2>
+                    <p className="text-xs text-charcoal/40">
+                      Filed {new Date(active.createdAt).toLocaleDateString()}
+                      {activePropTitle ? ` · ${activePropTitle}` : ''}
+                    </p>
+                    {active.description && (
+                      <p className="mt-3 text-sm text-charcoal/70">{active.description}</p>
+                    )}
+                    {activeScore != null && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-xs text-charcoal/50">AI Risk Score:</span>
+                        <span className={`text-sm font-bold ${activeScore >= 60 ? 'text-red-600' : activeScore >= 30 ? 'text-amber-600' : 'text-green-600'}`}>
+                          {activeScore}/100
+                        </span>
+                      </div>
+                    )}
                   {active.aiSignals && active.aiSignals.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {active.aiSignals.map(s => (
@@ -241,7 +266,7 @@ export default function FraudReportsPage() {
                     </div>
                   </div>
                 </>
-              )}
+              )})()}
             </div>
           </div>
         )}

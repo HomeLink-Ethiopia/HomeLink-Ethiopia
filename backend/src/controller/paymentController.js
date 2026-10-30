@@ -53,7 +53,46 @@ const generateInvoice = async (req, res) => {
     }
 };
 
+
+/**
+ * Enforce chronological sequential payment ordering for an agreement:
+ * Security deposit must be paid first (if applicable), followed by monthly
+ * rent in chronological order (Month 1 -> Month 2 -> Month 3...).
+ */
+const checkSequentialPaymentPrerequisite = (targetPayment, allPayments) => {
+    if (!targetPayment || !targetPayment.agreementId) return { allowed: true };
+    const agrId = String(targetPayment.agreementId);
+
+    const agrPayments = (allPayments || []).filter(p => String(p.agreementId) === agrId);
+    if (!agrPayments.length) return { allowed: true };
+
+    // Sort chronologically: deposit first, then dueDate ascending
+    agrPayments.sort((a, b) => {
+        const orderA = a.paymentType === 'deposit' ? 0 : 1;
+        const orderB = b.paymentType === 'deposit' ? 0 : 1;
+        if (orderA !== orderB) return orderA - orderB;
+        return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+    });
+
+    // Find the first unpaid invoice for this lease
+    const firstUnpaid = agrPayments.find(p => p.status !== 'paid' && p.status !== 'collected');
+    if (!firstUnpaid) return { allowed: true };
+
+    if (String(firstUnpaid._id) !== String(targetPayment._id)) {
+        const expectedLabel = firstUnpaid.paymentType === 'deposit'
+            ? 'Security Deposit'
+            : (firstUnpaid.periodMonth ? `Rent for ${firstUnpaid.periodMonth}` : 'an earlier invoice');
+        return {
+            allowed: false,
+            message: `Sequential payment required: Please settle ${expectedLabel} first before paying for subsequent periods.`
+        };
+    }
+
+    return { allowed: true };
+};
+
 const recordPayment = async (req, res) => {
+
     try {
         const { id } = req.params;
         const tenantId = req.user.id;
@@ -70,6 +109,11 @@ const recordPayment = async (req, res) => {
         if (isMockMode()) {
             const pay2 = (mockStore.payments || []).find((x) => x._id === id);
             if (!pay2) return res.status(404).json({ message: "Payment not found" });
+
+            const seqCheck = checkSequentialPaymentPrerequisite(pay2, mockStore.payments || []);
+            if (!seqCheck.allowed) {
+                return res.status(400).json({ message: seqCheck.message });
+            }
             
             const isInstant = Boolean(paymentMethod === 'telebirr' || paymentMethod === 'chapa' || req.body.instant);
             pay2.paymentMethod = paymentMethod || "bank_transfer";
@@ -117,6 +161,13 @@ const recordPayment = async (req, res) => {
         }
         const isInstant = Boolean(paymentMethod === 'telebirr' || paymentMethod === 'chapa' || req.body.instant);
         const existing = await TenantPayment.findById(id);
+        if (!existing) return res.status(404).json({ message: "Payment not found" });
+
+        const allAgrPayments = await TenantPayment.find({ agreementId: existing.agreementId });
+        const seqCheckReal = checkSequentialPaymentPrerequisite(existing, allAgrPayments);
+        if (!seqCheckReal.allowed) {
+            return res.status(400).json({ message: seqCheckReal.message });
+        }
         const targetStatus = isInstant ? 'paid' : 'pending';
         const payment = await TenantPayment.findOneAndUpdate(
             { _id: id, tenantId },
@@ -263,6 +314,14 @@ const initializeChapaPayment = async (req, res) => {
         }
 
         if (!payment) return res.status(404).json({ message: "Payment invoice not found" });
+
+        const allPaymentsForAgr = isMockMode()
+            ? (mockStore.payments || [])
+            : await TenantPayment.find({ agreementId: payment.agreementId });
+        const chapaSeqCheck = checkSequentialPaymentPrerequisite(payment, allPaymentsForAgr);
+        if (!chapaSeqCheck.allowed) {
+            return res.status(400).json({ message: chapaSeqCheck.message });
+        }
 
         // Generate a unique transaction reference (e.g. TX-1698765432-mock-pay-1)
         const tx_ref = `TX-${Date.now()}-${payment._id}`;
@@ -433,7 +492,7 @@ const getPayments = async (req, res) => {
                 if (agr.status === 'active') {
                     const tId = String((agr.tenantId && typeof agr.tenantId === 'object' ? agr.tenantId._id : agr.tenantId) || '');
                     const lId = String((agr.landlordId && typeof agr.landlordId === 'object' ? agr.landlordId._id : agr.landlordId) || '');
-                    const belongs = role === 'tenant' ? (tId === userId || isSeedTenant) : (lId === userId || isSeedLandlord);
+                    const belongs = role === 'admin' ? true : (role === 'tenant' ? (tId === userId || isSeedTenant) : (lId === userId || isSeedLandlord));
                     if (belongs) {
                         const hasPayments = (mockStore.payments || []).some(p => String(p.agreementId) === String(agr._id));
                         if (!hasPayments) {
@@ -459,6 +518,14 @@ const getPayments = async (req, res) => {
                 return lId === userId || (isSeedLandlord && (lId === 'mock-landlord-1' || !lId)) || (isTsedeniaLandlord && isAgrTsedeniaLandlord);
             });
 
+            // Sort chronologically: Deposit first, then due date ascending
+            mine.sort((a, b) => {
+                const orderA = a.paymentType === 'deposit' ? 0 : 1;
+                const orderB = b.paymentType === 'deposit' ? 0 : 1;
+                if (orderA !== orderB) return orderA - orderB;
+                return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+            });
+
             // Dynamically mark overdue payments if due date passed and not paid
             mine.forEach(p => {
                 if (p.status === 'pending' && p.dueDate && new Date(p.dueDate) < now) {
@@ -466,13 +533,52 @@ const getPayments = async (req, res) => {
                 }
             });
 
-            const shape2 = (p) => ({
-                ...p,
-                amount: p.amountDue,
-                amountDueEtb: p.amountDue,
-                paidDate: p.paidAt,
-                receiptNumber: p.receiptNumber || (['paid', 'collected'].includes(p.status) ? `RCPT-${String(p._id).slice(-6).toUpperCase()}` : undefined),
-            });
+            const allUsers = Array.from(mockStore.users ? mockStore.users.values() : []);
+            const allProps = mockStore.properties || [];
+            const allAgrs = mockStore.agreements || [];
+
+            const shape2 = (p) => {
+                const agr = allAgrs.find(a => String(a._id) === String(p.agreementId));
+                const propId = String((typeof p.propertyId === 'object' ? p.propertyId?._id : p.propertyId) || (agr && agr.propertyId ? (agr.propertyId._id || agr.propertyId) : ''));
+                const prop = allProps.find(pr => String(pr._id) === propId) || (typeof p.propertyId === 'object' ? p.propertyId : null);
+
+                const tId = String((typeof p.tenantId === 'object' ? p.tenantId?._id : p.tenantId) || (agr && agr.tenantId ? (agr.tenantId._id || agr.tenantId) : ''));
+                const tenant = allUsers.find(u => String(u._id) === tId) || (typeof p.tenantId === 'object' ? p.tenantId : null);
+
+                const lId = String((typeof p.landlordId === 'object' ? p.landlordId?._id : p.landlordId) || (agr && agr.landlordId ? (agr.landlordId._id || agr.landlordId) : ''));
+                const landlord = allUsers.find(u => String(u._id) === lId) || (typeof p.landlordId === 'object' ? p.landlordId : null);
+
+                const amountVal = p.amountDue !== undefined ? p.amountDue : (p.amount || (agr ? agr.rentAmount : 42000));
+
+                return {
+                    ...p,
+                    amount: amountVal,
+                    amountDue: amountVal,
+                    amountDueEtb: amountVal,
+                    paidDate: p.paidAt,
+                    receiptNumber: p.receiptNumber || (['paid', 'collected'].includes(p.status) ? `RCPT-${String(p._id).slice(-6).toUpperCase()}` : undefined),
+                    propertyId: prop ? {
+                        _id: prop._id || propId,
+                        title: prop.title || 'Rental Unit',
+                        location: prop.location || { city: 'Addis Ababa', subCity: 'Bole', neighborhood: 'Bole' },
+                        rentAmount: prop.rentAmount || amountVal
+                    } : p.propertyId,
+                    tenantId: tenant ? {
+                        _id: tenant._id || tId,
+                        firstName: tenant.firstName || 'Tenant',
+                        lastName: tenant.lastName || '',
+                        email: tenant.email || '',
+                        phone: tenant.phone || ''
+                    } : p.tenantId,
+                    landlordId: landlord ? {
+                        _id: landlord._id || lId,
+                        firstName: landlord.firstName || 'Landlord',
+                        lastName: landlord.lastName || '',
+                        email: landlord.email || '',
+                        phone: landlord.phone || ''
+                    } : p.landlordId
+                };
+            };
             return res.status(200).json(mine.map(shape2));
         }
 

@@ -34,7 +34,9 @@ export default function VerificationProgress({ slices }: VerificationProgressDat
     unverified: '#a8a29e',
   }
 
-  const raw: Slice[] = (slices && slices.length > 0 ? slices : FALLBACK).map((s) => ({
+  const isLive = slices !== undefined
+  const source = isLive ? slices : FALLBACK
+  const raw: Slice[] = source.map((s) => ({
     ...s,
     color: COLORS[s.name] || s.color || '#a8a29e',
   }))
@@ -54,7 +56,7 @@ export default function VerificationProgress({ slices }: VerificationProgressDat
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data.length > 0 ? data : FALLBACK}
+                data={data.length > 0 ? data : (isLive ? [{ name: 'None', value: 1, color: '#e5e7eb' }] : FALLBACK)}
                 dataKey="value"
                 nameKey="name"
                 innerRadius="68%"
@@ -63,14 +65,14 @@ export default function VerificationProgress({ slices }: VerificationProgressDat
                 endAngle={-270}
                 stroke="none"
               >
-                {(data.length > 0 ? data : FALLBACK).map((entry) => (
+                {(data.length > 0 ? data : (isLive ? [{ name: 'None', value: 1, color: '#e5e7eb' }] : FALLBACK)).map((entry) => (
                   <Cell key={entry.name} fill={entry.color} />
                 ))}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-display text-2xl font-semibold text-charcoal">{total || VERIFICATION_PROGRESS.total}</span>
+            <span className="font-display text-2xl font-semibold text-charcoal">{isLive ? total : (total || VERIFICATION_PROGRESS.total)}</span>
             <span className="text-xs text-charcoal/50">Total</span>
           </div>
         </motion.div>

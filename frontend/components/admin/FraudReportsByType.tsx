@@ -25,7 +25,9 @@ const TYPE_LABELS: Record<string, string> = {
  * GET /api/v1/admin/analytics) overrides the static demo constants.
  */
 export default function FraudReportsByType({ rows }: { rows?: FraudRow[] }) {
-  const data: FraudRow[] = (rows && rows.length > 0 ? rows : FRAUD_REPORTS_BY_TYPE).map((r) => ({
+  const isLive = rows !== undefined
+  const source = isLive ? rows : FRAUD_REPORTS_BY_TYPE
+  const data: FraudRow[] = source.map((r) => ({
     type: TYPE_LABELS[r.type] || r.type,
     count: r.count,
   }))
@@ -36,20 +38,26 @@ export default function FraudReportsByType({ rows }: { rows?: FraudRow[] }) {
       <h2 className="font-display text-lg font-semibold text-charcoal">Fraud Reports by Type</h2>
 
       <div className="mt-5 space-y-4">
-        {data.map((row, i) => (
-          <div key={row.type} className="flex items-center gap-4">
-            <span className="w-32 shrink-0 text-sm text-charcoal/70">{row.type}</span>
-            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-sand">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(row.count / max) * 100}%` }}
-                transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                className="h-full rounded-full bg-rust"
-              />
-            </div>
-            <span className="w-4 shrink-0 text-right text-sm font-medium text-charcoal">{row.count}</span>
+        {data.length === 0 ? (
+          <div className="py-8 text-center text-sm text-charcoal/50">
+            No open fraud reports recorded.
           </div>
-        ))}
+        ) : (
+          data.map((row, i) => (
+            <div key={row.type} className="flex items-center gap-4">
+              <span className="w-32 shrink-0 text-sm text-charcoal/70">{row.type}</span>
+              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-sand">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(row.count / max) * 100}%` }}
+                  transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  className="h-full rounded-full bg-rust"
+                />
+              </div>
+              <span className="w-4 shrink-0 text-right text-sm font-medium text-charcoal">{row.count}</span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

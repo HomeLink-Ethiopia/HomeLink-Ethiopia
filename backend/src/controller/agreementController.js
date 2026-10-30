@@ -221,6 +221,7 @@ const getAgreements = async (req, res) => {
                 const lId = String((agr.landlordId && typeof agr.landlordId === 'object' ? agr.landlordId._id : agr.landlordId) || '');
                 const isAgrTsedeniaLandlord = lId.includes('1793084104793') || lId.includes('1792917808150') || (agr.landlordId && agr.landlordId.email && (agr.landlordId.email.includes('tsedenia') || agr.landlordId.email.includes('kidstekinfe')));
                 const isAgrTsedeniaTenant = tId.includes('1793083864425') || tId.includes('1792917869104') || (agr.tenantId && agr.tenantId.email && (agr.tenantId.email.includes('kidkinfe') || agr.tenantId.email.includes('tsedenia')));
+                if (role === 'admin') return true;
                 if (role === 'tenant') {
                     return tId === userId || (isSeedTenant && (tId === 'mock-user-seed-1' || !tId)) || (isTsedeniaTenant && isAgrTsedeniaTenant);
                 }
@@ -246,7 +247,7 @@ const getAgreements = async (req, res) => {
         const userId = req.user.id;
         const role = req.user.role;
         
-        const filter = role === 'tenant' ? { tenantId: userId } : { landlordId: userId };
+        const filter = role === 'admin' ? {} : (role === 'tenant' ? { tenantId: userId } : { landlordId: userId });
         const agreements = await RentalAgreement.find(filter)
             .populate('propertyId', 'title location rentAmount images')
             .populate('tenantId', 'firstName lastName email phone')

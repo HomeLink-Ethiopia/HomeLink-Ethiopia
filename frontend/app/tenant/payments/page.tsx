@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import TopBar from '@/components/tenant/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
@@ -83,7 +83,13 @@ export default function PaymentsPage() {
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json()
         const list: Payment[] = Array.isArray(data) ? data : (data.data || data.payments || [])
-        setPayments(list)
+        // Sort chronologically: security deposit first, then rent by dueDate ascending
+        const sorted = [...list].sort((a, b) => {
+          if (a.paymentType === 'deposit' && b.paymentType !== 'deposit') return -1
+          if (a.paymentType !== 'deposit' && b.paymentType === 'deposit') return 1
+          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime()
+        })
+        setPayments(sorted)
       } else if (res.status === 401) {
         setError('Please log in as a tenant to see your payments.')
       } else {
@@ -109,10 +115,42 @@ export default function PaymentsPage() {
     return [loc.neighborhood, loc.subCity, loc.city].filter(Boolean).join(', ')
   }
 
+  // Earliest unpaid invoice per agreement (sequential payment prerequisite)
+  const firstUnpaidByAgreement = useMemo(() => {
+    const map: Record<string, Payment> = {}
+    for (const p of payments) {
+      const isPaid = p.status === 'paid' || p.status === 'collected'
+      if (!isPaid) {
+        const key = p.agreementId || 'default'
+        if (!map[key]) {
+          map[key] = p
+        }
+      }
+    }
+    return map
+  }, [payments])
+
   // Submit payment
   async function handleCompletePayment(e: React.FormEvent) {
     e.preventDefault()
     if (!payingPayment) return
+
+    // Sequential settlement verification
+    const agrKey = payingPayment.agreementId || 'default'
+    const payableTarget = firstUnpaidByAgreement[agrKey]
+    if (payableTarget && payableTarget._id !== payingPayment._id) {
+      setPayModalError(
+        `Sequential payment required: Please settle ${
+          payableTarget.paymentType === 'deposit'
+            ? 'Security Deposit'
+            : payableTarget.periodMonth
+            ? `Rent for ${payableTarget.periodMonth}`
+            : 'earlier invoice'
+        } first before paying for subsequent periods.`
+      )
+      return
+    }
+
     setIsSubmittingPay(true)
     setPayModalError('')
 
@@ -403,6 +441,10 @@ export default function PaymentsPage() {
                 {displayedPayments.map((p) => {
                   const isPaid = p.status === 'paid' || p.status === 'collected'
                   const isOverdue = p.status === 'overdue'
+                  const agrKey = p.agreementId || 'default'
+                  const payableTarget = firstUnpaidByAgreement[agrKey]
+                  const isPayableNow = !isPaid && payableTarget && payableTarget._id === p._id
+                  const isLocked = !isPaid && !isPayableNow
 
                   return (
                     <tr key={p._id} className="transition-colors hover:bg-cream/30">
@@ -459,30 +501,44 @@ export default function PaymentsPage() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                            isPaid
-                              ? 'bg-verified/10 text-verified'
+                        {isLocked ? (
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-charcoal/15 bg-charcoal/5 px-2.5 py-0.5 text-xs font-medium text-charcoal/60">
+                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 text-charcoal/40">
+                                <path fillRule="evenodd" d="M4 5a4 4 0 118 0v2h.5A2.5 2.5 0 0115 9.5v4a2.5 2.5 0 01-2.5 2.5h-9A2.5 2.5 0 011 13.5v-4A2.5 2.5 0 013.5 7H4V5zm2 2h4V5a2 2 0 10-4 0v2z" clipRule="evenodd" />
+                              </svg>
+                              Queued
+                            </span>
+                            <span className="text-[10px] text-charcoal/40 font-mono">
+                              Pay {payableTarget ? (payableTarget.paymentType === 'deposit' ? 'Deposit' : payableTarget.periodMonth) : 'earlier'} first
+                            </span>
+                          </div>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                              isPaid
+                                ? 'bg-verified/10 text-verified'
+                                : isOverdue
+                                ? 'bg-rust/10 text-rust'
+                                : p.proofSubmitted
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-gold/20 text-charcoal'
+                            }`}
+                          >
+                            {isPaid && (
+                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                                <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.4 5.4a.75.75 0 00-1-1L7 8.8 5.6 7.4a.75.75 0 10-1 1l2 2c.3.3.8.3 1 0l3.4-3.4z" />
+                              </svg>
+                            )}
+                            {isPaid
+                              ? 'Paid'
                               : isOverdue
-                              ? 'bg-rust/10 text-rust'
+                              ? 'Overdue'
                               : p.proofSubmitted
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-gold/20 text-charcoal'
-                          }`}
-                        >
-                          {isPaid && (
-                            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
-                              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.4 5.4a.75.75 0 00-1-1L7 8.8 5.6 7.4a.75.75 0 10-1 1l2 2c.3.3.8.3 1 0l3.4-3.4z" />
-                            </svg>
-                          )}
-                          {isPaid
-                            ? 'Paid'
-                            : isOverdue
-                            ? 'Overdue'
-                            : p.proofSubmitted
-                            ? 'Awaiting Verification'
-                            : 'Pending'}
-                        </span>
+                              ? 'Awaiting Verification'
+                              : 'Pending'}
+                          </span>
+                        )}
                       </td>
 
                       <td className="px-5 py-4 text-right">
@@ -497,6 +553,18 @@ export default function PaymentsPage() {
                             </svg>
                             View Receipt
                           </button>
+                        ) : isLocked ? (
+                          <button
+                            type="button"
+                            disabled
+                            title={`Sequential payment required: Settle ${payableTarget ? (payableTarget.paymentType === 'deposit' ? 'Security Deposit' : payableTarget.periodMonth || 'earlier invoice') : 'previous month'} first`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-charcoal/10 bg-charcoal/5 px-3 py-1.5 text-xs font-semibold text-charcoal/40 cursor-not-allowed"
+                          >
+                            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-charcoal/30">
+                              <path fillRule="evenodd" d="M4 5a4 4 0 118 0v2h.5A2.5 2.5 0 0115 9.5v4a2.5 2.5 0 01-2.5 2.5h-9A2.5 2.5 0 011 13.5v-4A2.5 2.5 0 013.5 7H4V5zm2 2h4V5a2 2 0 10-4 0v2z" clipRule="evenodd" />
+                            </svg>
+                            Locked
+                          </button>
                         ) : (
                           <button
                             type="button"
@@ -509,7 +577,7 @@ export default function PaymentsPage() {
                             <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                               <path d="M2.5 3A1.5 1.5 0 001 4.5v7A1.5 1.5 0 002.5 13h11a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0013.5 3h-11zm0 2h11a.5.5 0 01.5.5V6H2v-.5a.5.5 0 01.5-.5zM2 7.5h12v4a.5.5 0 01-.5.5h-11a.5.5 0 01-.5-.5v-4z" />
                             </svg>
-                            Pay Rent
+                            Pay {p.paymentType === 'deposit' ? 'Deposit' : 'Rent'}
                           </button>
                         )}
                       </td>

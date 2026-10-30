@@ -11,9 +11,20 @@ interface ManagedProperty {
   _id: string
   title: string
   rentAmount?: number
+  price?: number
   city?: string
+  subCity?: string
+  location?: {
+    city?: string
+    subCity?: string
+    neighborhood?: string
+    address?: string
+  }
   landlordName?: string
+  landlordEmail?: string
+  landlordId?: any
   verificationStatus?: string
+  verified?: boolean
   listingStatus?: string
   riskLevel?: string
   fraudRiskScore?: number
@@ -109,12 +120,16 @@ export default function AdminPropertiesPage() {
             <div className="divide-y divide-charcoal/10">
               {filtered.map((p) => {
                 const suspended = p.listingStatus === 'suspended'
+                const loc = p.subCity || p.location?.subCity || p.city || p.location?.city || 'Addis Ababa'
+                const landlord = p.landlordName || (p.landlordId && typeof p.landlordId === 'object' ? `${p.landlordId.firstName || ''} ${p.landlordId.lastName || ''}`.trim() : null) || 'Verified Landlord'
+                const rent = Number(p.rentAmount) || Number(p.price) || 0
+                const vStatus = p.verificationStatus || (p.verified ? 'verified' : 'unverified')
                 return (
                   <div key={p._id} className="flex flex-wrap items-center gap-3 px-5 py-4 transition-colors hover:bg-sand/20">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-charcoal">{p.title || 'Untitled'}</p>
                       <p className="mt-0.5 text-xs text-charcoal/50">
-                        {p.city || '—'} · {p.landlordName || 'Unknown landlord'} · ETB {(p.rentAmount || 0).toLocaleString()}/mo
+                        {loc} · {landlord} · ETB {rent.toLocaleString()}/mo
                       </p>
                     </div>
                     {p.riskLevel && (p.fraudRiskScore || 0) > 0 && (
@@ -122,8 +137,8 @@ export default function AdminPropertiesPage() {
                         Risk: {p.riskLevel}
                       </span>
                     )}
-                    <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize ${VERIF_STYLE[p.verificationStatus || 'unverified']}`}>
-                      {p.verificationStatus || 'unverified'}
+                    <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize ${VERIF_STYLE[vStatus] || VERIF_STYLE.unverified}`}>
+                      {vStatus}
                     </span>
                     {suspended && (
                       <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700">

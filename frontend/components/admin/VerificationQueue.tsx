@@ -17,14 +17,14 @@ export interface QueueItem {
   type: string
 }
 
-/**
- * Top of the verification queue, sorted high → medium → low risk.
- * `items` (live rows) overrides the static demo constants; the demo list
- * renders when no live data is passed.
- */
 export default function VerificationQueue({ items }: { items?: QueueItem[] }) {
-  const source = items && items.length > 0 ? items : VERIFICATION_QUEUE
-  const sorted = [...source].sort((a, b) => RISK_ORDER[a.risk] - RISK_ORDER[b.risk])
+  const isLive = items !== undefined
+  const source = isLive ? items : VERIFICATION_QUEUE
+  const sorted = [...source].sort((a, b) => {
+    const orderA = RISK_ORDER[a?.risk] ?? 2
+    const orderB = RISK_ORDER[b?.risk] ?? 2
+    return orderA - orderB
+  })
 
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-5 shadow-stamp">
@@ -36,30 +36,39 @@ export default function VerificationQueue({ items }: { items?: QueueItem[] }) {
       </div>
 
       <div className="mt-3 divide-y divide-charcoal/10">
-        {sorted.map((item, i) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.3 } }}
-            className="flex items-center gap-3 py-3"
-          >
-            <InitialsAvatar name={item.title} size={40} className="bg-sand" />
+        {sorted.length === 0 ? (
+          <div className="py-8 text-center text-sm text-charcoal/50">
+            All landlord and property verifications have been processed. Queue is clear!
+          </div>
+        ) : (
+          sorted.map((item, i) => {
+            const riskKey = item.risk && RISK_LABEL[item.risk] ? item.risk : 'low'
+            return (
+              <motion.div
+                key={item.id ? `${item.id}-${i}` : `q-${i}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.3 } }}
+                className="flex items-center gap-3 py-3"
+              >
+                <InitialsAvatar name={item.title || 'User'} size={40} className="bg-sand" />
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-xs text-charcoal/40">{item.id}</span>
-                <span className="truncate text-sm font-medium text-charcoal">{item.title}</span>
-              </div>
-              <p className="text-xs text-charcoal/50">{item.subtitle}</p>
-            </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-xs text-charcoal/40">{item.id || 'ID'}</span>
+                    <span className="truncate text-sm font-medium text-charcoal">{item.title || 'Verification Request'}</span>
+                  </div>
+                  <p className="text-xs text-charcoal/50">{item.subtitle || 'Pending review'}</p>
+                </div>
 
-            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${RISK_BADGE_CLASS[item.risk]}`}>
-              {RISK_LABEL[item.risk]}
-            </span>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${RISK_BADGE_CLASS[riskKey] || RISK_BADGE_CLASS.low}`}>
+                  {RISK_LABEL[riskKey] || 'Low Risk'}
+                </span>
 
-            <span className="w-16 shrink-0 text-right text-xs text-charcoal/40">{item.timeAgo}</span>
-          </motion.div>
-        ))}
+                <span className="w-16 shrink-0 text-right text-xs text-charcoal/40">{item.timeAgo || 'Pending'}</span>
+              </motion.div>
+            )
+          })
+        )}
       </div>
     </div>
   )

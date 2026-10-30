@@ -20,7 +20,16 @@ const getKPIs = async (req, res) => {
             const rawProfiles = Array.from((mockStore.landlordProfiles || new Map()).values());
             const pendingVerifications = rawProfiles.filter(p => p.verificationStatus === 'pending').length;
             const activeRentals = (mockStore.agreements || []).filter(a => a.status === 'active').length;
+            const totalAgreements = (mockStore.agreements || []).length;
+            const pendingAgreements = (mockStore.agreements || []).filter(a => a.status === 'pending_signatures').length;
             const totalApplications = (mockStore.applications || []).length;
+            const pendingApplications = (mockStore.applications || []).filter(a => ['submitted', 'under_review'].includes(a.status)).length;
+            const tickets = mockStore.maintenanceRequests || mockStore.maintenance || [];
+            const totalMaintenance = tickets.length;
+            const openMaintenance = tickets.filter(m => m.status !== 'resolved').length;
+            const payments = mockStore.payments || [];
+            const totalEscrowHeld = payments.filter(p => p.paymentType === 'deposit' && (p.status === 'paid' || p.status === 'collected')).reduce((s, p) => s + (p.amountPaid || p.amountDue || p.amount || 0), 0);
+            const totalRentSettled = payments.filter(p => p.paymentType === 'rent' && (p.status === 'paid' || p.status === 'collected')).reduce((s, p) => s + (p.amountPaid || p.amountDue || p.amount || 0), 0);
             const openFraudReports = (mockStore.fraudReports || []).filter(f => ['open', 'under_review'].includes(f.status)).length;
             const openDisputes = (mockStore.disputes || []).filter(d => ['open', 'under_review', 'mediation'].includes(d.status)).length;
 
@@ -35,7 +44,14 @@ const getKPIs = async (req, res) => {
                     pendingVerification: pendingVerifications,
                     pendingVerifications,
                     activeRentals,
+                    totalAgreements,
+                    pendingAgreements,
                     totalApplications,
+                    pendingApplications,
+                    totalMaintenance,
+                    openMaintenance,
+                    totalEscrowHeld,
+                    totalRentSettled,
                     fraudReports: openFraudReports,
                     openFraudReports,
                     openDisputes
@@ -95,38 +111,77 @@ const getKPIs = async (req, res) => {
 const getChartData = async (req, res) => {
     try {
         if (isMockMode()) {
+            const properties = mockStore.properties || [];
+            const users = Array.from(mockStore.users.values());
+            const applications = mockStore.applications || [];
+            const fraudReports = mockStore.fraudReports || [];
+            const rawProfiles = Array.from((mockStore.landlordProfiles || new Map()).values());
+            const propVerifs = mockStore.propertyVerifications || [];
+
+            // 1. propertiesByLocation
+            const locMap = new Map();
+            properties.forEach(p => {
+                const city = p.location?.city || 'Addis Ababa';
+                const subCity = p.location?.subCity || 'Bole';
+                const key = `${city}__${subCity}`;
+                locMap.set(key, (locMap.get(key) || { city, subCity, count: 0 }));
+                locMap.get(key).count++;
+            });
+            const propertiesByLocation = Array.from(locMap.values()).map(x => ({
+                _id: { city: x.city, subCity: x.subCity },
+                count: x.count
+            }));
+
+            // 2. usersByRole
+            const roleMap = new Map();
+            users.forEach(u => {
+                const r = u.role || 'tenant';
+                roleMap.set(r, (roleMap.get(r) || 0) + 1);
+            });
+            const usersByRole = Array.from(roleMap.entries()).map(([role, count]) => ({ _id: role, count }));
+
+            // 3. propertiesByPrice
+            const propertiesByPrice = [
+                { _id: 10000, count: properties.filter(p => (Number(p.rentAmount) || Number(p.price) || 0) < 20000).length },
+                { _id: 20000, count: properties.filter(p => { const r = Number(p.rentAmount) || Number(p.price) || 0; return r >= 20000 && r < 40000; }).length },
+                { _id: 40000, count: properties.filter(p => { const r = Number(p.rentAmount) || Number(p.price) || 0; return r >= 40000 && r < 60000; }).length },
+                { _id: 60000, count: properties.filter(p => (Number(p.rentAmount) || Number(p.price) || 0) >= 60000).length }
+            ];
+
+            // 4. verificationStats
+            const verifiedCount = properties.filter(p => p.verificationStatus === 'verified' || p.verified).length + rawProfiles.filter(p => p.verificationStatus === 'verified').length;
+            const pendingCount = properties.filter(p => p.verificationStatus === 'pending').length + rawProfiles.filter(p => p.verificationStatus === 'pending').length + propVerifs.filter(v => v.status === 'submitted' || v.status === 'pending').length;
+            const verificationStats = [
+                { _id: "verified", count: verifiedCount },
+                { _id: "pending", count: pendingCount }
+            ];
+
+            // 5. fraudByCategory
+            const catMap = new Map();
+            fraudReports.forEach(f => {
+                const c = f.category || f.reportType || 'other';
+                catMap.set(c, (catMap.get(c) || 0) + 1);
+            });
+            const fraudByCategory = Array.from(catMap.entries()).map(([cat, count]) => ({ _id: cat, count }));
+
+            // 6. applicationTrends
+            const appTrendMap = new Map();
+            applications.forEach(a => {
+                const m = (a.createdAt || '2026-03').slice(0, 7);
+                appTrendMap.set(m, (appTrendMap.get(m) || 0) + 1);
+            });
+            const applicationTrends = Array.from(appTrendMap.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([m, count]) => ({ _id: m, count }));
+
             return res.status(200).json({
                 data: {
-                    propertiesByLocation: [
-                        { _id: { city: "Addis Ababa", subCity: "Bole" }, count: 5 },
-                        { _id: { city: "Addis Ababa", subCity: "CMC" }, count: 3 },
-                        { _id: { city: "Addis Ababa", subCity: "Kazanchis" }, count: 2 },
-                        { _id: { city: "Addis Ababa", subCity: "Old Airport" }, count: 2 }
-                    ],
-                    usersByRole: [
-                        { _id: "tenant", count: 8 },
-                        { _id: "landlord", count: 3 },
-                        { _id: "admin", count: 2 }
-                    ],
-                    propertiesByPrice: [
-                        { _id: 10000, count: 2 },
-                        { _id: 20000, count: 4 },
-                        { _id: 30000, count: 3 },
-                        { _id: 50000, count: 2 }
-                    ],
-                    verificationStats: [
-                        { _id: "verified", count: 5 },
-                        { _id: "pending", count: 2 }
-                    ],
-                    fraudByCategory: [
-                        { _id: "fake_listing", count: 1 },
-                        { _id: "duplicate_listing", count: 1 }
-                    ],
-                    applicationTrends: [
-                        { _id: "2026-01", count: 4 },
-                        { _id: "2026-02", count: 6 },
-                        { _id: "2026-03", count: 8 }
-                    ]
+                    propertiesByLocation: propertiesByLocation.length ? propertiesByLocation : [{ _id: { city: "Addis Ababa", subCity: "Bole" }, count: properties.length }],
+                    usersByRole,
+                    propertiesByPrice,
+                    verificationStats,
+                    fraudByCategory: fraudByCategory.length ? fraudByCategory : [{ _id: "none", count: 0 }],
+                    applicationTrends: applicationTrends.length ? applicationTrends : [{ _id: "2026-03", count: applications.length }]
                 }
             });
         }
@@ -202,8 +257,76 @@ const getAnalytics = async (req, res) => {
             const totalTenants = users.filter(u => u.role === 'tenant').length;
             const totalAdmins = users.filter(u => u.role === 'admin').length;
             const properties = mockStore.properties || [];
-            const verifiedProperties = properties.filter(p => p.verificationStatus === 'verified').length;
-            const openFraudReports = (mockStore.fraudReports || []).length;
+            const verifiedProperties = properties.filter(p => p.verificationStatus === 'verified' || p.verified).length;
+            const rawProfiles = Array.from((mockStore.landlordProfiles || new Map()).values());
+            const propVerifs = mockStore.propertyVerifications || [];
+            const pendingVerifications = rawProfiles.filter(p => p.verificationStatus === 'pending').length + propVerifs.filter(v => v.status === 'submitted' || v.status === 'pending').length;
+            const openFraudReports = (mockStore.fraudReports || []).filter(f => !f.status || ['open', 'under_review'].includes(f.status)).length;
+            const openDisputes = (mockStore.disputes || []).filter(d => !d.status || ['open', 'under_review', 'mediation'].includes(d.status)).length;
+            const activeRentals = (mockStore.agreements || []).filter(a => a.status === 'active').length;
+            const applications = mockStore.applications || [];
+            const totalApplications = applications.length;
+            const pendingApplications = applications.filter(a => a.status === 'pending').length;
+
+            // Location breakdown
+            const locMap = new Map();
+            properties.forEach(p => {
+                const sc = p.location?.subCity || p.location?.city || 'Addis Ababa';
+                locMap.set(sc, (locMap.get(sc) || 0) + 1);
+            });
+            const propertiesByCity = Array.from(locMap.entries()).map(([label, value]) => ({ label, value }));
+
+            // Role breakdown
+            const usersByRole = [
+                { label: 'tenant', value: totalTenants },
+                { label: 'landlord', value: totalLandlords },
+                { label: 'admin', value: totalAdmins }
+            ];
+
+            // Price brackets
+            const priceMap = { '< 25,000': 0, '25,000 - 50,000': 0, '50,000+': 0 };
+            properties.forEach(p => {
+                const r = Number(p.rentAmount) || Number(p.price) || 0;
+                if (r < 25000) priceMap['< 25,000']++;
+                else if (r <= 50000) priceMap['25,000 - 50,000']++;
+                else priceMap['50,000+']++;
+            });
+            const propertiesByPriceRange = Object.entries(priceMap).map(([label, value]) => ({ label, value }));
+
+            // Verification stats
+            const verificationStats = [
+                { label: 'verified', value: verifiedProperties },
+                { label: 'pending', value: pendingVerifications },
+                { label: 'unverified', value: Math.max(0, properties.length - verifiedProperties - pendingVerifications) }
+            ];
+
+            // Fraud categories
+            const fraudMap = new Map();
+            (mockStore.fraudReports || []).forEach(f => {
+                const cat = f.category || f.reportType || 'other';
+                fraudMap.set(cat, (fraudMap.get(cat) || 0) + 1);
+            });
+            const fraudByType = Array.from(fraudMap.entries()).map(([label, value]) => ({ label, value }));
+
+            // Application trends
+            const appTrendMap = new Map();
+            applications.forEach(a => {
+                const m = (a.createdAt || '2026-03').slice(0, 7);
+                appTrendMap.set(m, (appTrendMap.get(m) || 0) + 1);
+            });
+            const applicationTrend = Array.from(appTrendMap.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([label, value]) => ({ label, value }));
+
+            const totalAgreements = (mockStore.agreements || []).length;
+            const pendingAgreements = (mockStore.agreements || []).filter(a => a.status === 'pending_signatures').length;
+            const tickets = mockStore.maintenanceRequests || mockStore.maintenance || [];
+            const totalMaintenance = tickets.length;
+            const openMaintenance = tickets.filter(m => m.status !== 'resolved').length;
+            const payments = mockStore.payments || [];
+            const totalEscrowHeld = payments.filter(p => p.paymentType === 'deposit' && (p.status === 'paid' || p.status === 'collected')).reduce((s, p) => s + (p.amountPaid || p.amountDue || p.amount || 0), 0);
+            const totalRentSettled = payments.filter(p => p.paymentType === 'rent' && (p.status === 'paid' || p.status === 'collected')).reduce((s, p) => s + (p.amountPaid || p.amountDue || p.amount || 0), 0);
+
             return res.status(200).json({
                 data: {
                     kpis: {
@@ -213,22 +336,28 @@ const getAnalytics = async (req, res) => {
                         totalAdmins,
                         totalProperties: properties.length,
                         verifiedProperties,
-                        pendingVerification: 2,
-                        pendingVerifications: 2,
-                        activeRentals: (mockStore.agreements || []).filter(a => a.status === 'active').length,
-                        totalApplications: (mockStore.applications || []).length,
-                        pendingApplications: (mockStore.applications || []).filter(a => a.status === 'pending').length,
+                        pendingVerification: pendingVerifications,
+                        pendingVerifications,
+                        activeRentals,
+                        totalAgreements,
+                        pendingAgreements,
+                        totalApplications,
+                        pendingApplications,
+                        totalMaintenance,
+                        openMaintenance,
+                        totalEscrowHeld,
+                        totalRentSettled,
                         fraudReports: openFraudReports,
                         openFraudReports,
-                        openDisputes: (mockStore.disputes || []).length
+                        openDisputes
                     },
                     charts: {
-                        propertiesByCity: [{ label: 'Bole', value: 5 }, { label: 'Kazanchis', value: 3 }, { label: 'CMC', value: 3 }],
-                        usersByRole: [{ label: 'tenant', value: 10 }, { label: 'landlord', value: 3 }, { label: 'admin', value: 2 }],
-                        propertiesByPriceRange: [{ label: '10000-25000', value: 4 }, { label: '25000-50000', value: 6 }, { label: '50000+', value: 2 }],
-                        verificationStats: [{ label: 'verified', value: 5 }, { label: 'pending', value: 2 }],
-                        fraudByType: [{ label: 'fake_listing', value: 1 }, { label: 'duplicate_listing', value: 1 }],
-                        applicationTrend: [{ label: '2026-01', value: 6 }, { label: '2026-02', value: 12 }, { label: '2026-03', value: 15 }]
+                        propertiesByCity: propertiesByCity.length ? propertiesByCity : [{ label: 'Bole', value: properties.length }],
+                        usersByRole,
+                        propertiesByPriceRange,
+                        verificationStats,
+                        fraudByType: fraudByType.length ? fraudByType : [{ label: 'fake_listing', value: 0 }],
+                        applicationTrend: applicationTrend.length ? applicationTrend : [{ label: '2026-03', value: totalApplications }]
                     }
                 }
             });

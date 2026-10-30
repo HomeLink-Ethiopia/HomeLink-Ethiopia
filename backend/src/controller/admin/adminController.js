@@ -4,6 +4,10 @@ const FraudReport = require('../../models/FraudReport');
 const LandlordProfile = require('../../models/LandlordProfile');
 const Property = require('../../models/Property');
 const User = require('../../models/User');
+const RentalAgreement = require('../../models/RentalAgreement');
+const Application = require('../../models/Application');
+const MaintenanceRequest = require('../../models/MaintenanceRequest');
+const { STANDARD_RENTAL_TERMS } = require('../../utils/rentalTerms');
 const { isMockMode, mockStore, persistMockData, persistMockUsers, pushMockAudit, mockCreateNotification } = require('../../config/db');
 
 // --- Helper: Create Audit Log ---
@@ -298,19 +302,28 @@ const moderateProperty = async (req, res) => {
 const getAllUsers = async (req, res) => {
     try {
         if (isMockMode()) {
-            const users = Array.from(mockStore.users.values()).map(u => ({
-                _id: u._id,
-                firstName: u.firstName,
-                lastName: u.lastName,
-                email: u.email,
-                phone: u.phone,
-                role: u.role,
-                status: u.status || 'active',
-                identityStatus: u.identityStatus || (u.role === 'admin' ? 'verified' : 'unverified'),
-                verificationStatus: u.verificationStatus || u.identityStatus || (u.role === 'admin' ? 'verified' : 'unverified'),
-                emailVerified: u.emailVerified ?? true,
-                createdAt: u.createdAt || '2026-01-10T00:00:00.000Z'
-            }));
+            const fraudReports = mockStore.fraudReports || [];
+            const disputes = mockStore.disputes || [];
+            const users = Array.from(mockStore.users.values()).map(u => {
+                const reportsAgainst = fraudReports.filter(f => String(f.againstUserId) === String(u._id) || String(f.reportedUserId) === String(u._id)).length;
+                const disputesAgainst = disputes.filter(d => String(d.againstUserId?._id || d.againstUserId) === String(u._id)).length;
+                return {
+                    _id: u._id,
+                    firstName: u.firstName,
+                    lastName: u.lastName,
+                    email: u.email,
+                    phone: u.phone,
+                    role: u.role,
+                    status: u.status || 'active',
+                    isActive: u.status !== 'suspended',
+                    identityStatus: u.identityStatus || (u.role === 'admin' ? 'verified' : 'unverified'),
+                    verificationStatus: u.verificationStatus || u.identityStatus || (u.role === 'admin' ? 'verified' : 'unverified'),
+                    emailVerified: u.emailVerified ?? true,
+                    reportsAgainst,
+                    disputesAgainst,
+                    createdAt: u.createdAt || '2026-01-10T00:00:00.000Z'
+                };
+            });
             return res.status(200).json({ data: users });
         }
 
@@ -326,10 +339,29 @@ const getAllUsers = async (req, res) => {
     }
 };
 
+const { enrichDispute } = require('../disputeController');
+
 const getAllProperties = async (req, res) => {
     try {
         if (isMockMode()) {
-            return res.status(200).json({ data: mockStore.properties || [] });
+            const allUsers = Array.from(mockStore.users ? mockStore.users.values() : []);
+            const allProfiles = mockStore.landlordProfiles ? Array.from(mockStore.landlordProfiles.values()) : [];
+            const mapped = (mockStore.properties || []).map(p => {
+                const lId = String(p.landlordId?._id || p.landlordId || '');
+                const landlord = allUsers.find(u => String(u._id) === lId) || allProfiles.find(lp => String(lp._id) === lId);
+                const landlordName = landlord ? (landlord.legalName || `${landlord.firstName || ''} ${landlord.lastName || ''}`.trim() || landlord.email) : 'HomeLink Landlord';
+                return {
+                    ...p,
+                    city: p.location?.city || 'Addis Ababa',
+                    subCity: p.location?.subCity || '',
+                    neighborhood: p.location?.neighborhood || '',
+                    landlordName,
+                    landlordEmail: landlord?.email || '',
+                    rentAmount: p.rentAmount || p.price || 0,
+                    price: p.rentAmount || p.price || 0
+                };
+            });
+            return res.status(200).json({ data: mapped });
         }
 
         const properties = await Property.find().populate('landlordId', 'firstName lastName email').sort({ createdAt: -1 });
@@ -342,7 +374,43 @@ const getAllProperties = async (req, res) => {
 const getAllFraudReports = async (req, res) => {
     try {
         if (isMockMode()) {
-            return res.status(200).json({ data: mockStore.fraudReports || [] });
+            const allUsers = Array.from(mockStore.users ? mockStore.users.values() : []);
+            const allProps = mockStore.properties || [];
+            const mapped = (mockStore.fraudReports || []).map(f => {
+                const repId = String(f.reportedBy?._id || f.reportedBy || f.reporterId || '');
+                const reporter = allUsers.find(u => String(u._id) === repId) || (typeof f.reportedBy === 'object' ? f.reportedBy : null);
+                const reporterObj = reporter ? {
+                    _id: reporter._id || repId,
+                    firstName: reporter.firstName || 'User',
+                    lastName: reporter.lastName || '',
+                    email: reporter.email || ''
+                } : { firstName: 'Mikias', lastName: 'Bekele', email: 'mikias@example.com' };
+
+                const propId = String(f.reportedPropertyId?._id || f.reportedPropertyId || f.propertyId || '');
+                const prop = allProps.find(p => String(p._id) === propId) || (typeof f.reportedPropertyId === 'object' ? f.reportedPropertyId : null);
+                const propertyObj = prop ? {
+                    _id: prop._id || propId,
+                    title: prop.title || 'Executive Studio in Kazanchis',
+                    address: prop.location ? `${prop.location.neighborhood || ''}, ${prop.location.subCity || ''}` : 'Kazanchis'
+                } : { _id: propId || 'mock-prop', title: 'Listing in Addis Ababa' };
+
+                const cat = f.category || f.reportType || 'duplicate_listing';
+                const score = f.aiRiskScore !== undefined ? (f.aiRiskScore > 1 ? f.aiRiskScore : Math.round(f.aiRiskScore * 100)) : (f.riskScore || 55);
+
+                return {
+                    ...f,
+                    reportedBy: reporterObj,
+                    reporterId: reporterObj,
+                    reportedPropertyId: propertyObj,
+                    propertyId: propertyObj,
+                    category: cat,
+                    reportType: cat,
+                    aiRiskScore: score,
+                    riskScore: score,
+                    riskLevel: f.aiRiskLevel || (score >= 60 ? 'HIGH' : score >= 30 ? 'MEDIUM' : 'LOW')
+                };
+            });
+            return res.status(200).json({ data: mapped });
         }
 
         const reports = await FraudReport.find()
@@ -357,7 +425,8 @@ const getAllFraudReports = async (req, res) => {
 const getAllDisputes = async (req, res) => {
     try {
         if (isMockMode()) {
-            return res.status(200).json({ data: mockStore.disputes || [] });
+            const enriched = (mockStore.disputes || []).map(d => enrichDispute(d));
+            return res.status(200).json({ data: enriched });
         }
 
         const disputes = await Dispute.find()
@@ -385,6 +454,190 @@ const getAllVerifications = async (req, res) => {
     }
 };
 
+const getAllAgreements = async (req, res) => {
+    try {
+        if (isMockMode()) {
+            const allUsers = Array.from(mockStore.users ? mockStore.users.values() : []);
+            const allProps = mockStore.properties || [];
+            const mapped = (mockStore.agreements || []).map((agr) => {
+                const tId = String((typeof agr.tenantId === 'object' ? agr.tenantId?._id : agr.tenantId) || '');
+                const tenantUser = allUsers.find(u => String(u._id) === tId || String(u.id) === tId);
+                const tenantObj = typeof agr.tenantId === 'object' ? agr.tenantId : (tenantUser ? {
+                    _id: tenantUser._id,
+                    firstName: tenantUser.firstName,
+                    lastName: tenantUser.lastName,
+                    email: tenantUser.email,
+                    phone: tenantUser.phone
+                } : { _id: tId, firstName: "Hanna", lastName: "Tesfaye", email: "hanna@example.com" });
+
+                const lId = String((typeof agr.landlordId === 'object' ? agr.landlordId?._id : agr.landlordId) || '');
+                const landlordUser = allUsers.find(u => String(u._id) === lId || String(u.id) === lId);
+                const landlordObj = typeof agr.landlordId === 'object' ? agr.landlordId : (landlordUser ? {
+                    _id: landlordUser._id,
+                    firstName: landlordUser.firstName,
+                    lastName: landlordUser.lastName,
+                    email: landlordUser.email,
+                    phone: landlordUser.phone
+                } : { _id: lId, firstName: "Abebe", lastName: "Kebede", email: "landlord@homelink.test" });
+
+                const pId = String((typeof agr.propertyId === 'object' ? agr.propertyId?._id : agr.propertyId) || '');
+                const prop = allProps.find(p => String(p._id) === pId || String(p.id) === pId);
+                const propObj = typeof agr.propertyId === 'object' ? agr.propertyId : (prop ? {
+                    _id: prop._id,
+                    title: prop.title,
+                    location: prop.location,
+                    rentAmount: prop.rentAmount,
+                    images: prop.images || []
+                } : { _id: pId, title: "Modern Residence" });
+
+                const rentAmt = Number(agr.rentAmount || agr.monthlyRentEtb || (propObj && propObj.rentAmount) || 0);
+                const depositAmt = agr.depositAmount !== undefined ? Number(agr.depositAmount) : rentAmt;
+
+                return {
+                    ...agr,
+                    tenantId: tenantObj,
+                    landlordId: landlordObj,
+                    propertyId: propObj,
+                    rentAmount: rentAmt,
+                    monthlyRentEtb: rentAmt,
+                    depositAmount: depositAmt,
+                    terms: (Array.isArray(agr.terms) && agr.terms.length > 0) ? agr.terms : (STANDARD_RENTAL_TERMS || []),
+                };
+            }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+            return res.status(200).json({ data: mapped });
+        }
+
+        const agreements = await RentalAgreement.find()
+            .populate('propertyId', 'title location rentAmount images')
+            .populate('tenantId', 'firstName lastName email phone')
+            .populate('landlordId', 'firstName lastName email phone')
+            .populate('applicationId')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ data: agreements });
+    } catch (error) {
+        console.error("getAllAgreements error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getAllApplications = async (req, res) => {
+    try {
+        if (isMockMode()) {
+            const allUsers = Array.from(mockStore.users ? mockStore.users.values() : []);
+            const allProps = mockStore.properties || [];
+            const mapped = (mockStore.applications || []).map((app) => {
+                const tId = String((typeof app.tenantId === 'object' ? app.tenantId?._id : app.tenantId) || '');
+                const tenantUser = allUsers.find(u => String(u._id) === tId || String(u.id) === tId);
+                const tenantObj = typeof app.tenantId === 'object' ? app.tenantId : (tenantUser ? {
+                    _id: tenantUser._id,
+                    firstName: tenantUser.firstName,
+                    lastName: tenantUser.lastName,
+                    email: tenantUser.email,
+                    phone: tenantUser.phone
+                } : { firstName: app.fullName || "Applicant", email: app.email, phone: app.phone });
+
+                const lId = String((typeof app.landlordId === 'object' ? app.landlordId?._id : app.landlordId) || '');
+                const landlordUser = allUsers.find(u => String(u._id) === lId || String(u.id) === lId);
+                const landlordObj = typeof app.landlordId === 'object' ? app.landlordId : (landlordUser ? {
+                    _id: landlordUser._id,
+                    firstName: landlordUser.firstName,
+                    lastName: landlordUser.lastName,
+                    email: landlordUser.email
+                } : { firstName: "Landlord" });
+
+                const pId = String((typeof app.propertyId === 'object' ? app.propertyId?._id : app.propertyId) || '');
+                const prop = allProps.find(p => String(p._id) === pId || String(p.id) === pId);
+                const propObj = typeof app.propertyId === 'object' ? app.propertyId : (prop ? {
+                    _id: prop._id,
+                    title: prop.title,
+                    location: prop.location,
+                    rentAmount: prop.rentAmount
+                } : { title: "Rental Property" });
+
+                return {
+                    ...app,
+                    tenantId: tenantObj,
+                    landlordId: landlordObj,
+                    propertyId: propObj,
+                };
+            }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+            return res.status(200).json({ data: mapped });
+        }
+
+        const applications = await Application.find()
+            .populate('propertyId', 'title location rentAmount images')
+            .populate('tenantId', 'firstName lastName email phone')
+            .populate('landlordId', 'firstName lastName email phone')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ data: applications });
+    } catch (error) {
+        console.error("getAllApplications error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getAllMaintenance = async (req, res) => {
+    try {
+        if (isMockMode()) {
+            const allUsers = Array.from(mockStore.users ? mockStore.users.values() : []);
+            const allProps = mockStore.properties || [];
+            const tickets = mockStore.maintenanceRequests || mockStore.maintenance || [];
+            const mapped = tickets.map((m) => {
+                const tId = String((typeof m.tenantId === 'object' ? m.tenantId?._id : m.tenantId) || '');
+                const tenantUser = allUsers.find(u => String(u._id) === tId || String(u.id) === tId);
+                const tenantObj = typeof m.tenantId === 'object' ? m.tenantId : (tenantUser ? {
+                    _id: tenantUser._id,
+                    firstName: tenantUser.firstName,
+                    lastName: tenantUser.lastName,
+                    email: tenantUser.email,
+                    phone: tenantUser.phone
+                } : { firstName: "Tenant", email: "tenant@example.com" });
+
+                const lId = String((typeof m.landlordId === 'object' ? m.landlordId?._id : m.landlordId) || '');
+                const landlordUser = allUsers.find(u => String(u._id) === lId || String(u.id) === lId);
+                const landlordObj = typeof m.landlordId === 'object' ? m.landlordId : (landlordUser ? {
+                    _id: landlordUser._id,
+                    firstName: landlordUser.firstName,
+                    lastName: landlordUser.lastName,
+                    email: landlordUser.email
+                } : { firstName: "Landlord" });
+
+                const pId = String((typeof m.propertyId === 'object' ? m.propertyId?._id : m.propertyId) || '');
+                const prop = allProps.find(p => String(p._id) === pId || String(p.id) === pId);
+                const propObj = typeof m.propertyId === 'object' ? m.propertyId : (prop ? {
+                    _id: prop._id,
+                    title: prop.title,
+                    location: prop.location
+                } : { title: "Property" });
+
+                return {
+                    ...m,
+                    tenantId: tenantObj,
+                    landlordId: landlordObj,
+                    propertyId: propObj,
+                };
+            }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+            return res.status(200).json({ data: mapped });
+        }
+
+        const requests = await MaintenanceRequest.find()
+            .populate('propertyId', 'title location')
+            .populate('tenantId', 'firstName lastName email phone')
+            .populate('landlordId', 'firstName lastName email phone')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ data: requests });
+    } catch (error) {
+        console.error("getAllMaintenance error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 module.exports = {
     getDashboardOverview,
     resolveDispute,
@@ -395,5 +648,8 @@ module.exports = {
     getAllProperties,
     getAllFraudReports,
     getAllDisputes,
-    getAllVerifications
+    getAllVerifications,
+    getAllAgreements,
+    getAllApplications,
+    getAllMaintenance
 };

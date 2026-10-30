@@ -25,6 +25,7 @@ interface Application {
   smokingHabit?: string
   alcoholHabit?: string
   hasPets?: boolean
+  petDetails?: string
   numberOfOccupants?: number
   durationMonths?: number
   previousLandlordName?: string

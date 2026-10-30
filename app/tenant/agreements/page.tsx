@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import TopBar from '@/components/tenant/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/LoadingSkeleton'
@@ -73,7 +74,7 @@ export default function AgreementsPage() {
       })
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json()
-        const list: Agreement[] = data.data || data.agreements || []
+        const list: Agreement[] = Array.isArray(data) ? data : (data.data || data.agreements || [])
         setAgreements(list)
         setSelected(list[0]?._id ?? null)
       } else if (res.status === 401) {
@@ -110,7 +111,7 @@ export default function AgreementsPage() {
               ? {
                   ...a,
                   tenantSigned: true,
-                  status: a.landlordSigned ? 'active' : a.status,
+                  status: 'active',
                 }
               : a
           )
@@ -197,10 +198,24 @@ export default function AgreementsPage() {
                   {propAddress(active) && <p className="text-sm text-charcoal/60">{propAddress(active)}</p>}
                 </div>
                 {active.status === 'active' && (
-                  <span className="flex items-center gap-1 rounded-full bg-verified/10 px-3 py-1 text-xs font-semibold text-verified">
-                    <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.4 5.4a.75.75 0 00-1-1L7 8.8 5.6 7.4a.75.75 0 10-1 1l2 2c.3.3.8.3 1 0l3.4-3.4z"/></svg>
-                    Legally Binding
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href="/tenant/payments"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-rust px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rust-dark"
+                    >
+                      Rent Schedule &amp; Pay →
+                    </Link>
+                    <Link
+                      href={`/tenant/reviews?agreementId=${active._id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-sm transition-colors hover:bg-amber-100"
+                    >
+                      ★ Rate Landlord
+                    </Link>
+                    <span className="flex items-center gap-1 rounded-full bg-verified/10 px-3 py-1 text-xs font-semibold text-verified">
+                      <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.4 5.4a.75.75 0 00-1-1L7 8.8 5.6 7.4a.75.75 0 10-1 1l2 2c.3.3.8.3 1 0l3.4-3.4z"/></svg>
+                      Active Lease
+                    </span>
+                  </div>
                 )}
               </div>
 

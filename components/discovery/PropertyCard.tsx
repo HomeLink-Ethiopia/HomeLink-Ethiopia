@@ -88,14 +88,23 @@ export default function PropertyCard({
         className="block"
         tabIndex={-1}
       >
-      <div className="relative aspect-[4/3] overflow-hidden">
-        <Image
-          src={property.image}
-          alt={`${property.title} in ${property.neighborhood}`}
-          fill
-          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+      <div className="relative aspect-[4/3] overflow-hidden bg-sand/40">
+        {property.image ? (
+          <Image
+            src={property.image}
+            alt={`${property.title} in ${property.neighborhood}`}
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center text-charcoal/40">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-10 w-10 text-rust/60">
+              <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="mt-2 text-xs font-medium text-charcoal/60 capitalize">{property.propertyType || 'Residence'}</span>
+          </div>
+        )}
 
         {property.verified && (
           <span className="absolute left-3 top-3 flex items-center gap-1 rounded bg-verified px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
@@ -145,6 +154,17 @@ export default function PropertyCard({
           </svg>
           {property.neighborhood}, {locale === 'EN' ? 'Addis Ababa' : 'አዲስ አበባ'}
         </p>
+
+        {property.landlordId && (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-charcoal/70">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5 text-rust shrink-0">
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="truncate">
+              Listed by <strong className="font-semibold text-charcoal">{typeof property.landlordId === 'object' && (property.landlordId as any).legalName ? (property.landlordId as any).legalName : 'Verified Landlord'}</strong>
+            </span>
+          </p>
+        )}
 
         <p className="mt-3 font-display text-base font-semibold text-charcoal">
           {formatEtb(property.priceEtb)} <span className="font-sans text-sm font-normal text-charcoal/50">{locale === 'EN' ? '/ month' : '/ ወር'}</span>

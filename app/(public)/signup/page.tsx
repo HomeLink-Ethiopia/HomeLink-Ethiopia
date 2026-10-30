@@ -20,10 +20,8 @@ function SignupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login } = useAuth()
-  const [step, setStep] = useState<'form' | 'otp'>('form')
-  const [emailNotDelivered, setEmailNotDelivered] = useState(false)
-  const [resendNotice, setResendNotice] = useState('')
-  const [role, setRole] = useState<Role>('tenant')
+  const roleParam = searchParams.get('role')
+  const [role, setRole] = useState<Role>(roleParam === 'landlord' || roleParam === 'admin' ? roleParam : 'tenant')
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -33,26 +31,9 @@ function SignupContent() {
     confirmPassword: '',
     agreeToTerms: false,
   })
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [verificationCode, setVerificationCode] = useState('')
 
-  // Login's "Resend verification" redirects here with ?step=otp&email=…
-  // (sprint-otp-on-screen): jump straight to the OTP step for that email.
-  // The user requests a fresh code from this screen — we can't show the old
-  // one because it was never returned to us.
-  useEffect(() => {
-    if (searchParams.get('step') === 'otp') {
-      const emailParam = searchParams.get('email')
-      if (emailParam) {
-        setFormData((f) => ({ ...f, email: emailParam }))
-        setStep('otp')
-        setResendNotice("Click \u201CResend code\u201D below \u2014 the new code will appear right here on screen.")
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
   const [passwordStrength, setPasswordStrength] = useState<{
     score: number
     message: string
@@ -121,215 +102,18 @@ function SignupContent() {
         return
       }
 
-      // The account is saved in MongoDB at this point. When Resend could not
-      // deliver (free tier only reaches @resend.dev), the backend still
-      // returns the code for development — show it instead of a scary error.
-      // Mock mode returns it as `verificationCode`; MongoDB mode as
-      // `devVerificationCode` (sprint-otp-on-screen).
-      // Registration successful! The backend auto-verifies the email now.
-      // Log the user straight into their dashboard.
-      const loginResult = await login(formData.email, formData.password)
+      // Immediately log the user in and route to their dashboard
+      const redirectParam = searchParams.get('redirect')
+      const targetDashboard = role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard'
+      const loginResult = await login(formData.email, formData.password, redirectParam || targetDashboard)
       if (!loginResult.success) {
-        // Auto-login failed (rare) — fall back to the login page as before.
-        router.push('/login?verified=true')
+        router.push(redirectParam || targetDashboard)
       }
     } catch (err) {
       setError('Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`)
-      nextInput?.focus()
-    }
-  }
-
-  const handleVerifyOtp = async () => {
-    const otpCode = otp.join('')
-    if (otpCode.length !== 6) {
-      setError('Please enter the complete 6-digit code')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
-    try {
-      const response = await fetch(`${API_URL}/api/auth/verify-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, code: otpCode }),
-      })
-
-      const data = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        setError(data.message || 'Invalid verification code')
-        setLoading(false)
-        return
-      }
-
-      // Verified! Log the user straight into their dashboard.
-      const loginResult = await login(formData.email, formData.password)
-      if (!loginResult.success) {
-        // Auto-login failed (rare) — fall back to the login page as before.
-        router.push('/login?verified=true')
-      }
-    } catch (err) {
-      setError('Verification failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResendCode = async () => {
-    setError('')
-    try {
-      const response = await fetch(`${API_URL}/api/auth/resend-email-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        setError(data.message || 'Failed to resend code')
-      } else {
-        const code = data.devVerificationCode || data.verificationCode || ''
-        if (code) {
-          setVerificationCode(code)
-          setOtp(code.split(''))
-        }
-        setResendNotice(data.message || 'New verification code sent!')
-      }
-    } catch {
-      setError('Failed to resend code')
-    }
-  }
-
-  // OTP Verification Step
-  if (step === 'otp') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-cream px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <Logo className="mx-auto justify-center" />
-          </div>
-
-          <div className="rounded-xl border border-charcoal/10 bg-white p-8 shadow-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-8 w-8 text-green-600">
-                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            
-            <h1 className="mt-4 text-center font-display text-2xl font-bold text-charcoal">Check Your Email</h1>
-            <p className="mt-2 text-center text-sm text-charcoal/60">
-              We sent a 6-digit verification code to
-            </p>
-            <p className="mt-1 text-center font-semibold text-charcoal">{formData.email}</p>
-            
-            <div className={`mt-4 rounded-lg border p-3 ${emailNotDelivered ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-              {emailNotDelivered ? (
-                <>
-                  <p className="text-center text-sm text-amber-700">
-                    Your account has been created, but email delivery is temporarily unavailable.
-                  </p>
-                  <p className="mt-1 text-center text-xs text-amber-600">
-                    Use the code below to finish verification. You can request a new code anytime.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-center text-sm text-green-700">
-                    A verification code has been sent to your email.
-                  </p>
-                  <p className="mt-1 text-center text-xs text-green-600">
-                    Check your inbox and spam folder for the 6-digit code.
-                  </p>
-                </>
-              )}
-            </div>
-            {verificationCode && (
-              <div 
-                className="mt-3 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-3 cursor-pointer hover:bg-blue-100 transition-colors"
-                onClick={() => {
-                  const newOtp = verificationCode.split('')
-                  setOtp(newOtp)
-                  const lastInput = document.getElementById(`otp-${newOtp.length - 1}`)
-                  lastInput?.focus()
-                }}
-              >
-                <p className="text-center text-xs text-blue-500 mb-1">Development code (click to auto-fill):</p>
-                <p className="text-center text-2xl font-bold tracking-[8px] text-blue-700 font-mono">{verificationCode}</p>
-              </div>
-            )}
-
-            {resendNotice && (
-              <p className="mt-3 text-center text-xs text-green-700">{resendNotice}</p>
-            )}
-
-            {error && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-center gap-2">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-${index}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-                      const prevInput = document.getElementById(`otp-${index - 1}`)
-                      prevInput?.focus()
-                    }
-                  }}
-                  className="h-12 w-12 rounded-lg border-2 border-charcoal/20 text-center text-xl font-bold text-charcoal transition-colors focus:border-rust focus:outline-none focus:ring-2 focus:ring-rust/20"
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={handleVerifyOtp}
-              disabled={loading || otp.some(d => !d)}
-              className="mt-6 w-full rounded-lg bg-rust px-4 py-3 font-semibold text-white transition-colors hover:bg-rust-dark disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Verifying...' : 'Verify Email'}
-            </button>
-
-            <button
-              onClick={() => setStep('form')}
-              className="mt-3 w-full text-sm font-medium text-charcoal/60 hover:text-charcoal transition-colors"
-            >
-              Change email address
-            </button>
-
-            <p className="mt-6 text-center text-xs text-charcoal/50">
-              Didn&apos;t receive the code?{' '}
-              <button 
-                onClick={handleResendCode}
-                className="font-semibold text-rust hover:text-rust-dark"
-              >
-                Resend code
-              </button>
-            </p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   // Registration Form Step

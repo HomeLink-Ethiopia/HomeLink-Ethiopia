@@ -51,31 +51,14 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   } else {
-    // Marketing/Public routes
-    const PUBLIC_PAGES = [
-      '/',
-      '/explore',
-      '/about',
-      '/how-it-works',
-      '/for-landlords',
-      '/get-started',
-      '/list-property',
-      '/support',
-      '/login',
-      '/signup',
-      '/forgot-password',
-      '/reset-password',
-      '/verify-email'
-    ]
-
-    // We also want to redirect if the exact route matches or if it's the root public area,
-    // but allow property details (/property/[id]) to be accessed.
-    const isPublicAuthPage =
-      PUBLIC_PAGES.includes(pathname) ||
+    // Only redirect if a logged-in user tries to visit guest auth pages (/login, /signup, etc.)
+    const isGuestAuthPage =
       pathname.startsWith('/login') ||
-      pathname.startsWith('/signup')
+      pathname.startsWith('/signup') ||
+      pathname === '/forgot-password' ||
+      pathname === '/reset-password'
 
-    if (sessionRole && isPublicAuthPage) {
+    if (sessionRole && isGuestAuthPage) {
       if (sessionRole === 'tenant') return NextResponse.redirect(new URL('/tenant/dashboard', request.url))
       if (sessionRole === 'landlord') return NextResponse.redirect(new URL('/landlord/dashboard', request.url))
       if (sessionRole === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url))

@@ -17,14 +17,17 @@ router.post('/', authMiddleware, documentUpload.array('media', 3), sendMessage);
 
 // Get the user's conversation inbox
 router.get('/', authMiddleware, getConversations);
-
-// Get the message history for a specific conversation
-router.get('/:conversationId/messages', authMiddleware, getMessages);
-
-// Mark a conversation's messages as read
-router.put('/:conversationId/read', authMiddleware, markAsRead);
+router.get('/conversations', authMiddleware, getConversations);
 
 // Get global unread message count
 router.get('/unread/count', authMiddleware, getUnreadCount);
+
+// Get the message history for a specific conversation
+router.get('/:conversationId/messages', authMiddleware, getMessages);
+router.get('/:conversationId', authMiddleware, getMessages);
+
+// Mark a conversation's messages as read
+router.put('/:conversationId/read', authMiddleware, markAsRead);
+router.patch('/:conversationId/read', authMiddleware, markAsRead);
 
 module.exports = router;

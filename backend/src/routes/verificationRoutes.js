@@ -9,6 +9,7 @@ const {
     getVerificationStatus,
     getPendingVerifications,
     reviewVerification,
+    reviewLandlordVerification,
     getVerificationDetails
 } = require('../controller/verificationController');
 
@@ -40,6 +41,13 @@ router.get(
     authMiddleware,
     roleMiddleware('admin'),
     getPendingVerifications
+);
+
+router.put(
+    '/landlord/:id/review',
+    authMiddleware,
+    roleMiddleware('admin'),
+    reviewLandlordVerification
 );
 
 router.put(

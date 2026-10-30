@@ -20,14 +20,14 @@ const aiService = require("../services/aiService");
  */
 async function estimateRent(req, res) {
   try {
-    const { subcity, bedrooms, bathrooms, area_sqm, has_water_tank, has_generator, is_furnished } = req.body;
+    const subcity = req.body.subcity || req.body.subCity || (req.body.location && req.body.location.subCity) || "Bole";
+    const bedrooms = req.body.bedrooms != null ? Number(req.body.bedrooms) : 2;
+    const bathrooms = req.body.bathrooms != null ? Number(req.body.bathrooms) : 1;
+    const area_sqm = req.body.area_sqm || req.body.sizeM2 || req.body.area || 85;
+    const has_water_tank = req.body.has_water_tank != null ? Boolean(req.body.has_water_tank) : (Array.isArray(req.body.amenities) && req.body.amenities.includes("water_tank"));
+    const has_generator = req.body.has_generator != null ? Boolean(req.body.has_generator) : (Array.isArray(req.body.amenities) && req.body.amenities.includes("generator"));
+    const is_furnished = req.body.is_furnished != null ? Boolean(req.body.is_furnished) : Boolean(req.body.furnished);
 
-    // Basic validation
-    if (!subcity || bedrooms == null || bathrooms == null || area_sqm == null) {
-      return res.status(400).json({
-        error: "Missing required fields: subcity, bedrooms, bathrooms, area_sqm",
-      });
-    }
     if (area_sqm <= 0) {
       return res.status(400).json({ error: "area_sqm must be greater than 0" });
     }
@@ -65,13 +65,14 @@ async function estimateRent(req, res) {
  */
 async function detectFraud(req, res) {
   try {
-    const { listing_id, price_etb, bedrooms, bathrooms, area_sqm, subcity, description, contact_info } = req.body;
-
-    if (!listing_id || price_etb == null || bedrooms == null || bathrooms == null || area_sqm == null || !subcity) {
-      return res.status(400).json({
-        error: "Missing required fields: listing_id, price_etb, bedrooms, bathrooms, area_sqm, subcity",
-      });
-    }
+    const listing_id = req.body.listing_id || req.body.propertyId || req.body._id || "prop-unknown";
+    const price_etb = req.body.price_etb != null ? Number(req.body.price_etb) : Number(req.body.rentAmount || req.body.price || 30000);
+    const bedrooms = req.body.bedrooms != null ? Number(req.body.bedrooms) : 2;
+    const bathrooms = req.body.bathrooms != null ? Number(req.body.bathrooms) : 1;
+    const area_sqm = req.body.area_sqm || req.body.sizeM2 || req.body.area || 85;
+    const subcity = req.body.subcity || req.body.subCity || (req.body.location && req.body.location.subCity) || "Bole";
+    const description = req.body.description || "";
+    const contact_info = req.body.contact_info || req.body.phone || "";
 
     const result = await aiService.detectFraud({
       listing_id,
@@ -80,8 +81,8 @@ async function detectFraud(req, res) {
       bathrooms: Number(bathrooms),
       area_sqm: Number(area_sqm),
       subcity,
-      description: description || "",
-      contact_info: contact_info || "",
+      description,
+      contact_info,
     });
 
     return res.json(result);
@@ -100,6 +101,7 @@ async function detectFraud(req, res) {
 
 /**
  * POST /api/ai/recommend
+ * POST /api/ai/match
  *
  * Body:
  *   { max_budget_etb, preferred_subcities[], min_bedrooms?,
@@ -107,30 +109,24 @@ async function detectFraud(req, res) {
  */
 async function getRecommendations(req, res) {
   try {
-    const {
-      max_budget_etb,
+    const max_budget_etb = req.body.max_budget_etb || req.body.budget || req.body.maxBudget || 60000;
+    let preferred_subcities = req.body.preferred_subcities || req.body.subcities || (req.body.subCity ? [req.body.subCity] : (req.body.location ? [req.body.location] : ["Bole"]));
+    if (!Array.isArray(preferred_subcities)) preferred_subcities = [preferred_subcities];
+
+    const min_bedrooms = req.body.min_bedrooms != null ? Number(req.body.min_bedrooms) : (req.body.bedrooms ? Number(req.body.bedrooms) : 1);
+    const min_bathrooms = req.body.min_bathrooms != null ? Number(req.body.min_bathrooms) : (req.body.bathrooms ? Number(req.body.bathrooms) : 1);
+    const require_furnished = req.body.require_furnished != null ? Boolean(req.body.require_furnished) : Boolean(req.body.furnished);
+    const limit = req.body.limit != null ? Number(req.body.limit) : 5;
+    const candidate_properties = req.body.candidate_properties || undefined;
+
+    const result = await aiService.getRecommendations({
+      max_budget_etb: Number(max_budget_etb),
       preferred_subcities,
       min_bedrooms,
       min_bathrooms,
       require_furnished,
       limit,
       candidate_properties,
-    } = req.body;
-
-    if (!max_budget_etb || !preferred_subcities || !Array.isArray(preferred_subcities) || preferred_subcities.length === 0) {
-      return res.status(400).json({
-        error: "Missing required fields: max_budget_etb, preferred_subcities (non-empty array)",
-      });
-    }
-
-    const result = await aiService.getRecommendations({
-      max_budget_etb: Number(max_budget_etb),
-      preferred_subcities,
-      min_bedrooms: min_bedrooms != null ? Number(min_bedrooms) : 1,
-      min_bathrooms: min_bathrooms != null ? Number(min_bathrooms) : 1,
-      require_furnished: Boolean(require_furnished),
-      limit: limit != null ? Number(limit) : 5,
-      candidate_properties: candidate_properties || undefined,
     });
 
     return res.json(result);

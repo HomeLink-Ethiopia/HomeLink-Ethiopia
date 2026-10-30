@@ -13,30 +13,23 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const justVerified = searchParams.get('verified') === 'true'
+  const redirectUrl = searchParams.get('redirect')
+
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [needsVerification, setNeedsVerification] = useState(false)
-  const [resending, setResending] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setNeedsVerification(false)
     setLoading(true)
 
     try {
-      const result = await login(email, password)
-      
+      const result = await login(email, password, redirectUrl || undefined)
       if (!result.success) {
-        if (result.requiresVerification) {
-          setNeedsVerification(true)
-          setError(result.error || 'Please verify your email before logging in.')
-        } else {
-          setError(result.error || 'Login failed. Please try again.')
-        }
+        setError(result.error || 'Invalid email or password.')
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.')
@@ -45,24 +38,20 @@ function LoginForm() {
     }
   }
 
-  const handleResendVerification = async () => {
-    setResending(true)
+  const handleDevLogin = async (devEmail: string) => {
+    setEmail(devEmail)
+    setPassword('Password123!')
+    setError('')
+    setLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/auth/resend-email-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const data = await response.json()
-      if (response.ok) {
-        router.push(`/signup?step=otp&email=${encodeURIComponent(email)}`)
-      } else {
-        setError(data.message || 'Failed to resend code')
+      const result = await login(devEmail, 'Password123!', redirectUrl || undefined)
+      if (!result.success) {
+        setError(result.error || 'Dev login failed.')
       }
     } catch {
-      setError('Failed to resend verification code')
+      setError('Dev login failed.')
     } finally {
-      setResending(false)
+      setLoading(false)
     }
   }
 
@@ -74,7 +63,7 @@ function LoginForm() {
         </div>
 
         <div className="rounded-xl border border-charcoal/10 bg-white p-8 shadow-sm">
-          <h1 className="font-display text-2xl font-bold text-charcoal">Welcome Back</h1>
+          <h1 className="font-display text-2xl font-bold text-charcoal">Sign In</h1>
           <p className="mt-2 text-sm text-charcoal/60">Sign in to your account to continue</p>
 
           {justVerified && (
@@ -84,20 +73,8 @@ function LoginForm() {
           )}
 
           {error && (
-            <div className={`mt-4 rounded-lg border p-3 text-sm ${needsVerification ? 'border-yellow-200 bg-yellow-50 text-yellow-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
-              {needsVerification && (
-                <div className="mt-3 space-y-2">
-                  <button
-                    onClick={handleResendVerification}
-                    disabled={resending}
-                    className="w-full rounded-lg bg-rust px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rust-dark disabled:opacity-50"
-                  >
-                    {resending ? 'Sending...' : '📧 Get New Verification Code'}
-                  </button>
-                  <p className="text-xs text-yellow-600">Check your email inbox (and spam folder) for the code.</p>
-                </div>
-              )}
             </div>
           )}
 
@@ -147,8 +124,49 @@ function LoginForm() {
 
           <p className="mt-6 text-center text-sm text-charcoal/60">
             Don&apos;t have an account?{' '}
-            <a href="/signup" className="font-semibold text-rust hover:text-rust-dark transition-colors">Create one</a>
+            <a
+              href={`/signup${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+              className="font-semibold text-rust hover:text-rust-dark transition-colors"
+            >
+              Create one
+            </a>
           </p>
+
+          {/* Dev Quick Login for testing without typing */}
+          <div className="mt-6 border-t border-charcoal/10 pt-4">
+            <div className="mb-2.5 flex items-center justify-between">
+              <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-charcoal/45">
+                ⚡ Dev Quick Login
+              </span>
+              <span className="font-mono text-[10px] text-charcoal/35">1-click test login</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleDevLogin('dev.tenant@homelink.test')}
+                disabled={loading}
+                className="rounded-lg border border-charcoal/15 bg-sand/30 py-2 text-center text-xs font-semibold text-charcoal transition-all hover:border-rust hover:bg-white hover:text-rust disabled:opacity-50"
+              >
+                Tenant
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDevLogin('dev.landlord@homelink.test')}
+                disabled={loading}
+                className="rounded-lg border border-charcoal/15 bg-sand/30 py-2 text-center text-xs font-semibold text-charcoal transition-all hover:border-rust hover:bg-white hover:text-rust disabled:opacity-50"
+              >
+                Landlord
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDevLogin('dev.admin@homelink.test')}
+                disabled={loading}
+                className="rounded-lg border border-charcoal/15 bg-sand/30 py-2 text-center text-xs font-semibold text-charcoal transition-all hover:border-rust hover:bg-white hover:text-rust disabled:opacity-50"
+              >
+                Admin
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

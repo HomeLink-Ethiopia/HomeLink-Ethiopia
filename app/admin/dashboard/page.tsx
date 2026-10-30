@@ -41,7 +41,7 @@ interface AnalyticsCharts {
 
 const CONTROLS = [
   { href: '/admin/users', label: 'Manage Users', desc: 'Suspend or reinstate accounts', icon: 'M10 9a3 3 0 100-6 3 3 0 000 6zM3 18a7 7 0 0114 0M17.5 12a3 3 0 100-6M14 18a5.5 5.5 0 017 0' },
-  { href: '/admin/verification-queue', label: 'Review Verification', desc: 'Landlord identity & property documents', icon: 'M9 12l2 2 4-4M10 3h4l5 5v9a2 2 0 01-2 2H7a2 2 0 01-2-2V8l5-5z' },
+  { href: '/admin/landlord-verification', label: 'Review Verification', desc: 'Landlord identity & background documents', icon: 'M9 12l2 2 4-4M10 3h4l5 5v9a2 2 0 01-2 2H7a2 2 0 01-2-2V8l5-5z' },
   { href: '/admin/fraud-reports', label: 'Review Fraud', desc: 'AI risk triage — admin decides', icon: 'M10 2l8 4v5c0 4.4-3.4 7.8-8 9-4.6-1.2-8-4.6-8-9V6l8-4zM10 6v4M10 12.5v.1' },
   { href: '/admin/disputes', label: 'Review Disputes', desc: 'Investigate, mediate, resolve', icon: 'M10 2v14M5 5l-3 5.5a2.5 2.5 0 005 0L5 5zM15 5l-3 5.5a2.5 2.5 0 005 0L15 5zM5 5h10M6 18h8' },
   { href: '/admin/properties', label: 'Manage Properties', desc: 'Suspend suspicious listings', icon: 'M3 10l7-7 7 7v8a1 1 0 01-1 1h-4v-5H8v5H4a1 1 0 01-1-1v-8z' },
@@ -69,14 +69,22 @@ export default function AdminDashboardPage() {
       const charts: AnalyticsCharts | undefined = json.data?.charts
       if (k) {
         setStats(k)
+        const pendingVerif = (k as any).pendingVerification ?? (k as any).pendingVerifications ?? 0
+        const openFraud = (k as any).fraudReports ?? (k as any).openFraudReports ?? 0
+        const openDisp = (k as any).openDisputes ?? (k as any).activeDisputes ?? 0
+        const totalProps = (k as any).totalProperties ?? 0
+        const verifiedProps = (k as any).verifiedProperties ?? 0
+        const totalApps = (k as any).totalApplications ?? 0
+        const activeRents = (k as any).activeRentals ?? 0
+
         setKpis([
-          { label: 'Pending Verification', value: String(k.pendingVerification), deltaLabel: `${k.totalProperties} listings`, deltaDirection: 'up' },
-          { label: 'Open Fraud Reports', value: String(k.fraudReports), deltaLabel: `${k.totalApplications} applications`, deltaDirection: k.fraudReports > 0 ? 'up' : 'down' },
-          { label: 'Active Disputes', value: String(k.openDisputes), deltaLabel: `${k.activeRentals} active rentals`, deltaDirection: k.openDisputes > 0 ? 'up' : 'down' },
+          { label: 'Pending Verification', value: String(pendingVerif), deltaLabel: `${totalProps} listings`, deltaDirection: 'up' },
+          { label: 'Open Fraud Reports', value: String(openFraud), deltaLabel: `${totalApps} applications`, deltaDirection: openFraud > 0 ? 'up' : 'down' },
+          { label: 'Active Disputes', value: String(openDisp), deltaLabel: `${activeRents} active rentals`, deltaDirection: openDisp > 0 ? 'up' : 'down' },
           {
             label: 'Verification Rate',
-            value: k.totalProperties > 0 ? `${Math.round((k.verifiedProperties / k.totalProperties) * 100)}%` : '0%',
-            deltaLabel: `${k.verifiedProperties}/${k.totalProperties} verified`,
+            value: totalProps > 0 ? `${Math.round((verifiedProps / totalProps) * 100)}%` : '100%',
+            deltaLabel: `${verifiedProps}/${totalProps} verified`,
             deltaDirection: 'up',
           },
         ])

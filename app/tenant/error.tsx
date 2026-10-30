@@ -19,9 +19,19 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
+    // If it's a known transient leaflet unmount race condition, immediately recover
+    if (
+      error.message?.includes("reading '_leaflet_pos'") ||
+      error.message?.includes('_getMapPanePos')
+    ) {
+      try {
+        reset()
+        return
+      } catch {}
+    }
     // Surface for observability without crashing the tree again
     console.error('[role-error-boundary]', error.message)
-  }, [error])
+  }, [error, reset])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-6">

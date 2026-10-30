@@ -1,3 +1,4 @@
+# HomeLink Express Backend API
 FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./

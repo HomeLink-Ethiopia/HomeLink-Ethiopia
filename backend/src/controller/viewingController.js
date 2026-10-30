@@ -2,7 +2,7 @@ const Viewing = require('../models/Viewing');
 const Property = require('../models/Property');
 const LandlordProfile = require('../models/LandlordProfile');
 const Notification = require('../models/Notification');
-const { isMockMode, mockStore } = require('../config/db');
+const { isMockMode, mockStore, persistMockData } = require('../config/db');
 
 const createNotification = async (userId, type, title, body, entityType, entityId) => {
     try {
@@ -54,6 +54,7 @@ const requestViewing = async (req, res) => {
                 createdAt: new Date().toISOString()
             };
             mockStore.viewings.unshift(viewing);
+            if (typeof persistMockData === 'function') persistMockData();
             return res.status(201).json({
                 message: "Viewing requested successfully",
                 viewing,
@@ -103,10 +104,40 @@ const getTenantViewings = async (req, res) => {
     try {
         if (isMockMode()) {
             if (!mockStore.viewings) mockStore.viewings = [];
-            let list = mockStore.viewings.filter(v => String(v.tenantId) === String(req.user.id));
-            if (list.length === 0 && mockStore.viewings.length > 0) {
-                list = mockStore.viewings.map(v => ({ ...v, tenantId: req.user.id }));
+            const currentUserId = String(req.user?.id || req.user?.userId || "");
+            const userEmail = String(req.user?.email || "").toLowerCase();
+            const isSeedTenant = userEmail === 'dev.tenant@homelink.test' || currentUserId === 'mock-user-seed-1';
+
+            // Only seed demo viewing if mockStore is completely empty AND user is explicitly the dev seed tenant
+            if (mockStore.viewings.length === 0 && isSeedTenant) {
+                mockStore.viewings = [
+                    {
+                        _id: "viewing-mock-1",
+                        propertyId: {
+                            _id: "prop-1",
+                            title: "Luxury 2 Bedroom Apartment in Bole",
+                            location: { city: "Addis Ababa", subCity: "Bole" },
+                            rentAmount: 35000,
+                            images: ["/homes/modern-villa.png"]
+                        },
+                        tenantId: "mock-user-seed-1",
+                        landlordId: "mock-landlord-1",
+                        date: "2026-10-30T10:00:00Z",
+                        requestedSlots: ["2026-10-30T10:00:00Z"],
+                        confirmedSlot: "2026-10-30T10:00:00Z",
+                        status: "confirmed",
+                        tenantNote: "Looking forward to seeing the property.",
+                        createdAt: new Date().toISOString()
+                    }
+                ];
             }
+
+            // Strictly filter by this tenant's ID
+            const list = mockStore.viewings.filter(v => {
+                const vTenantId = v.tenantId?._id ? String(v.tenantId._id) : String(v.tenantId || "");
+                return vTenantId === currentUserId || (isSeedTenant && (vTenantId === 'mock-user-seed-1' || vTenantId === 'mock-user-tenant'));
+            });
+
             return res.status(200).json({ success: true, data: list, viewings: list });
         }
 
@@ -125,10 +156,16 @@ const getLandlordViewings = async (req, res) => {
     try {
         if (isMockMode()) {
             if (!mockStore.viewings) mockStore.viewings = [];
-            let list = mockStore.viewings.filter(v => String(v.landlordId) === String(req.user.id));
-            if (list.length === 0 && mockStore.viewings.length > 0) {
-                list = mockStore.viewings.map(v => ({ ...v, landlordId: req.user.id }));
-            }
+            const currentUserId = String(req.user?.id || req.user?.userId || "");
+            const userEmail = String(req.user?.email || "").toLowerCase();
+            const isSeedLandlord = userEmail === 'dev.landlord@homelink.test' || currentUserId === 'mock-landlord-1';
+
+            // Strictly filter by this landlord's ID
+            const list = mockStore.viewings.filter(v => {
+                const vLandlordId = v.landlordId?._id ? String(v.landlordId._id) : String(v.landlordId || "");
+                return vLandlordId === currentUserId || (isSeedLandlord && vLandlordId === 'mock-landlord-1');
+            });
+
             return res.status(200).json({ success: true, data: list, viewings: list });
         }
 

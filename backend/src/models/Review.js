@@ -15,11 +15,20 @@ const reviewSchema = new mongoose.Schema({
   },
 
   ratings: {
-    overall:       { type: Number, min: 1, max: 5, required: true },
-    communication: { type: Number, min: 1, max: 5 },
-    accuracy:      { type: Number, min: 1, max: 5 },
-    maintenance:   { type: Number, min: 1, max: 5 },
-    reliability:   { type: Number, min: 1, max: 5 },
+    overall:            { type: Number, min: 1, max: 5, required: true },
+    // Landlord -> Tenant criteria
+    paymentReliability: { type: Number, min: 1, max: 5 },
+    propertyCare:       { type: Number, min: 1, max: 5 },
+    conductAndRules:    { type: Number, min: 1, max: 5 }, // No noise, no smoking/drinking damage
+    communication:      { type: Number, min: 1, max: 5 },
+    wouldRentAgain:     { type: String }, // 'yes', 'conditional', 'no'
+
+    // Tenant -> Landlord & Property criteria
+    maintenance:        { type: Number, min: 1, max: 5 }, // Speed of repairs (water, generator, etc.)
+    leaseFairness:      { type: Number, min: 1, max: 5 }, // Privacy, deposit return
+    propertyAccuracy:   { type: Number, min: 1, max: 5 }, // Condition matched listing
+    reliability:        { type: Number, min: 1, max: 5 },
+    wouldRecommend:     { type: String }, // 'yes', 'no'
   },
   
   comment: String,

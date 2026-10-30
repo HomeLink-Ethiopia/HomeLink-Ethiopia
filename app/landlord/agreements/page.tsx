@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import TopBar from '@/components/landlord/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/LoadingSkeleton'
@@ -68,6 +69,49 @@ export default function LandlordAgreementsPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [expandedRent, setExpandedRent] = useState<string | null>(null)
 
+  // Rate Tenant modal state
+  const [ratingAgreement, setRatingAgreement] = useState<Agreement | null>(null)
+  const [ratingOverall, setRatingOverall] = useState(5)
+  const [ratingComment, setRatingComment] = useState('')
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
+
+  async function submitAgreementReview() {
+    if (!ratingAgreement) return
+    setRatingSubmitting(true)
+    try {
+      const token = localStorage.getItem('hl_token')
+      const tenantId = typeof ratingAgreement.tenantId === 'object' ? (ratingAgreement.tenantId as any)?._id : ratingAgreement.tenantId
+      const propId = typeof ratingAgreement.propertyId === 'object' ? (ratingAgreement.propertyId as any)?._id : ratingAgreement.propertyId
+      const res = await fetch(`${API_URL}/api/v1/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          agreementId: ratingAgreement._id,
+          revieweeId: tenantId,
+          propertyId: propId,
+          reviewType: 'landlord_to_tenant',
+          ratings: { overall: ratingOverall },
+          comment: ratingComment,
+        }),
+      })
+      if (res.ok) {
+        notify('review_submitted', 'Tenant rating recorded', 'Your rating for this tenant has been submitted.')
+        setRatingAgreement(null)
+        setRatingComment('')
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setError(d.message || 'Could not record rating.')
+      }
+    } catch {
+      setError('Cannot connect to review service.')
+    } finally {
+      setRatingSubmitting(false)
+    }
+  }
+
   const fetchAgreements = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -78,9 +122,9 @@ export default function LandlordAgreementsPage() {
       })
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json()
-        setAgreements(data.data || data.agreements || [])
+        const list: Agreement[] = Array.isArray(data) ? data : (data.data || data.agreements || [])
+        setAgreements(list)
         // Load rent schedules for active agreements
-        const list: Agreement[] = data.data || data.agreements || []
         list.filter((a) => a.status === 'active').forEach((a) => loadRents(a._id, token || ''))
       } else if (res.status === 401) {
         setError('Please log in as a landlord to manage agreements.')
@@ -101,10 +145,43 @@ export default function LandlordAgreementsPage() {
       })
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json()
-        setRents((prev) => ({ ...prev, [agreementId]: data.data || data.payments || [] }))
+        const list: RentRecord[] = Array.isArray(data) ? data : (data.data || data.payments || [])
+        setRents((prev) => ({ ...prev, [agreementId]: list }))
       }
     } catch { /* leave empty */ }
   }, [])
+
+  async function handleQuickVerify(agreementId: string, paymentId: string) {
+    try {
+      const token = localStorage.getItem('hl_token')
+      const res = await fetch(`${API_URL}/api/v1/payments/${paymentId}/verify`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status: 'paid' }),
+      })
+      if (res.ok) {
+        loadRents(agreementId, token || '')
+        notify('application_accepted', 'Payment verified', 'Rent payment verified and confirmed.', '/landlord/agreements')
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function handleQuickRemind(paymentId: string) {
+    try {
+      const token = localStorage.getItem('hl_token')
+      await fetch(`${API_URL}/api/v1/payments/${paymentId}/remind`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+      notify('application_accepted', 'Reminder sent', 'Payment reminder sent to tenant.', '/landlord/agreements')
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => { fetchAgreements() }, [fetchAgreements])
 
@@ -224,16 +301,31 @@ export default function LandlordAgreementsPage() {
                       </div>
                     </div>
 
-                    {a.status === 'pending_landlord' && !a.landlordSigned && (
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => confirmAgreement(a._id)}
-                        disabled={isBusy}
-                        className="rounded-lg bg-rust px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rust-dark disabled:opacity-50"
+                        onClick={() => {
+                          setRatingAgreement(a)
+                          setRatingOverall(5)
+                          setRatingComment('')
+                        }}
+                        className="rounded-lg border border-gold/40 bg-gold/15 px-3 py-1.5 text-xs font-semibold text-charcoal hover:bg-gold/30 transition-colors flex items-center gap-1"
                       >
-                        {isBusy ? 'Confirming…' : 'Confirm Agreement'}
+                        <span className="text-amber-600 font-bold">★</span>
+                        <span>Rate Tenant</span>
                       </button>
-                    )}
+
+                      {a.status === 'pending_landlord' && !a.landlordSigned && (
+                        <button
+                          type="button"
+                          onClick={() => confirmAgreement(a._id)}
+                          disabled={isBusy}
+                          className="rounded-lg bg-rust px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rust-dark disabled:opacity-50"
+                        >
+                          {isBusy ? 'Confirming…' : 'Confirm Agreement'}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Smart Lease Renewal — expiry banner, AI price, one-click signing */}
@@ -247,7 +339,15 @@ export default function LandlordAgreementsPage() {
                   {a.status === 'active' && (
                     <div className="mt-4 border-t border-charcoal/10 pt-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-charcoal">Rent Schedule</h4>
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-sm font-semibold text-charcoal">Rent Schedule</h4>
+                          <Link
+                            href="/landlord/rent-payments"
+                            className="text-xs font-semibold text-rust hover:text-rust-dark transition-colors"
+                          >
+                            All Rent Payments →
+                          </Link>
+                        </div>
                         {rentList.length === 0 && (
                           <button
                             type="button"
@@ -270,6 +370,7 @@ export default function LandlordAgreementsPage() {
                                 <th className="px-3 py-2 text-left text-xs font-medium text-charcoal/60">Amount</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-charcoal/60">Status</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-charcoal/60">Receipt</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-charcoal/60">Action</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-charcoal/5">
@@ -293,6 +394,28 @@ export default function LandlordAgreementsPage() {
                                       ? (r.receiptNumber || `RCPT-${r._id.slice(-6).toUpperCase()}`) + (r.paidDate ? ` · ${fmtDate(r.paidDate)}` : '')
                                       : '—'}
                                   </td>
+                                  <td className="px-3 py-2 text-right">
+                                    {r.status !== 'paid' ? (
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleQuickVerify(a._id, r._id)}
+                                          className="rounded bg-verified px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:bg-verified-dark"
+                                        >
+                                          Confirm Paid
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleQuickRemind(r._id)}
+                                          className="rounded border border-charcoal/15 bg-white px-2 py-0.5 text-[10px] font-semibold text-charcoal transition-colors hover:border-rust hover:text-rust"
+                                        >
+                                          Remind
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[11px] text-verified font-medium">✓ Settled</span>
+                                    )}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -311,6 +434,76 @@ export default function LandlordAgreementsPage() {
           </div>
         )}
       </main>
+      {/* ─── RATE TENANT MODAL ─── */}
+      {ratingAgreement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl border border-charcoal/10">
+            <div className="border-b border-charcoal/10 bg-sand/20 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-base font-bold text-charcoal">Rate Tenant</h3>
+                <p className="text-xs text-charcoal/50">For {tenantName(ratingAgreement)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRatingAgreement(null)}
+                className="text-charcoal/40 hover:text-charcoal font-bold text-base"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Tenancy Rating</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRatingOverall(star)}
+                      className={`text-2xl transition-transform hover:scale-110 ${
+                        star <= ratingOverall ? 'text-amber-500' : 'text-charcoal/20'
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                  <span className="ml-2 self-center font-mono font-bold text-charcoal">{ratingOverall} / 5</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Feedback / Reference Note</label>
+                <textarea
+                  rows={3}
+                  value={ratingComment}
+                  onChange={(e) => setRatingComment(e.target.value)}
+                  placeholder="Share details on rent punctuality, property condition upon handover, or general reference..."
+                  className="w-full rounded-xl border border-charcoal/15 p-2.5 text-xs text-charcoal focus:border-rust outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRatingAgreement(null)}
+                  className="rounded-lg border border-charcoal/15 px-4 py-2 text-xs font-semibold text-charcoal hover:bg-cream"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitAgreementReview}
+                  disabled={ratingSubmitting}
+                  className="rounded-lg bg-rust px-4 py-2 text-xs font-semibold text-white shadow hover:bg-rust-dark disabled:opacity-50"
+                >
+                  {ratingSubmitting ? 'Submitting…' : 'Publish Rating'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

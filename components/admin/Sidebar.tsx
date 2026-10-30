@@ -13,17 +13,18 @@ export default function Sidebar() {
   const NAV = [
     { label: t.sidebar.home, href: '/', icon: 'home' },
     { label: t.sidebar.dashboard, href: '/admin/dashboard', icon: 'grid' },
-    { label: t.sidebar.verificationQueue, href: '/admin/verification-queue', icon: 'check' },
     { label: t.sidebar.landlordVerification, href: '/admin/landlord-verification', icon: 'user' },
     { label: t.sidebar.propertyVerification, href: '/admin/property-verification', icon: 'house' },
     { label: t.sidebar.fraudReports, href: '/admin/fraud-reports', icon: 'flag' },
     { label: t.sidebar.disputes, href: '/admin/disputes', icon: 'scale' },
     { label: t.sidebar.users, href: '/admin/users', icon: 'user' },
     { label: t.sidebar.analytics || 'Analytics', href: '/admin/analytics', icon: 'chart' },
+    { label: t.sidebar.reports || 'Financial Reports', href: '/admin/reports', icon: 'chart' },
     { label: t.sidebar.riskMonitoring, href: '/admin/risk-monitoring', icon: 'chart' },
     { label: t.sidebar.marketInsights, href: '/admin/market-insights', icon: 'trend' },
     { label: t.sidebar.auditLogs, href: '/admin/audit-logs', icon: 'log' },
     { label: t.sidebar.supportRequests || 'Support Requests', href: '/admin/support-requests', icon: 'mail' },
+    { label: 'Messages', href: '/admin/messages', icon: 'mail' },
   ]
 
 const ICON_PATH: Record<string, string> = {

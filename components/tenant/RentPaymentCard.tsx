@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { formatEtb } from '@/lib/properties'
 
 interface RentPaymentCardProps {
@@ -20,12 +21,12 @@ export default function RentPaymentCard({ month, amountEtb, paidOn }: RentPaymen
       <p className="mt-1 font-display text-2xl font-semibold text-charcoal">{formatEtb(amountEtb)}</p>
       <p className="text-xs text-charcoal/50">Paid on {paidOn}</p>
 
-      <button
-        type="button"
-        className="mt-4 w-full rounded border border-charcoal/15 py-2 text-sm font-semibold text-charcoal transition-colors hover:border-rust hover:text-rust"
+      <Link
+        href="/tenant/payments"
+        className="mt-4 block w-full rounded border border-charcoal/15 py-2 text-center text-sm font-semibold text-charcoal transition-colors hover:border-rust hover:text-rust"
       >
-        View Payment History
-      </button>
+        View Payment History &amp; Receipts →
+      </Link>
     </div>
   )
 }

@@ -19,9 +19,17 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    // Surface for observability without crashing the tree again
+    if (
+      error.message?.includes("reading '_leaflet_pos'") ||
+      error.message?.includes('_getMapPanePos')
+    ) {
+      try {
+        reset()
+        return
+      } catch {}
+    }
     console.error('[role-error-boundary]', error.message)
-  }, [error])
+  }, [error, reset])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-6">

@@ -27,13 +27,6 @@ export default function ForgotPasswordPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // If backend returns the code directly (dev/mock mode), show it on
-        // screen so the flow completes without email access
-        // (sprint-otp-on-screen).
-        const code = data.resetCode || data.devResetCode || ''
-        if (code) {
-          setResetCode(code)
-        }
         setSent(true)
       } else {
         setError(data.message || 'Failed to send reset code. Please try again.')
@@ -69,14 +62,6 @@ export default function ForgotPasswordPage() {
             <p className="mt-4 text-sm text-charcoal/60">
               We sent a password reset code to your email. Enter it on the next page.
             </p>
-
-            {resetCode && (
-              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
-                <strong>Your reset code: {resetCode}</strong>
-                <br />
-                <span className="text-xs text-blue-500">(Check your email too — this is shown for demo purposes)</span>
-              </div>
-            )}
 
             <div className="mt-6 space-y-3">
               <a

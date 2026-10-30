@@ -9,7 +9,7 @@ start cmd /k "cd backend && npm install && npm start"
 
 echo.
 echo [2/3] Starting AI FastAPI Backend (Port 8000)...
-start cmd /k "cd ai && (call conda activate base || echo Conda not found, proceeding) && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+start cmd /k "cd ai && (call conda activate base || echo Conda not found, proceeding) && python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000"
 
 echo.
 echo [3/3] Starting Next.js Frontend (Port 3000)...

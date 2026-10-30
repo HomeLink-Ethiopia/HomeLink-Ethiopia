@@ -28,6 +28,7 @@ router.post("/detect-fraud", detectFraud);
 
 // ── Property Recommendations ──────────────────────────────────────────────────
 router.post("/recommend", getRecommendations);
+router.post("/match", getRecommendations);
 
 // ── AI Service Health Check ───────────────────────────────────────────────────
 router.get("/health", healthCheck);

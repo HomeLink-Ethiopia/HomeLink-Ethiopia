@@ -10,8 +10,10 @@ backend/.env
 .freebuff/
 *.tmp
 homelink-backend-temp/
-backend/
 tsconfig.tsbuildinfo
+.tools/
+*.bak
+*.diff
 
 # Local backend backup (contains user data snapshots) - never publish
 backend-backup-kidist/

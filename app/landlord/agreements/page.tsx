@@ -162,13 +162,19 @@ export default function LandlordAgreementsPage() {
         },
         body: JSON.stringify({ status: 'paid' }),
       })
+      
       if (res.ok) {
         loadRents(agreementId, token || '')
         notify('application_accepted', 'Payment verified', 'Rent payment verified and confirmed.', '/landlord/agreements')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(`Failed to verify: ${data.message || 'Unknown error'}`)
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      alert('Network error while verifying payment')
+    }
   }
-
+  
   async function handleQuickRemind(paymentId: string) {
     try {
       const token = localStorage.getItem('hl_token')
@@ -220,21 +226,42 @@ export default function LandlordAgreementsPage() {
     }
   }
 
-  // Create the first month's rent record from the agreement terms
-  async function generateRentSchedule(id: string) {
-    setBusyId(id)
+  // ✅ FIXED: Create the first month's rent record using the correct endpoint
+  async function generateRentSchedule(agreement: Agreement) {
+    setBusyId(agreement._id)
     setError('')
     try {
       const token = localStorage.getItem('hl_token')
-      const res = await fetch(`${API_URL}/api/v1/payments/generate/${id}`, {
+      
+      // Calculate dates for next month
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      nextMonth.setDate(1); // 1st of next month
+      
+      const periodMonth = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Get rent amount from agreement or property fallback
+      const propertyRent = typeof agreement.propertyId === 'object' ? (agreement.propertyId as any)?.rentAmount : undefined;
+      const amountDue = agreement.monthlyRentEtb || propertyRent || 15000;
+
+      const res = await fetch(`${API_URL}/api/v1/payments/invoices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }),
         },
+        body: JSON.stringify({
+          agreementId: agreement._id,
+          paymentType: 'rent',
+          periodMonth: periodMonth,
+          dueDate: nextMonth.toISOString(),
+          amountDue: amountDue,
+          notes: `Rent for ${periodMonth}`
+        })
       })
+      
       if (res.ok) {
-        loadRents(id, token || '')
+        loadRents(agreement._id, token || '')
       } else {
         const data = await res.json().catch(() => ({}))
         setError(data.message || `Could not generate the rent schedule (${res.status}).`)
@@ -351,7 +378,7 @@ export default function LandlordAgreementsPage() {
                         {rentList.length === 0 && (
                           <button
                             type="button"
-                            onClick={() => generateRentSchedule(a._id)}
+                            onClick={() => generateRentSchedule(a)} // ✅ FIXED: Pass the whole agreement object
                             disabled={isBusy}
                             className="rounded-lg border border-charcoal/15 px-3 py-1.5 text-xs font-medium text-charcoal/60 hover:border-rust hover:text-rust disabled:opacity-50"
                           >

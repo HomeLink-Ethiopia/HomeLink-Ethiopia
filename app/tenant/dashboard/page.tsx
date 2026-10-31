@@ -45,11 +45,21 @@ export default function TenantDashboardPage() {
     const headers = token ? { Authorization: `Bearer ${token}` } : { Authorization: '' }
 
     // Real payments (next + last payment cards)
+      // Real payments (next + last payment cards)
     fetch(`${API_URL}/api/v1/payments/my`, { headers })
       .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((d) => setPayments(Array.isArray(d) ? d : (d.data || [])))
+      .then((d) => {
+        const rawPayments = Array.isArray(d) ? d : (d.data || [])
+        // ✅ Map the backend's amountDue to the frontend's amount
+        const mapped = rawPayments.map((p: any) => ({
+          amount: p.amountDue || p.amount || 0,
+          dueDate: p.dueDate,
+          paidDate: p.paidAt || p.paidDate,
+          status: p.status
+        }))
+        setPayments(mapped)
+      })
       .catch(() => setPayments([]))
-
     // Real maintenance requests
     fetch(`${API_URL}/api/v1/maintenance/my`, { headers })
       .then((r) => (r.ok ? r.json() : { data: [] }))

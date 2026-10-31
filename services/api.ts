@@ -1,22 +1,9 @@
 import { PROPERTIES, type Property } from '@/lib/properties'
 export type { Property }
-import { post, get, patch, put } from '@/lib/http-client'
+import { post, get, put } from '@/lib/http-client' // Removed 'patch' as it's no longer used
 
 /**
  * API Layer with Mock & Real API Support
- *
- * Every function here has the exact shape (params in, typed Promise out)
- * that a real fetch() call against HomeLink's REST API would have.
- *
- * To switch between mock and real API:
- * 1. Set NEXT_PUBLIC_MOCK_MODE=false in .env.local to use real API
- * 2. Set NEXT_PUBLIC_MOCK_MODE=true to use mock/local data
- *
- * The HTTP client (lib/http-client.ts) handles:
- * - Error handling and retry logic
- * - Request/response logging
- * - Timeout management
- * - Automatic JSON serialization
  */
 
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE !== 'false'
@@ -66,7 +53,6 @@ export function mapApiProperty(raw: any): Property {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-  // Only use real landlord-uploaded photos — do not show fake stock images
   let image = ''
   if (raw.images && raw.images.length > 0) {
     const primary = raw.images.find((img: any) => img.isPrimary) || raw.images[0]
@@ -76,7 +62,6 @@ export function mapApiProperty(raw: any): Property {
     }
   }
 
-  // Real coordinates from neighborhood or DB coordinates
   let lat = raw.location?.coordinates?.coordinates?.[1] ?? raw.location?.coordinates?.[1]
   let lng = raw.location?.coordinates?.coordinates?.[0] ?? raw.location?.coordinates?.[0]
   if (!lat || !lng || (lat === 9.03 && lng === 38.7578)) {
@@ -139,11 +124,19 @@ export async function searchProperties(filters: PropertyFilters = {}): Promise<S
     if (filters.verifiedOnly) params.append('verifiedOnly', 'true')
 
     const query = params.toString()
-    const endpoint = query ? `/api/public/properties?${query}` : '/api/public/properties'
-
-    const response = await get<{ data: any[] }>(endpoint)
+    const endpoint = query ? `/api/v1/properties/search?${query}` : '/api/v1/properties/search'
+    
+    // ✅ FIX: Type the response to handle the backend's pagination structure
+    const response = await get<any>(endpoint)
     const rawProperties = response.data.data || []
-    return rawProperties.map(mapApiProperty)
+    
+    // ✅ FIX: Return the expected object structure, not just the array!
+    return {
+      properties: rawProperties.map(mapApiProperty),
+      total: response.data.pagination?.total || rawProperties.length,
+      pages: response.data.pagination?.totalPages || 1,
+      page: response.data.pagination?.page || 1
+    }
   } catch (error) {
     console.error('Failed to search properties from API:', error)
     return { properties: [], total: 0, pages: 1, page: 1 }
@@ -157,14 +150,12 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
 
 async function fetchPropertyFromAPI(id: string): Promise<Property | null> {
   try {
-    // Property detail requires auth — try with token, fall back to search
     const response = await get<any>(`/api/v1/properties/${id}`)
     const body = response.data as any
     const raw = body?.data || body
     return raw && raw._id ? mapApiProperty(raw) : null
   } catch (error) {
     console.error(`Failed to fetch property ${id} from API:`, error)
-    // Fall back to fetching from search results
     try {
       const allRes = await get<any>(`/api/v1/properties/search?limit=100`)
       const body = allRes.data as any
@@ -215,6 +206,8 @@ async function submitPropertyListingToAPI(
   input: PropertyListingInput
 ): Promise<VerificationRecord> {
   try {
+    // Note: backend expects a propertyId for verification, but we are sending the full listing.
+    // Ensure the backend route handles this (or adjust to POST /api/v1/properties first)
     const response = await post<{ data: VerificationRecord }>('/api/v1/verification/submit', input)
     return response.data.data
   } catch (error) {
@@ -245,7 +238,8 @@ async function verifyPropertyFromAPI(
   notes?: string
 ): Promise<VerificationRecord> {
   try {
-    const response = await patch<{ data: VerificationRecord }>(`/api/v1/verification/${propertyId}/review`, {
+    // ✅ FIX: Changed to PUT as the backend uses router.put('/:id/review')
+    const response = await put<{ data: VerificationRecord }>(`/api/v1/verification/${propertyId}/review`, {
       status: decision,
       reviewNotes: notes,
     })
@@ -280,8 +274,8 @@ export async function verifyProperty(
 
 export interface ViewingRequestInput {
   propertyId: string
-  preferredDate: string // ISO date
-  preferredTime: string // e.g. "14:00"
+  preferredDate: string
+  preferredTime: string
   note?: string
 }
 
@@ -294,7 +288,7 @@ async function submitViewingRequestToAPI(
   input: ViewingRequestInput
 ): Promise<ViewingRequestRecord> {
   try {
-    const response = await post<ViewingRequestRecord>('/api/viewings/request', input)
+    const response = await post<ViewingRequestRecord>('/api/v1/viewings', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit viewing request to API:', error)
@@ -322,7 +316,7 @@ export interface ApplicationInput {
   email: string
   employmentStatus: 'employed' | 'self_employed' | 'student' | 'other'
   monthlyIncomeEtb: number
-  moveInDate: string // ISO date
+  moveInDate: string
   note?: string
 }
 
@@ -334,7 +328,7 @@ export interface ApplicationRecord extends ApplicationInput {
 
 async function submitApplicationToAPI(input: ApplicationInput): Promise<ApplicationRecord> {
   try {
-    const response = await post<ApplicationRecord>('/api/applications/submit', input)
+    const response = await post<ApplicationRecord>('/api/v1/applications', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit application to API:', error)
@@ -379,7 +373,7 @@ async function submitMaintenanceRequestToAPI(
   input: MaintenanceRequestInput
 ): Promise<MaintenanceRequestRecord> {
   try {
-    const response = await post<MaintenanceRequestRecord>('/api/maintenance/request', input)
+    const response = await post<MaintenanceRequestRecord>('/api/v1/maintenance', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit maintenance request to API:', error)
@@ -433,7 +427,7 @@ export interface FraudReportRecord extends FraudReportInput {
 
 async function submitFraudReportToAPI(input: FraudReportInput): Promise<FraudReportRecord> {
   try {
-    const response = await post<FraudReportRecord>('/api/fraud/report', input)
+    const response = await post<FraudReportRecord>('/api/v1/fraud-reports', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit fraud report to API:', error)
@@ -475,7 +469,7 @@ export interface DisputeRecord extends DisputeInput {
 
 async function submitDisputeToAPI(input: DisputeInput): Promise<DisputeRecord> {
   try {
-    const response = await post<DisputeRecord>('/api/disputes/submit', input)
+    const response = await post<DisputeRecord>('/api/v1/disputes', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit dispute to API:', error)
@@ -524,7 +518,7 @@ export interface RentEstimateResult {
 
 export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentEstimateResult> {
   if (MOCK_MODE) {
-    await delay(null, 500); // Simulate network latency
+    await delay(null, 500)
     const fair = (input.sizeM2 || 50) * 350 + (input.bedrooms * 2000);
     return {
       low: Math.round(fair * 0.85),
@@ -547,7 +541,6 @@ export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentE
 
   const data = response.data?.data || response.data;
   
-  // Backend fallback returns: { estimated_rent_etb, confidence, model_used }
   const fair = Math.round(data.estimated_rent_etb || data.estimated_market_rent || data.estimate?.fair || 25000)
   const low = Math.round(data.range_low || data.estimate?.low || fair * 0.88)
   const high = Math.round(data.range_high || data.estimate?.high || fair * 1.15)
@@ -615,7 +608,6 @@ export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
       amenities: params.amenities || [],
       furnished: params.amenities?.includes('Furnished') || false
     };
-    // Save preferences — use PUT if already exists, POST if new
     try {
       await post('/api/v1/properties/preferences', prefsPayload);
     } catch {
@@ -627,7 +619,6 @@ export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
 
   const response = await get<any>('/api/v1/properties/recommendations');
   const body = response.data as any;
-  // Backend returns { recommendations: [{ property_id, match_score, match_reasons, property? }] }
   const recs: any[] = body?.recommendations || body?.data || [];
   
   return {
@@ -650,7 +641,6 @@ export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
   };
 }
 
-
 export interface AiFraudPriorityItem {
   propertyId: string;
   title: string;
@@ -668,5 +658,3 @@ export async function fetchFraudPriority(): Promise<{ queue: AiFraudPriorityItem
     return { queue: [], summary: { note: 'Priority queue unavailable' } };
   }
 }
-
-

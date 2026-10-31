@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation' // <-- Added this
 import TopBar from '@/components/landlord/TopBar'
 import EmptyState from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/LoadingSkeleton'
@@ -11,8 +12,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 interface Application {
   _id: string
-  propertyId?: { title?: string; rentAmount?: number } | string
-  tenantId?: { firstName?: string; lastName?: string; email?: string; phone?: string } | string
+  propertyId?: { _id?: string; title?: string; rentAmount?: number } | string
+  tenantId?: { _id?: string; firstName?: string; lastName?: string; email?: string; phone?: string } | string
   fullName?: string
   phone?: string
   email?: string
@@ -63,6 +64,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export default function LandlordApplicationsPage() {
+  const router = useRouter() // <-- Added router
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [apps, setApps] = useState<Application[]>([])
@@ -79,6 +81,14 @@ export default function LandlordApplicationsPage() {
   const [ratingComment, setRatingComment] = useState('')
   const [ratingSubmitting, setRatingSubmitting] = useState(false)
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null)
+
+  // ─── CREATE AGREEMENT STATE ───
+  const [agreementApp, setAgreementApp] = useState<Application | null>(null)
+  const [agreementStartDate, setAgreementStartDate] = useState('')
+  const [agreementEndDate, setAgreementEndDate] = useState('')
+  const [agreementRent, setAgreementRent] = useState('')
+  const [agreementDeposit, setAgreementDeposit] = useState('')
+  const [isAgreementSubmitting, setIsAgreementSubmitting] = useState(false)
 
   const fetchApps = useCallback(async () => {
     setLoading(true)
@@ -137,6 +147,51 @@ export default function LandlordApplicationsPage() {
       setError('Cannot reach the server. Please try again.')
     } finally {
       setBusyId(null)
+    }
+  }
+
+  // ─── CREATE AGREEMENT FUNCTION ───
+  async function handleCreateAgreement(e: React.FormEvent) {
+    e.preventDefault()
+    if (!agreementApp) return
+    setIsAgreementSubmitting(true)
+    setError('')
+
+    try {
+      const token = localStorage.getItem('hl_token')
+      const propId = typeof agreementApp.propertyId === 'object' ? (agreementApp.propertyId as any)?._id : agreementApp.propertyId
+      const tenantId = typeof agreementApp.tenantId === 'object' ? (agreementApp.tenantId as any)?._id : agreementApp.tenantId
+
+      const res = await fetch(`${API_URL}/api/v1/agreements`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          applicationId: agreementApp._id,
+          propertyId: propId,
+          tenantId: tenantId,
+          startDate: agreementStartDate,
+          endDate: agreementEndDate,
+          rentAmount: Number(agreementRent),
+          depositAmount: Number(agreementDeposit),
+          paymentFrequency: 'monthly',
+          terms: 'Standard lease terms apply.'
+        }),
+      })
+
+      if (res.ok) {
+        setAgreementApp(null)
+        router.push('/landlord/agreements')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.message || 'Failed to create agreement.')
+      }
+    } catch {
+      setError('Cannot reach the server.')
+    } finally {
+      setIsAgreementSubmitting(false)
     }
   }
 
@@ -343,13 +398,26 @@ export default function LandlordApplicationsPage() {
                         </button>
                       )}
                       {app.status === 'approved' && (
-                        <Link
-                          href="/landlord/agreements"
+                        // ✅ REPLACED LINK WITH BUTTON AND ONCLICK
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAgreementApp(app)
+                            const rent = propertyRent(app) || 15000
+                            setAgreementRent(String(rent))
+                            setAgreementDeposit(String(rent))
+                            const start = new Date()
+                            start.setMonth(start.getMonth() + 1)
+                            const end = new Date(start)
+                            end.setFullYear(end.getFullYear() + 1)
+                            setAgreementStartDate(start.toISOString().split('T')[0])
+                            setAgreementEndDate(end.toISOString().split('T')[0])
+                          }}
                           className="rounded-lg bg-rust px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-rust/90 flex items-center gap-1"
                         >
                           <span>Manage Lease</span>
                           <span>&rarr;</span>
-                        </Link>
+                        </button>
                       )}
                       <button
                         type="button"
@@ -654,7 +722,92 @@ export default function LandlordApplicationsPage() {
           </div>
         </div>
       )}
+
+      {/* ─── CREATE AGREEMENT MODAL ─── */}
+      {agreementApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl border border-charcoal/10">
+            <div className="border-b border-charcoal/10 bg-sand/20 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-base font-bold text-charcoal">Create Lease Agreement</h3>
+                <p className="text-xs text-charcoal/50">For {applicantName(agreementApp)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAgreementApp(null)}
+                className="text-charcoal/40 hover:text-charcoal font-bold text-base"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAgreement} className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={agreementStartDate}
+                    onChange={(e) => setAgreementStartDate(e.target.value)}
+                    className="w-full rounded border border-charcoal/15 p-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal mb-1">End Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={agreementEndDate}
+                    onChange={(e) => setAgreementEndDate(e.target.value)}
+                    className="w-full rounded border border-charcoal/15 p-2 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal mb-1">Monthly Rent (ETB)</label>
+                  <input
+                    type="number"
+                    required
+                    value={agreementRent}
+                    onChange={(e) => setAgreementRent(e.target.value)}
+                    className="w-full rounded border border-charcoal/15 p-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal mb-1">Deposit (ETB)</label>
+                  <input
+                    type="number"
+                    required
+                    value={agreementDeposit}
+                    onChange={(e) => setAgreementDeposit(e.target.value)}
+                    className="w-full rounded border border-charcoal/15 p-2 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setAgreementApp(null)}
+                  className="rounded-lg border border-charcoal/15 px-4 py-2 text-xs font-semibold text-charcoal hover:bg-cream"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAgreementSubmitting}
+                  className="rounded-lg bg-rust px-4 py-2 text-xs font-semibold text-white shadow hover:bg-rust-dark disabled:opacity-50"
+                >
+                  {isAgreementSubmitting ? 'Creating...' : 'Create Agreement'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   )
 }
-

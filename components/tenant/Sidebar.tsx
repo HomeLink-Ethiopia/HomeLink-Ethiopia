@@ -17,6 +17,7 @@ export default function Sidebar() {
     { label: t.sidebar.applications, href: '/tenant/applications', icon: 'file' },
     { label: t.sidebar.viewings, href: '/tenant/viewings', icon: 'calendar' },
     { label: t.sidebar.payments, href: '/tenant/payments', icon: 'card' },
+    { label: t.sidebar.reports || 'Statements & Reports', href: '/tenant/reports', icon: 'chart' },
     { label: t.sidebar.agreements, href: '/tenant/agreements', icon: 'book' },
     { label: t.sidebar.messages, href: '/tenant/messages', icon: 'mail' },
     { label: t.sidebar.maintenance, href: '/tenant/maintenance', icon: 'wrench' },
@@ -57,6 +58,7 @@ const ICON_PATH: Record<string, string> = {
   map: 'M9 3L3 5v14l6-2 6 2 6-2V3l-6 2-6-2zM9 3v14M15 5v14',
   star: 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.51.91-5.33-3.87-3.77 5.34-.78L10 1z',
   scale: 'M10 2v16M4 6l-3 6a3 3 0 006 0l-3-6zM16 6l-3 6a3 3 0 006 0l-3-6zM4 6h12',
+  chart: 'M4 16V9M10 16V4M16 16v-6',
 }
 
 function NavIcon({ name }: { name: string }) {

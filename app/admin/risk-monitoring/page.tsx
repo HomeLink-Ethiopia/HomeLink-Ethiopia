@@ -17,10 +17,12 @@ interface PropertyRisk {
 
 interface FraudReport {
   _id: string
-  reportType: string
+  reportType?: string
+  category?: string
+  reason?: string
   status: string
   riskScore?: number
-  createdAt: string
+  createdAt?: string
 }
 
 function RiskBadge({ score }: { score: number }) {
@@ -126,7 +128,7 @@ export default function RiskMonitoringPage() {
   return (
     <>
       <TopBar title="Risk Monitoring" />
-      <main className="flex-1 space-y-6 px-6 py-8 sm:px-8">
+      <main className="flex-1 space-y-6 px-6 py-8 pb-16 sm:px-8">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -281,7 +283,9 @@ export default function RiskMonitoringPage() {
                     reports.slice(0, 5).map(r => (
                       <div key={r._id} className="flex items-center gap-3 text-xs">
                         <span className={`h-2.5 w-2.5 rounded-full ${r.status === 'pending' ? 'bg-red-500' : r.status === 'under_review' ? 'bg-amber-400' : 'bg-green-500'}`} />
-                        <span className="min-w-0 flex-1 truncate text-charcoal/70">{r.reportType.replace('_', ' ')}</span>
+                        <span className="min-w-0 flex-1 truncate capitalize text-charcoal/70">
+                          {(r.reportType || r.category || r.reason || 'Report').replace(/_/g, ' ')}
+                        </span>
                         <span className="font-mono text-charcoal/40">{r.status}</span>
                       </div>
                     ))

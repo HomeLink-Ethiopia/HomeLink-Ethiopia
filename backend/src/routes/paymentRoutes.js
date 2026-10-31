@@ -5,43 +5,43 @@ const paymentController = require('../controller/paymentController');
 const authModule = require('../middleware/authMiddleware');
 
 const authenticate =
-    typeof authModule === 'function'
-        ? authModule
-        : authModule.protect || authModule.authenticate || authModule.verifyToken;
+  typeof authModule === 'function'
+    ? authModule
+    : authModule.protect || authModule.authenticate || authModule.verifyToken;
 
 if (typeof authenticate !== 'function') {
-    throw new Error('Payment routes: could not resolve auth middleware export.');
+  throw new Error('Payment routes: check the authentication middleware export in src/middleware');
 }
 
 router.use(authenticate);
 
-// ─── 1. SPECIFIC / STATIC ROUTES FIRST ──────────────────────────────────────
-
-// GET  /api/v1/payments/                 — list all payments for the caller
-router.get('/', paymentController.getPayments);
-
-// POST /api/v1/payments/invoices          — landlord creates an invoice
+// ─── 1. SPECIFIC ROUTES (MUST BE FIRST) ───
+// This is what your Tenant page is calling!
+router.get('/my', paymentController.getPayments); 
+router.get('/landlord', paymentController.getPayments); 
 router.post('/invoices', paymentController.generateInvoice);
+router.get('/agreement/:id', async (req, res, next) => {
+    try {
+        const TenantPayment = require('../models/TenantPayment');
+        const payments = await TenantPayment.find({ agreementId: req.params.id });
+        res.status(200).json({ data: payments });
+    } catch (err) {
+        res.status(500).json({ message: 'Error fetching rent schedule' });
+    }
+});
 
-// GET  /api/v1/payments/chapa/verify/:tx_ref  — verify a Chapa payment by tx_ref
-// NOTE: Must be registered BEFORE /:id to avoid tx_ref being captured as id
+// ─── 2. CHAPA INTEGRATION ───
+router.post('/:id/chapa/initialize', paymentController.initializeChapaPayment);
 router.get('/chapa/verify/:tx_ref', paymentController.verifyChapaPayment);
 
-// ─── 2. PARAMETERISED ID ROUTES LAST ────────────────────────────────────────
-
-// GET  /api/v1/payments/:id              — get a specific payment
-router.get('/:id', paymentController.getPaymentById);
-
-// POST /api/v1/payments/:id/chapa/initialize  — tenant starts a Chapa checkout
-router.post('/:id/chapa/initialize', paymentController.initializeChapaPayment);
-
-// POST /api/v1/payments/:id/record       — tenant uploads manual payment proof
+// ─── 3. MANUAL PAYMENTS ───
 router.post('/:id/record', paymentController.recordPayment);
-
-// POST /api/v1/payments/:id/verify       — landlord confirms manual payment
 router.post('/:id/verify', paymentController.verifyPayment);
-
-// POST /api/v1/payments/:id/reminder     — landlord sends payment reminder
+router.put('/:id/verify', paymentController.verifyPayment); 
 router.post('/:id/reminder', paymentController.sendReminder);
+
+// ─── 4. GENERIC ROUTES (MUST BE LAST) ───
+router.get('/', paymentController.getPayments);
+router.get('/:id', paymentController.getPaymentById);
 
 module.exports = router;

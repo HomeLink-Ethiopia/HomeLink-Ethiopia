@@ -2,285 +2,172 @@ const Application = require('../models/Application');
 const Property = require('../models/Property');
 const LandlordProfile = require('../models/LandlordProfile');
 const Notification = require('../models/Notification');
-const { isMockMode, mockStore } = require('../config/db');
 
-const createNotification = async (userId, type, title, body, entityType, entityId) => {
-    try {
-        if (isMockMode()) return;
-        await Notification.create({
-            userId,
-            type,
-            title,
-            body,
-            relatedEntity: {
-                entityType,
-                entityId
-            },
-            channels: ['in_app']
-        });
-    } catch (error) {
-        console.error("Failed to create notification:", error);
-    }
-};
-
+// ─── 1. Tenant Applies for a Property ───
 const applyForProperty = async (req, res) => {
     try {
-        const { 
-            propertyId, viewingAppointmentId, message, moveInDate, 
-            durationMonths, numberOfOccupants, hasPets, 
-            monthlyIncome, employmentStatus 
-        } = req.body;
         const tenantId = req.user.id;
-        
-        // Map multer files to supportingDocuments structure
-        const supportingDocuments = req.files ? req.files.map(file => ({
-            documentType: 'general', // You could extract this from req.body if sent, defaulting to general
-            fileKey: file.path
-        })) : [];
+        const { propertyId, message, moveInDate, employmentStatus } = req.body;
 
-        let property;
-        if (isMockMode()) {
-            property = Array.from(mockStore.properties || []).find(p => String(p._id) === String(propertyId));
-        } else {
-            property = await Property.findById(propertyId);
+        const property = await Property.findById(propertyId);
+        if (!property) return res.status(404).json({ message: "Property not found" });
+        if (property.listingStatus !== 'active') {
+            return res.status(400).json({ message: "This property is not available for applications" });
         }
 
-        if (!property) {
-            return res.status(404).json({ message: "Property not found" });
+        // Check if already applied
+        const existingApp = await Application.findOne({ propertyId, tenantId, status: { $in: ['submitted', 'under_review', 'approved'] } });
+        if (existingApp) {
+            return res.status(400).json({ message: "You already have an active application for this property" });
         }
 
-        let landlordProfile;
-        if (isMockMode()) {
-            landlordProfile = Array.from(mockStore.landlordProfiles.values() || []).find(l => String(l._id) === String(property.landlordId)) || { accountId: 'mock-landlord-1' };
-        } else {
-            landlordProfile = await LandlordProfile.findById(property.landlordId);
-        }
+        const application = await Application.create({
+            propertyId,
+            tenantId,
+            landlordId: property.landlordId, // This is the LandlordProfile._id
+            message,
+            moveInDate,
+            employmentStatus,
+            status: 'submitted',
+            history: [{ status: 'submitted', changedBy: tenantId, note: 'Application submitted' }]
+        });
 
-        if (!landlordProfile) {
-            return res.status(404).json({ message: "Landlord profile not found for this property" });
-        }
-
-        if (isMockMode()) {
-            if (!mockStore.applications) mockStore.applications = [];
-            const existing = mockStore.applications.find(a => String(a.propertyId) === String(propertyId) && String(a.tenantId) === String(tenantId));
-            if (existing && existing.status !== 'withdrawn' && existing.status !== 'rejected') {
-                return res.status(400).json({ message: "You already have an active application for this property" });
-            }
-        } else {
-            const existingApplication = await Application.findOne({ propertyId, tenantId });
-            if (existingApplication && existingApplication.status !== 'withdrawn' && existingApplication.status !== 'rejected') {
-                return res.status(400).json({ message: "You already have an active application for this property" });
-            }
-        }
-
-        let application;
-        if (isMockMode()) {
-            application = {
-                _id: "mock-app-" + Date.now(),
-                propertyId,
-                tenantId,
-                landlordId: landlordProfile.accountId,
-                viewingAppointmentId,
-                message,
-                moveInDate,
-                durationMonths,
-                numberOfOccupants,
-                hasPets,
-                monthlyIncome,
-                employmentStatus,
-                supportingDocuments,
-                status: 'submitted',
-                history: [{ status: 'submitted', changedBy: tenantId, note: 'Application submitted', date: new Date() }],
-                createdAt: new Date()
-            };
-            mockStore.applications.push(application);
-        } else {
-            application = await Application.create({
-                propertyId,
-                tenantId,
-                landlordId: landlordProfile.accountId,
-                viewingAppointmentId,
-                message,
-                moveInDate,
-                durationMonths,
-                numberOfOccupants,
-                hasPets,
-                monthlyIncome,
-                employmentStatus,
-                supportingDocuments,
-                history: [{
-                    status: 'submitted',
-                    changedBy: tenantId,
-                    note: 'Application submitted'
-                }]
+        // Notify Landlord
+        const landlordProfile = await LandlordProfile.findById(property.landlordId);
+        if (landlordProfile) {
+            await Notification.create({
+                userId: landlordProfile.accountId,
+                type: 'system',
+                title: 'New Application',
+                body: `You have a new application for ${property.title}.`,
+                relatedEntity: { entityType: 'Application', entityId: application._id }
             });
         }
 
-        await createNotification(
-            landlordProfile.accountId,
-            'application_received', // Changed from application_submitted to match enum
-            'New Rental Application',
-            `A new rental application has been submitted for your property: ${property.title}`,
-            'Application',
-            application._id
-        );
-
-        res.status(201).json({
-            message: "Application submitted successfully",
-            application
-        });
+        res.status(201).json({ message: "Application submitted successfully", application });
     } catch (error) {
         console.error("Apply error:", error);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
+// ─── 2. Tenant views their own applications ───
 const getTenantApplications = async (req, res) => {
     try {
-        if (isMockMode()) {
-            if (!mockStore.applications) mockStore.applications = [];
-            let apps = mockStore.applications.filter(a => String(a.tenantId) === String(req.user.id));
-            apps = apps.map(a => ({
-                ...a,
-                propertyId: Array.from(mockStore.properties || []).find(p => String(p._id) === String(a.propertyId)) || { title: "Mock Property", location: {}, rentAmount: 0 }
-            }));
-            return res.status(200).json(apps);
-        }
-
         const applications = await Application.find({ tenantId: req.user.id })
-            .populate('propertyId', 'title location rentAmount images')
+            .populate('propertyId', 'title rentAmount images location')
+            .populate('landlordId', 'legalName')
             .sort({ createdAt: -1 });
             
         res.status(200).json(applications);
     } catch (error) {
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
+// ─── 3. Landlord views applications for their properties ───
 const getLandlordApplications = async (req, res) => {
     try {
-        const { propertyId } = req.params;
-
-        if (isMockMode()) {
-            let apps = (mockStore.applications || []).filter(a => String(a.landlordId) === String(req.user.id) && String(a.propertyId) === String(propertyId));
-            apps = apps.map(a => ({
-                ...a,
-                tenantId: { firstName: "Mock", lastName: "Tenant", email: "mock@test.com", phone: "0911223344" }
-            }));
-            return res.status(200).json(apps);
+        const LandlordProfile = require('../models/LandlordProfile'); // Ensure this is imported
+        
+        // 1. Get the LandlordProfile ID for this user (if it exists)
+        const profile = await LandlordProfile.findOne({ accountId: req.user.id });
+        
+        // 2. Build a query that checks BOTH the User ID and the Profile ID
+        const landlordIds = [req.user.id];
+        if (profile) {
+            landlordIds.push(profile._id);
         }
 
-        const query = { landlordId: req.user.id };
-        if (propertyId) {
-            query.propertyId = propertyId;
-        }
+        const applications = await Application.find({ 
+            landlordId: { $in: landlordIds } 
+        })
+        .populate('tenantId', 'firstName lastName email phone')
+        .populate('propertyId', 'title rentAmount images location')
+        .sort({ createdAt: -1 });
 
-        const applications = await Application.find(query)
-            .populate('tenantId', 'firstName lastName email phone')
-            .sort({ createdAt: -1 });
-            
-        res.status(200).json(applications);
+        res.status(200).json({data:applications});
     } catch (error) {
-        res.status(500).json({ message: "Server error" });
+        console.error("Get landlord apps error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
+// ─── 4. Landlord approves or rejects ───
+// ─── 4. Landlord approves or rejects ───
 const reviewApplication = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, landlordFeedback, infoRequested } = req.body; 
+        const { status, reviewNotes } = req.body; // 'approved' or 'rejected'
+        const landlordUserId = req.user.id;
+
+        const application = await Application.findById(id).populate('propertyId', 'title');
+        if (!application) return res.status(404).json({ message: "Application not found" });
+
+        // 1. Find the Landlord Profile associated with this user
+        const profile = await LandlordProfile.findOne({ accountId: landlordUserId });
         
-        if (!['approved', 'rejected', 'under_review', 'info_requested'].includes(status)) {
-            return res.status(400).json({ message: "Invalid status provided" });
+        // 2. Build an array of allowed IDs (User ID + Profile ID)
+        const validIds = [String(landlordUserId)];
+        if (profile) {
+            validIds.push(String(profile._id));
         }
 
-        const updateData = { status, landlordFeedback, infoRequested };
-        if (status === 'approved' || status === 'rejected') {
-            updateData.decidedAt = new Date();
+        // 3. Check if the application's landlordId matches ANY of the allowed IDs
+        if (!validIds.includes(String(application.landlordId))) {
+            return res.status(403).json({ message: "You are not authorized to review this application" });
         }
+
+        // 4. Update the application
+        application.status = status;
+        application.decidedAt = new Date();
+        application.expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // Valid for 48h
         
-        // As discussed, if approved, set the ticking time bomb (48 hours)
-        if (status === 'approved') {
-            const expirationDate = new Date();
-            expirationDate.setHours(expirationDate.getHours() + 48);
-            updateData.expiresAt = expirationDate;
-        }
+        application.history.push({
+            status: status,
+            changedBy: landlordUserId,
+            note: reviewNotes || `Application ${status}`
+        });
 
-        const application = await Application.findOneAndUpdate(
-            { _id: id, landlordId: req.user.id },
-            { 
-                ...updateData,
-                $push: {
-                    history: {
-                        status,
-                        changedBy: req.user.id,
-                        note: landlordFeedback || `Status updated to ${status}`
-                    }
-                }
-            },
-            { new: true }
-        ).populate('propertyId', 'title');
+        await application.save();
 
-        if (!application) {
-            return res.status(404).json({ message: "Application not found or unauthorized" });
-        }
-
-        if (status === 'approved' || status === 'rejected') {
-            await createNotification(
-                application.tenantId,
-                `application_${status}`,
-                `Application ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-                `Your application for ${application.propertyId.title} has been ${status}.`,
-                'Application',
-                application._id
-            );
-        }
+        // 5. Notify Tenant
+       await Notification.create({
+    userId: application.tenantId,
+    type: 'system', // ✅ Safe, allowed type
+    title: `Application ${status.toUpperCase()}`,
+    body: `Your application for ${application.propertyId.title} has been ${status}.`,
+    relatedEntity: { entityType: 'Application', entityId: application._id }
+});
 
         res.status(200).json({ message: `Application ${status}`, application });
     } catch (error) {
-        res.status(500).json({ message: "Server error" });
+        console.error("Review error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
-
+// ─── 5. Tenant withdraws application ───
 const withdrawApplication = async (req, res) => {
     try {
         const { id } = req.params;
+        const application = await Application.findOne({ _id: id, tenantId: req.user.id });
         
-        const application = await Application.findOneAndUpdate(
-            { _id: id, tenantId: req.user.id },
-            { 
-                status: 'withdrawn',
-                $push: {
-                    history: {
-                        status: 'withdrawn',
-                        changedBy: req.user.id,
-                        note: 'Application withdrawn by tenant'
-                    }
-                }
-            },
-            { new: true }
-        ).populate('propertyId', 'title');
-
-        if (!application) {
-            return res.status(404).json({ message: "Application not found or unauthorized" });
+        if (!application) return res.status(404).json({ message: "Application not found" });
+        if (['approved', 'rejected', 'withdrawn'].includes(application.status)) {
+            return res.status(400).json({ message: "Cannot withdraw this application" });
         }
 
-        // Notify landlord
-        await createNotification(
-            application.landlordId,
-            'application_withdrawn',
-            'Application Withdrawn',
-            `The tenant has withdrawn their application for ${application.propertyId.title}.`,
-            'Application',
-            application._id
-        );
+        application.status = 'withdrawn';
+        application.history.push({ status: 'withdrawn', changedBy: req.user.id, note: 'Withdrawn by tenant' });
+        await application.save();
 
         res.status(200).json({ message: "Application withdrawn", application });
     } catch (error) {
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
+// ─── EXPORTS (CRITICAL!) ───
 module.exports = {
     applyForProperty,
     getTenantApplications,

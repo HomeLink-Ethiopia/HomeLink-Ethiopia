@@ -15,8 +15,21 @@ const applicationSchema = new mongoose.Schema({
   monthlyIncome: Number,
   employmentStatus: String,
 
+  // Ethiopian Tenant Screening & Behavioral Assessment
+  religion: { type: String, default: 'Orthodox Christian' },
+  maritalStatus: { type: String, default: 'single' },
+  smokingHabit: { type: String, default: 'non_smoker' },
+  alcoholHabit: { type: String, default: 'non_drinker' },
+  quietHoursAgreed: { type: Boolean, default: true },
+  previousLandlordName: String,
+  previousLandlordPhone: String,
+  previousRentalDuration: String,
+  reasonForMoving: String,
+  tenantBehaviorScore: { type: Number, default: 4.9 },
+  tenantReviewBadges: [{ type: String }],
+
   supportingDocuments: [{
-    documentType: String, // e.g., "employment_letter", "bank_statement", "reference"
+    documentType: String, // e.g., "kebele_id", "proof_of_income", "employment_letter"
     fileKey: String,
     uploadedAt: { type: Date, default: Date.now }
   }],

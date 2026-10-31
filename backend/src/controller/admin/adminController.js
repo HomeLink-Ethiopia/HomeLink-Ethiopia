@@ -4,10 +4,24 @@ const FraudReport = require('../../models/FraudReport');
 const LandlordProfile = require('../../models/LandlordProfile');
 const Property = require('../../models/Property');
 const User = require('../../models/User');
+const { isMockMode, mockStore, persistMockData, persistMockUsers, pushMockAudit, mockCreateNotification } = require('../../config/db');
 
 // --- Helper: Create Audit Log ---
 const createAuditLog = async (req, action, targetType, targetId, before, after, metadata = {}) => {
     try {
+        if (isMockMode()) {
+            pushMockAudit({
+                actorName: req.user?.firstName ? `${req.user.firstName} ${req.user.lastName}` : 'Admin',
+                actorRole: 'admin',
+                action,
+                targetType,
+                targetLabel: `${targetType} ${targetId}`,
+                changes: [{ field: 'status', from: before?.status, to: after?.status }],
+                reason: metadata?.reason || action,
+                ip: req.ip || '127.0.0.1'
+            });
+            return;
+        }
         await AuditLog.create({
             performedBy: req.user.id,
             action,
@@ -26,9 +40,39 @@ const createAuditLog = async (req, action, targetType, targetId, before, after, 
     }
 };
 
-// --- Dashboard ---
+// --- Dashboard Overview ---
 const getDashboardOverview = async (req, res) => {
     try {
+        if (isMockMode()) {
+            const openDisputes = (mockStore.disputes || []).filter(d => ['open', 'under_review', 'mediation'].includes(d.status));
+            const openFraudReports = (mockStore.fraudReports || []).filter(f => ['open', 'under_review'].includes(f.status));
+            
+            const rawProfiles = Array.from((mockStore.landlordProfiles || new Map()).values());
+            const pendingVerifications = rawProfiles.filter(lp => lp.verificationStatus === 'pending').map(lp => {
+                const u = Array.from(mockStore.users.values()).find(user => String(user._id) === String(lp.accountId?._id || lp.accountId));
+                return {
+                    _id: lp._id,
+                    accountId: u ? { firstName: u.firstName, lastName: u.lastName, email: u.email } : { firstName: lp.legalName || 'Landlord', email: 'landlord@test.com' },
+                    legalName: lp.legalName,
+                    verificationStatus: lp.verificationStatus,
+                    createdAt: lp.createdAt || new Date().toISOString()
+                };
+            });
+
+            const suspiciousProperties = (mockStore.properties || []).filter(p => p.riskLevel === 'high' || (p.fraudRiskScore && p.fraudRiskScore > 7));
+            const suspiciousAccounts = Array.from(mockStore.users.values()).filter(u => u.status === 'suspended' || u.role === 'suspended').slice(0, 5);
+
+            return res.status(200).json({
+                data: {
+                    openDisputes,
+                    openFraudReports,
+                    pendingVerifications,
+                    suspiciousProperties,
+                    suspiciousAccounts
+                }
+            });
+        }
+
         const [
             openDisputes,
             openFraudReports,
@@ -41,7 +85,6 @@ const getDashboardOverview = async (req, res) => {
             Property.find({ riskLevel: 'high', listingStatus: 'active' }).populate('landlordId').limit(10)
         ]);
 
-        // Suspicious accounts can be found by finding users with open fraud reports against them
         const suspiciousAccountsIds = await FraudReport.distinct('reportedUserId', { status: 'open', reportedUserId: { $ne: null } });
         const suspiciousAccounts = await User.find({ _id: { $in: suspiciousAccountsIds } }).limit(10);
 
@@ -66,6 +109,33 @@ const resolveDispute = async (req, res) => {
     try {
         const { id } = req.params;
         const { outcome, status } = req.body;
+
+        if (isMockMode()) {
+            const dispute = (mockStore.disputes || []).find(d => String(d._id) === String(id));
+            if (!dispute) return res.status(404).json({ message: "Dispute not found" });
+
+            const before = { status: dispute.status, outcome: dispute.outcome };
+            dispute.status = status || 'resolved';
+            dispute.outcome = outcome;
+            dispute.resolvedAt = new Date().toISOString();
+            dispute.handledBy = req.user.id;
+            if (!dispute.history) dispute.history = [];
+            dispute.history.push({
+                status: dispute.status,
+                changedBy: req.user.id,
+                note: outcome,
+                at: new Date().toISOString()
+            });
+
+            const after = { status: dispute.status, outcome: dispute.outcome };
+            await createAuditLog(req, 'dispute.resolve', 'Dispute', dispute._id, before, after);
+            persistMockData();
+
+            mockCreateNotification(dispute.raisedBy?._id || dispute.raisedBy, 'dispute_resolved', 'Dispute Resolved', `Your dispute has been resolved by Admin: ${outcome}`);
+            mockCreateNotification(dispute.againstUserId?._id || dispute.againstUserId, 'dispute_resolved', 'Dispute Resolved', `The dispute regarding this tenancy has been resolved by Admin: ${outcome}`);
+
+            return res.status(200).json({ message: "Dispute resolved successfully", data: dispute });
+        }
 
         const dispute = await Dispute.findById(id);
         if (!dispute) return res.status(404).json({ message: "Dispute not found" });
@@ -99,6 +169,41 @@ const verifyLandlord = async (req, res) => {
         const { id } = req.params;
         const { action } = req.body; // 'approve' or 'reject'
 
+        if (isMockMode()) {
+            let profile = null;
+            if (mockStore.landlordProfiles) {
+                profile = mockStore.landlordProfiles.get(id);
+                if (!profile) {
+                    for (const v of mockStore.landlordProfiles.values()) {
+                        if (String(v._id) === String(id) || String(v.accountId) === String(id)) {
+                            profile = v;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!profile) return res.status(404).json({ message: "Landlord profile not found" });
+
+            const before = { verificationStatus: profile.verificationStatus };
+            profile.verificationStatus = (action === 'approve') ? 'verified' : 'rejected';
+            const after = { verificationStatus: profile.verificationStatus };
+
+            // Update user account
+            for (const user of mockStore.users.values()) {
+                if (String(user._id) === String(profile.accountId?._id || profile.accountId || profile._id)) {
+                    user.identityStatus = profile.verificationStatus;
+                    break;
+                }
+            }
+
+            persistMockData();
+            persistMockUsers();
+            await createAuditLog(req, `landlord.${action}`, 'LandlordProfile', profile._id, before, after);
+
+            return res.status(200).json({ message: `Landlord verification ${action}d successfully` });
+        }
+
         const profile = await LandlordProfile.findById(id);
         if (!profile) return res.status(404).json({ message: "Landlord profile not found" });
 
@@ -120,32 +225,102 @@ const verifyLandlord = async (req, res) => {
 const suspendAccount = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reason } = req.body;
+        const { reason, suspend } = req.body;
+        const shouldSuspend = suspend !== false;
+
+        if (isMockMode()) {
+            const user = Array.from(mockStore.users.values()).find(u => String(u._id) === String(id) || String(u.email) === String(id));
+            if (!user) return res.status(404).json({ message: "User not found" });
+
+            const before = { status: user.status || 'active' };
+            user.status = shouldSuspend ? 'suspended' : 'active';
+            const after = { status: user.status };
+
+            persistMockUsers();
+            await createAuditLog(req, shouldSuspend ? 'user.suspend' : 'user.reinstate', 'User', user._id, before, after, { reason });
+
+            return res.status(200).json({ message: `User ${shouldSuspend ? 'suspended' : 'reinstated'} successfully` });
+        }
 
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
         const before = { status: user.status };
-        // Assuming user model has a status field
-        user.status = 'suspended';
+        user.status = shouldSuspend ? 'suspended' : 'active';
         await user.save();
 
         const after = { status: user.status };
-        await createAuditLog(req, 'user.suspend', 'User', user._id, before, after, { reason });
+        await createAuditLog(req, shouldSuspend ? 'user.suspend' : 'user.reinstate', 'User', user._id, before, after, { reason });
 
-        res.status(200).json({ message: "User suspended successfully" });
+        res.status(200).json({ message: `User ${shouldSuspend ? 'suspended' : 'reinstated'} successfully` });
     } catch (error) {
         console.error("Suspend user error:", error);
         res.status(500).json({ message: "Server error" });
     }
 };
 
-// --- Management Lists (Phase 2) ---
+const moderateProperty = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { listingStatus, reason } = req.body;
+
+        if (isMockMode()) {
+            const prop = (mockStore.properties || []).find(p => String(p._id) === String(id) || String(p.id) === String(id));
+            if (!prop) return res.status(404).json({ message: "Property not found" });
+
+            const before = { listingStatus: prop.listingStatus };
+            prop.listingStatus = listingStatus || (prop.listingStatus === 'suspended' ? 'active' : 'suspended');
+            const after = { listingStatus: prop.listingStatus };
+
+            persistMockData();
+            await createAuditLog(req, 'property.moderate', 'Property', prop._id, before, after, { reason });
+            return res.status(200).json({ message: `Property marked as ${prop.listingStatus}`, data: prop });
+        }
+
+        const prop = await Property.findById(id);
+        if (!prop) return res.status(404).json({ message: "Property not found" });
+
+        const before = { listingStatus: prop.listingStatus };
+        prop.listingStatus = listingStatus || (prop.listingStatus === 'suspended' ? 'active' : 'suspended');
+        await prop.save();
+
+        const after = { listingStatus: prop.listingStatus };
+        await createAuditLog(req, 'property.moderate', 'Property', prop._id, before, after, { reason });
+        res.status(200).json({ message: `Property marked as ${prop.listingStatus}`, data: prop });
+    } catch (error) {
+        console.error("Moderate property error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// --- Management Lists ---
 
 const getAllUsers = async (req, res) => {
     try {
+        if (isMockMode()) {
+            const users = Array.from(mockStore.users.values()).map(u => ({
+                _id: u._id,
+                firstName: u.firstName,
+                lastName: u.lastName,
+                email: u.email,
+                phone: u.phone,
+                role: u.role,
+                status: u.status || 'active',
+                identityStatus: u.identityStatus || (u.role === 'admin' ? 'verified' : 'unverified'),
+                verificationStatus: u.verificationStatus || u.identityStatus || (u.role === 'admin' ? 'verified' : 'unverified'),
+                emailVerified: u.emailVerified ?? true,
+                createdAt: u.createdAt || '2026-01-10T00:00:00.000Z'
+            }));
+            return res.status(200).json({ data: users });
+        }
+
         const users = await User.find().select('-password').sort({ createdAt: -1 });
-        res.status(200).json({ data: users });
+        const mappedUsers = users.map(u => {
+            const obj = u.toObject ? u.toObject() : u;
+            obj.verificationStatus = obj.verificationStatus || obj.identityStatus || (obj.role === 'admin' ? 'verified' : 'unverified');
+            return obj;
+        });
+        res.status(200).json({ data: mappedUsers });
     } catch (error) {
         res.status(500).json({ message: "Server error" });
     }
@@ -153,6 +328,10 @@ const getAllUsers = async (req, res) => {
 
 const getAllProperties = async (req, res) => {
     try {
+        if (isMockMode()) {
+            return res.status(200).json({ data: mockStore.properties || [] });
+        }
+
         const properties = await Property.find().populate('landlordId', 'firstName lastName email').sort({ createdAt: -1 });
         res.status(200).json({ data: properties });
     } catch (error) {
@@ -162,6 +341,10 @@ const getAllProperties = async (req, res) => {
 
 const getAllFraudReports = async (req, res) => {
     try {
+        if (isMockMode()) {
+            return res.status(200).json({ data: mockStore.fraudReports || [] });
+        }
+
         const reports = await FraudReport.find()
             .populate('reportedBy reportedPropertyId reportedUserId')
             .sort({ createdAt: -1 });
@@ -173,6 +356,10 @@ const getAllFraudReports = async (req, res) => {
 
 const getAllDisputes = async (req, res) => {
     try {
+        if (isMockMode()) {
+            return res.status(200).json({ data: mockStore.disputes || [] });
+        }
+
         const disputes = await Dispute.find()
             .populate('raisedBy againstUserId handledBy', 'firstName lastName email')
             .sort({ createdAt: -1 });
@@ -184,6 +371,11 @@ const getAllDisputes = async (req, res) => {
 
 const getAllVerifications = async (req, res) => {
     try {
+        if (isMockMode()) {
+            const profiles = Array.from((mockStore.landlordProfiles || new Map()).values());
+            return res.status(200).json({ data: profiles });
+        }
+
         const profiles = await LandlordProfile.find()
             .populate('accountId', 'firstName lastName email')
             .sort({ createdAt: -1 });
@@ -198,6 +390,7 @@ module.exports = {
     resolveDispute,
     verifyLandlord,
     suspendAccount,
+    moderateProperty,
     getAllUsers,
     getAllProperties,
     getAllFraudReports,

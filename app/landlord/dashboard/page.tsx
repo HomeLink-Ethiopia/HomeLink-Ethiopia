@@ -1,44 +1,68 @@
 'use client'
 
-import { useLanguage } from '@/lib/language-context'
-import { useAuth } from '@/lib/auth-context'
-
-import { useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useInView } from 'framer-motion'
+import { useLanguage } from '@/lib/language-context'
+import { useAuth } from '@/lib/auth-context'
 import TopBar from '@/components/landlord/TopBar'
 import InitialsAvatar from '@/components/shared/InitialsAvatar'
-import { stockPhoto } from '@/lib/images'
+import { resolveImageUrl } from '@/lib/image-url'
 
-/* ─── MOCK DATA ──────────────────────────────────────────────────────────── */
-const SUMMARY_CARDS = [
-  { label: 'Total Properties', value: '7', sub: '2 pending verification', icon: 'home', trend: '+1 this month' },
-  { label: 'Expected This Month', value: 'ETB 147,500', sub: 'Across all units', icon: 'money', trend: '↑ 3.2%' },
-  { label: 'Collected', value: 'ETB 132,000', sub: '89.5% collection rate', icon: 'check', trend: 'On track' },
-  { label: 'Open Tickets', value: '3', sub: '1 urgent, 2 in progress', icon: 'wrench', trend: 'Act needed' },
-]
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-const RECENT_PAYMENTS = [
-  { name: 'Tsedi Kebede', property: 'Bole 2-Bed Apt', amount: 22000, dueDate: 'Aug 1', paid: true },
-  { name: 'Meron Alemu', property: 'Kazanchis Studio', amount: 14500, dueDate: 'Aug 3', paid: true },
-  { name: 'Henok Girma', property: 'CMC Family Home', amount: 32000, dueDate: 'Aug 5', paid: false },
-  { name: 'Sara Tadesse', property: 'Yeka Villa', amount: 28000, dueDate: 'Aug 8', paid: true },
-  { name: 'Daniel Bekele', property: 'Saris 1-Bed', amount: 11500, dueDate: 'Aug 10', paid: false },
-]
+interface Property {
+  _id: string
+  title: string
+  propertyType?: string
+  rentAmount: number
+  listingStatus: string
+  verificationStatus: string
+  location?: {
+    city?: string
+    subCity?: string
+    address?: string
+  }
+  images?: { url: string; isPrimary?: boolean }[]
+}
 
-const PROPERTIES_OVERVIEW = [
-  { title: '2 Bed Apartment', location: 'Bole', rent: 22000, status: 'Occupied', occupancy: 100, img: stockPhoto('bole-apartment', 300, 200) },
-  { title: 'Studio Apartment', location: 'Kazanchis', rent: 14500, status: 'Occupied', occupancy: 100, img: stockPhoto('kazanchis-studio', 300, 200) },
-  { title: 'Family Compound', location: 'CMC', rent: 32000, status: 'Occupied', occupancy: 100, img: stockPhoto('cmc-compound', 300, 200) },
-  { title: 'Villa', location: 'Yeka', rent: 28000, status: 'Vacant', occupancy: 0, img: stockPhoto('yeka-villa', 300, 200) },
-]
+interface Payment {
+  _id: string
+  amountDue?: number
+  amount?: number
+  amountPaid?: number
+  dueDate?: string
+  paidAt?: string
+  status: string
+  tenantId?: {
+    firstName?: string
+    lastName?: string
+  }
+  propertyId?: {
+    title?: string
+  }
+}
 
-const RECENT_APPS = [
-  { name: 'Bereket Haile', property: 'Yeka Villa', submitted: 'Today, 9:22 AM', score: 92 },
-  { name: 'Yemi Mulatu', property: 'Yeka Villa', submitted: 'Yesterday', score: 78 },
-  { name: 'Amina Osman', property: 'Saris 1-Bed', submitted: '2 days ago', score: 85 },
-]
+interface Application {
+  _id: string
+  status: string
+  createdAt: string
+  tenantId?: {
+    firstName?: string
+    lastName?: string
+    email?: string
+  }
+  propertyId?: {
+    title?: string
+  }
+}
+
+interface Ticket {
+  _id: string
+  status: string
+  title: string
+}
 
 /* ─── ICON HELPER ────────────────────────────────────────────────────────── */
 function SummaryIcon({ type }: { type: string }) {
@@ -66,19 +90,6 @@ function SummaryIcon({ type }: { type: string }) {
   )
 }
 
-/* ─── SCORE BAR ──────────────────────────────────────────────────────────── */
-function ScoreBar({ score }: { score: number }) {
-  const color = score >= 85 ? '#2E7D32' : score >= 70 ? '#F59E0B' : '#B8451F'
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-20 rounded-full bg-sand overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-xs font-semibold text-charcoal/70">{score}</span>
-    </div>
-  )
-}
-
 /* ─── SECTION WRAPPER ────────────────────────────────────────────────────── */
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -95,6 +106,96 @@ export default function LandlordDashboardPage() {
   const { t } = useLanguage()
   const { user } = useAuth()
   const firstName = user?.name?.trim().split(' ')[0] || 'there'
+
+  const [properties, setProperties] = useState<Property[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+    const fetchData = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('hl_token') : null
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+
+        const [propsRes, payRes, appRes, ticketRes] = await Promise.allSettled([
+          fetch(`${API_URL}/api/v1/properties/my`, { headers }).then(r => r.ok ? r.json() : null),
+          fetch(`${API_URL}/api/v1/payments`, { headers }).then(r => r.ok ? r.json() : null),
+          fetch(`${API_URL}/api/v1/applications/landlord`, { headers }).then(r => r.ok ? r.json() : null),
+          fetch(`${API_URL}/api/v1/maintenance`, { headers }).then(r => r.ok ? r.json() : null),
+        ])
+
+        if (!isMounted) return
+
+        if (propsRes.status === 'fulfilled' && propsRes.value?.data) {
+          setProperties(Array.isArray(propsRes.value.data) ? propsRes.value.data : [])
+        }
+        if (payRes.status === 'fulfilled' && payRes.value) {
+          const list = Array.isArray(payRes.value) ? payRes.value : (payRes.value.data || [])
+          setPayments(Array.isArray(list) ? list : [])
+        }
+        if (appRes.status === 'fulfilled' && appRes.value) {
+          const list = Array.isArray(appRes.value) ? appRes.value : (appRes.value.data || [])
+          setApplications(Array.isArray(list) ? list : [])
+        }
+        if (ticketRes.status === 'fulfilled' && ticketRes.value) {
+          const list = Array.isArray(ticketRes.value) ? ticketRes.value : (ticketRes.value.data || ticketRes.value.requests || [])
+          setTickets(Array.isArray(list) ? list : [])
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    fetchData()
+    return () => { isMounted = false }
+  }, [])
+
+  const totalProperties = properties.length
+  const rentedProps = properties.filter(p => p.listingStatus === 'rented')
+  const monthlyExpected = rentedProps.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
+    || payments.filter(p => p.status === 'pending' || p.status === 'overdue').reduce((sum, p) => sum + (Number(p.amountDue || p.amount) || 0), 0)
+
+  const collected = payments.filter(p => p.status === 'paid' || p.status === 'collected')
+    .reduce((sum, p) => sum + (Number(p.amountPaid || p.amountDue || p.amount) || 0), 0)
+
+  const openTicketsCount = tickets.filter(t => t.status !== 'resolved' && t.status !== 'closed').length
+
+  const summaryCards = [
+    {
+      label: 'Total Properties',
+      value: totalProperties.toString(),
+      sub: totalProperties === 0 ? 'No properties registered' : `${properties.filter(p => p.listingStatus === 'active').length} active listings`,
+      icon: 'home',
+      trend: totalProperties === 0 ? '0 registered' : `${properties.filter(p => p.verificationStatus === 'verified').length} verified`,
+    },
+    {
+      label: 'Expected This Month',
+      value: `ETB ${monthlyExpected.toLocaleString()}`,
+      sub: totalProperties === 0 ? 'No leased units yet' : `${rentedProps.length} unit(s) leased`,
+      icon: 'money',
+      trend: monthlyExpected > 0 ? 'Current cycle' : 'ETB 0',
+    },
+    {
+      label: 'Collected',
+      value: `ETB ${collected.toLocaleString()}`,
+      sub: (collected + monthlyExpected) > 0 ? `${Math.round((collected / (collected + monthlyExpected)) * 100)}% collection rate` : '0 rent collected',
+      icon: 'check',
+      trend: collected > 0 ? 'On track' : 'No records',
+    },
+    {
+      label: 'Open Tickets',
+      value: openTicketsCount.toString(),
+      sub: openTicketsCount === 0 ? 'All systems operational' : `${openTicketsCount} in progress`,
+      icon: 'wrench',
+      trend: openTicketsCount === 0 ? 'Clear' : 'Action needed',
+    },
+  ]
+
   return (
     <>
       <TopBar
@@ -106,7 +207,7 @@ export default function LandlordDashboardPage() {
 
         {/* ── SUMMARY CARDS ── */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {SUMMARY_CARDS.map((card, i) => (
+          {summaryCards.map((card, i) => (
             <FadeIn key={card.label} delay={i * 0.07}>
               <div className="rounded-xl border border-charcoal/8 bg-white p-5 shadow-sm hover:shadow-stamp transition-shadow" style={{ borderRadius: '12px 12px 24px 12px' }}>
                 <div className="flex items-start justify-between">
@@ -138,25 +239,63 @@ export default function LandlordDashboardPage() {
                     Manage all →
                   </Link>
                 </div>
-                <div className="divide-y divide-charcoal/8">
-                  {PROPERTIES_OVERVIEW.map((p) => (
-                    <div key={p.title} className="flex items-center gap-4 px-5 py-4 hover:bg-sand/20 transition-colors">
-                      <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg">
-                        <Image src={p.img} alt={p.title} fill sizes="80px" className="object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display font-semibold text-charcoal truncate">{p.title}</p>
-                        <p className="text-xs text-charcoal/55">{p.location}, Addis Ababa</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-mono text-sm font-bold text-charcoal">ETB {p.rent.toLocaleString()}<span className="text-xs font-normal text-charcoal/45">/mo</span></p>
-                        <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${p.status === 'Occupied' ? 'bg-verified/10 text-verified' : 'bg-rust/10 text-rust'}`}>
-                          {p.status}
-                        </span>
-                      </div>
+                {properties.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-rust/10 text-rust">
+                      <SummaryIcon type="home" />
                     </div>
-                  ))}
-                </div>
+                    <h3 className="font-display text-base font-semibold text-charcoal">No properties registered yet</h3>
+                    <p className="mx-auto mt-1 max-w-sm text-xs text-charcoal/50">
+                      You haven&apos;t listed any rental properties yet. Add your first property to start accepting tenant applications and collecting rent.
+                    </p>
+                    <Link
+                      href="/list-property"
+                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-rust px-4 py-2 text-xs font-semibold text-white hover:bg-rust-dark transition-colors"
+                    >
+                      + Register First Property
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-charcoal/8">
+                    {properties.slice(0, 5).map((p) => {
+                      const firstImg = p.images?.[0]?.url || (typeof p.images?.[0] === 'string' ? p.images[0] : null)
+                      const displayImg = resolveImageUrl(firstImg, '/images/placeholder.svg')
+                      return (
+                        <div key={p._id} className="flex items-center gap-4 px-5 py-4 hover:bg-sand/20 transition-colors">
+                          <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-sand/30">
+                            <Image
+                              src={displayImg}
+                              alt={p.title}
+                              fill
+                              sizes="80px"
+                              className="object-cover"
+                              unoptimized={displayImg.startsWith('http')}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-display font-semibold text-charcoal truncate">{p.title}</p>
+                            <p className="text-xs text-charcoal/55">
+                              {p.location?.subCity ? `${p.location.subCity}, Addis Ababa` : (p.location?.city || 'Addis Ababa')}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-mono text-sm font-bold text-charcoal">
+                              ETB {Number(p.rentAmount || 0).toLocaleString()}
+                              <span className="text-xs font-normal text-charcoal/45">/mo</span>
+                            </p>
+                            <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                              p.listingStatus === 'rented' ? 'bg-verified/10 text-verified' :
+                              p.listingStatus === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                              'bg-rust/10 text-rust'
+                            }`}>
+                              {p.listingStatus || 'active'}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </FadeIn>
 
@@ -169,41 +308,58 @@ export default function LandlordDashboardPage() {
                     Full ledger →
                   </Link>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[540px] text-sm">
-                    <thead className="bg-sand/40 text-xs uppercase tracking-wider text-charcoal/45">
-                      <tr>
-                        <th className="px-5 py-3 text-left font-medium">Tenant</th>
-                        <th className="px-5 py-3 text-left font-medium">Property</th>
-                        <th className="px-5 py-3 text-left font-medium">Amount</th>
-                        <th className="px-5 py-3 text-left font-medium">Due</th>
-                        <th className="px-5 py-3 text-left font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-charcoal/8">
-                      {RECENT_PAYMENTS.map((p) => (
-                        <tr key={p.name} className="hover:bg-sand/20">
-                          <td className="px-5 py-3">
-                            <div className="flex items-center gap-2.5">
-                              <InitialsAvatar name={p.name} size={32} />
-                              <span className="font-medium text-charcoal">{p.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-3 text-charcoal/60">{p.property}</td>
-                          <td className="px-5 py-3 font-mono font-semibold text-charcoal">ETB {p.amount.toLocaleString()}</td>
-                          <td className="px-5 py-3 text-charcoal/60">{p.dueDate}</td>
-                          <td className="px-5 py-3">
-                            {p.paid ? (
-                              <span className="rounded-full bg-verified/10 px-2.5 py-0.5 text-xs font-semibold text-verified">Paid</span>
-                            ) : (
-                              <span className="rounded-full bg-rust/10 px-2.5 py-0.5 text-xs font-semibold text-rust">Pending</span>
-                            )}
-                          </td>
+                {payments.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-charcoal/50">
+                    No rent payment records yet. Rent schedules and digital receipts will be automatically tracked here once your properties are leased.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[540px] text-sm">
+                      <thead className="bg-sand/40 text-xs uppercase tracking-wider text-charcoal/45">
+                        <tr>
+                          <th className="px-5 py-3 text-left font-medium">Tenant</th>
+                          <th className="px-5 py-3 text-left font-medium">Property</th>
+                          <th className="px-5 py-3 text-left font-medium">Amount</th>
+                          <th className="px-5 py-3 text-left font-medium">Due Date</th>
+                          <th className="px-5 py-3 text-left font-medium">Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-charcoal/8">
+                        {payments.slice(0, 5).map((p) => {
+                          const tenantName = p.tenantId ? `${p.tenantId.firstName || ''} ${p.tenantId.lastName || ''}`.trim() : 'Tenant'
+                          const propTitle = p.propertyId?.title || 'Rental Unit'
+                          const isPaid = p.status === 'paid' || p.status === 'collected'
+                          return (
+                            <tr key={p._id} className="hover:bg-sand/20">
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  <InitialsAvatar name={tenantName} size={32} />
+                                  <span className="font-medium text-charcoal">{tenantName}</span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3 text-charcoal/60 truncate max-w-[150px]">{propTitle}</td>
+                              <td className="px-5 py-3 font-mono font-semibold text-charcoal">
+                                ETB {Number(p.amountDue || p.amount || 0).toLocaleString()}
+                              </td>
+                              <td className="px-5 py-3 text-charcoal/60">
+                                {p.dueDate ? new Date(p.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
+                              </td>
+                              <td className="px-5 py-3">
+                                {isPaid ? (
+                                  <span className="rounded-full bg-verified/10 px-2.5 py-0.5 text-xs font-semibold text-verified">Paid</span>
+                                ) : (
+                                  <span className="rounded-full bg-rust/10 px-2.5 py-0.5 text-xs font-semibold text-rust">
+                                    {p.status || 'Pending'}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </FadeIn>
           </div>
@@ -220,26 +376,36 @@ export default function LandlordDashboardPage() {
                     View all →
                   </Link>
                 </div>
-                <div className="divide-y divide-charcoal/8">
-                  {RECENT_APPS.map((app) => (
-                    <div key={app.name} className="flex items-start gap-3 px-5 py-4 hover:bg-sand/20 transition-colors">
-                      <InitialsAvatar name={app.name} size={36} className="border border-sand" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display text-sm font-bold text-charcoal">{app.name}</p>
-                        <p className="text-xs text-charcoal/55 truncate">{app.property}</p>
-                        <ScoreBar score={app.score} />
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <button type="button" className="rounded bg-verified/10 px-2.5 py-1 text-[11px] font-semibold text-verified hover:bg-verified/20 transition-colors">
-                          Accept
-                        </button>
-                        <button type="button" className="rounded bg-rust/10 px-2.5 py-1 text-[11px] font-semibold text-rust hover:bg-rust/20 transition-colors">
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {applications.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-charcoal/50">
+                    No applications received yet. Interested tenants will appear here when they submit applications for your listings.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-charcoal/8">
+                    {applications.slice(0, 4).map((app) => {
+                      const applicantName = app.tenantId ? `${app.tenantId.firstName || ''} ${app.tenantId.lastName || ''}`.trim() : 'Applicant'
+                      const propTitle = app.propertyId?.title || 'Rental Property'
+                      return (
+                        <div key={app._id} className="flex items-start gap-3 px-5 py-4 hover:bg-sand/20 transition-colors">
+                          <InitialsAvatar name={applicantName} size={36} className="border border-sand" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-display text-sm font-bold text-charcoal truncate">{applicantName}</p>
+                            <p className="text-xs text-charcoal/55 truncate">{propTitle}</p>
+                            <span className="mt-1 inline-block rounded bg-sand px-2 py-0.5 text-[10px] font-semibold text-charcoal/60 uppercase">
+                              {app.status || 'Submitted'}
+                            </span>
+                          </div>
+                          <Link
+                            href="/landlord/applications"
+                            className="rounded bg-rust/10 px-2.5 py-1 text-[11px] font-semibold text-rust hover:bg-rust/20 transition-colors shrink-0"
+                          >
+                            Review
+                          </Link>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </FadeIn>
 
@@ -271,9 +437,13 @@ export default function LandlordDashboardPage() {
                   <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-verified">
                     <path fillRule="evenodd" d="M10 1.5l6.5 2.9v5c0 4.6-2.8 8.7-6.5 9.9-3.7-1.2-6.5-5.3-6.5-9.9v-5L10 1.5zm3.4 6.4a.75.75 0 00-1.1-1L9 10.2 7.7 8.9a.75.75 0 10-1 1.1l1.8 1.8c.3.3.8.3 1 0l3.9-3.9z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm font-bold text-verified">Account Verified</span>
+                  <span className="text-sm font-bold text-verified">Account Active</span>
                 </div>
-                <p className="text-xs text-charcoal/60">Your landlord profile and all listed properties are verified. Your listings appear with the Verified badge to tenants.</p>
+                <p className="text-xs text-charcoal/60">
+                  {totalProperties === 0
+                    ? 'Your landlord account is active and verified. Register a property to start accepting applications.'
+                    : `You have ${totalProperties} property listed. Verified listings receive priority placement.`}
+                </p>
               </div>
             </FadeIn>
           </div>

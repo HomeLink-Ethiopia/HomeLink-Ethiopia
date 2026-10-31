@@ -1,5 +1,6 @@
-import VerificationWorkbench from '@/components/admin/verification/VerificationWorkbench'
+import { redirect } from 'next/navigation'
 
 export default function VerificationQueuePage() {
-  return <VerificationWorkbench scope="all" title="Verification Queue" />
+  redirect('/admin/landlord-verification')
 }
+

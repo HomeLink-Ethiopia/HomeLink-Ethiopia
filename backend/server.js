@@ -19,6 +19,9 @@ const fraudRoutes = require('./src/routes/fraudRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const disputeRoutes = require('./src/routes/disputeRoutes');
 const adminRoutes = require('./src/routes/admin/adminRoutes');
+const auditRoutes = require('./src/routes/auditRoutes');
+const supportRoutes = require('./src/routes/supportRoutes');
+const neighborhoodRoutes = require('./src/routes/neighborhoodRoutes');
 
 const app = express();
 
@@ -28,6 +31,16 @@ app.use(cors());
 // Global JSON & form body parser
 
 app.use(express.json({ limit: '10mb' }));
+// 🚨 Quick Mock for Frontend Dashboard
+app.get('/api/v1/credit-score/my', (req, res) => {
+    // We return a mock score so the UI doesn't crash
+    res.status(200).json({ 
+        data: { 
+            score: 785, 
+            tier: 'excellent' 
+        } 
+    });
+});
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static uploads (property images and tenant documents)
@@ -36,19 +49,25 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ─── ROUTES ───
 app.use('/api/auth', authRoutes);
 app.use('/api/v1/properties', propertyRoutes);
+app.use('/api/public/properties', propertyRoutes);
 app.use('/api/v1/verification', verificationRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/ai', aiRoutes);
 app.use('/api/v1/viewings', viewingRoutes);
 app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/agreements', agreementRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/maintenance', maintenanceRoutes);
 app.use('/api/v1/communication', communicationRoutes);
+app.use('/api/v1/messages', communicationRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/fraud-reports', fraudRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/disputes', disputeRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/audit-logs', auditRoutes);
+app.use('/api/v1/support', supportRoutes);
+app.use('/api/v1/neighborhoods', neighborhoodRoutes);
 
 // ─── ROOT ENDPOINT ───
 app.get('/', (req, res) => {

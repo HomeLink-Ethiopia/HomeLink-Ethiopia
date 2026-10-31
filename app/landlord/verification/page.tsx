@@ -8,11 +8,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 /* ─── TYPES ──────────────────────────────────────────────────────────────── */
 
 interface DocRecord {
-  docType: string
+  docType?: string
+  type?: string
+  documentType?: string
+  name?: string
   fileKey: string
   originalName?: string
   mimeType?: string
   uploadedAt: string
+}
+
+function getDocTypeName(d?: any): string {
+  if (!d) return 'Document'
+  const val = d.docType || d.type || d.documentType || d.name || 'Document'
+  return String(val).replace(/_/g, ' ')
 }
 
 interface LandlordProfile {
@@ -169,7 +178,7 @@ function DocumentViewer({ doc, onClose }: { doc: DocRecord; onClose: () => void 
       <div className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-charcoal/10 px-5 py-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-charcoal">{doc.docType.replace(/_/g, ' ')}</p>
+            <p className="text-sm font-semibold text-charcoal">{getDocTypeName(doc)}</p>
             <p className="truncate text-xs text-charcoal/50">{doc.originalName || doc.fileKey.split('/').pop()}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -181,7 +190,7 @@ function DocumentViewer({ doc, onClose }: { doc: DocRecord; onClose: () => void 
         </div>
         <div className="flex-1 overflow-auto bg-charcoal/5 p-4">
           {isPdf ? (
-            <iframe src={url} className="h-[65vh] w-full rounded-lg border border-charcoal/10 bg-white" title={doc.docType} />
+            <iframe src={url} className="h-[65vh] w-full rounded-lg border border-charcoal/10 bg-white" title={getDocTypeName(doc)} />
           ) : (
             <div className="flex justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -461,7 +470,7 @@ export default function LandlordVerificationPage() {
                       <img src={d.fileKey.startsWith('http') ? d.fileKey : `${API_URL}${d.fileKey}`} alt={d.docType} className="h-24 w-full object-cover" />
                     )}
                     <div className="p-2">
-                      <p className="truncate text-xs font-medium text-charcoal">{d.docType.replace(/_/g, ' ')}</p>
+                      <p className="truncate text-xs font-medium text-charcoal">{getDocTypeName(d)}</p>
                       <p className="text-[10px] text-charcoal/50">
                         {d.originalName || 'file'} · {new Date(d.uploadedAt).toLocaleDateString()}
                       </p>
@@ -491,7 +500,7 @@ export default function LandlordVerificationPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {profile!.submittedDocuments!.map((d, i) => (
                     <button key={i} onClick={() => setPreviewDoc(d)} className="rounded border border-charcoal/10 bg-charcoal/5 px-3 py-1.5 text-xs text-charcoal/70 hover:bg-charcoal/10">
-                      View {d.docType.replace(/_/g, ' ')}
+                      View {getDocTypeName(d)}
                     </button>
                   ))}
                 </div>
@@ -512,7 +521,7 @@ export default function LandlordVerificationPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {profile!.submittedDocuments!.map((d, i) => (
                     <button key={i} onClick={() => setPreviewDoc(d)} className="rounded border border-charcoal/10 bg-charcoal/5 px-3 py-1.5 text-xs text-charcoal/70 hover:bg-charcoal/10">
-                      View {d.docType.replace(/_/g, ' ')}
+                      View {getDocTypeName(d)}
                     </button>
                   ))}
                 </div>
@@ -597,7 +606,7 @@ export default function LandlordVerificationPage() {
                       <div className="mt-2 flex flex-wrap gap-2">
                         {docs.map((d, i) => (
                           <button key={i} onClick={() => setPreviewDoc(d)} className="rounded border border-charcoal/10 bg-charcoal/5 px-2.5 py-1 text-xs text-charcoal/70 hover:bg-charcoal/10">
-                            {d.docType.replace(/_/g, ' ')}
+                            {getDocTypeName(d)}
                           </button>
                         ))}
                       </div>
@@ -615,7 +624,7 @@ export default function LandlordVerificationPage() {
                         <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-charcoal/40">History</p>
                         {pv.auditTrail.map((a, i) => (
                           <p key={i} className="text-xs text-charcoal/50">
-                            {new Date(a.timestamp).toLocaleString()} — {a.action.replace(/_/g, ' ').toLowerCase()}
+                            {new Date(a.timestamp).toLocaleString()} — {(a.action || 'Action').replace(/_/g, ' ').toLowerCase()}
                             {a.performedByName ? ` by ${a.performedByName}` : ''}
                             {a.notes ? `: ${a.notes}` : ''}
                           </p>

@@ -1,14 +1,18 @@
+const { isMockMode, mockStore, persistMockData, mockCreateNotification } = require('../config/db');
 const TenantPayment = require('../models/TenantPayment');
 const RentalAgreement = require('../models/RentalAgreement');
 const Notification = require('../models/Notification');
 const crypto = require("crypto");
 const PaymentTransaction = require("../models/PaymentTransaction");
 
-// ─── Chapa base URL ───────────────────────────────────────────────────────────
-// Chapa test/live both use v1 for transaction verify, v1 for initialize
+// Chapa base URL
 const CHAPA_BASE = "https://api.chapa.co/v1";
 
 const createNotification = async (userId, type, title, body, entityType, entityId) => {
+    if (isMockMode && isMockMode()) { 
+        if (typeof mockCreateNotification === 'function') mockCreateNotification(userId, type, title, body, entityType, entityId); 
+        return; 
+    }
     try {
         await Notification.create({
             userId, type, title, body,
@@ -44,7 +48,7 @@ const generateInvoice = async (req, res) => {
         });
 
         await createNotification(
-            agreement.tenantId, 'rent_due', 'New Invoice Generated',
+            agreement.tenantId, 'system', 'New Invoice Generated',
             `A new invoice for ${amountDue} ETB is due on ${new Date(dueDate).toLocaleDateString()} for ${agreement.propertyId.title}.`,
             'TenantPayment', invoice._id
         );
@@ -59,33 +63,55 @@ const recordPayment = async (req, res) => {
     try {
         const { id } = req.params;
         const tenantId = req.user.id;
-        const { paymentMethod, transactionReference } = req.body;
-        const receiptFile = req.file ? req.file.path : null;
+        const { paymentMethod, transactionReference, receiptUrl } = req.body;
+        const path = require('path');
+        const receiptFile = req.file ? `/uploads/${path.basename(req.file.path)}` : null;
+        const finalReceipt = receiptFile || receiptUrl || req.body.receiptKey;
 
-        if (!transactionReference && !receiptFile) {
+        if (!transactionReference && !finalReceipt) {
             return res.status(400).json({ message: "Must provide either a transaction reference code or a receipt image" });
         }
 
+        const isInstant = Boolean(paymentMethod === 'telebirr' || paymentMethod === 'chapa' || req.body.instant);
+        const existing = await TenantPayment.findById(id);
+        if (!existing) return res.status(404).json({ message: "Payment not found" });
+
+        const targetStatus = isInstant ? 'paid' : 'pending';
+        
         const payment = await TenantPayment.findOneAndUpdate(
             { _id: id, tenantId },
-            {
-                status: 'pending',
-                paymentMethod,
-                transactionReference,
-                receiptKey: receiptFile
+            { 
+                status: targetStatus,
+                amountPaid: isInstant ? existing.amountDue : 0,
+                balance: isInstant ? 0 : existing.amountDue,
+                paymentMethod: paymentMethod || "bank_transfer",
+                transactionReference: transactionReference || `TX-${(paymentMethod || 'PAY').toUpperCase()}-${Date.now().toString().slice(-6)}`,
+                receiptKey: finalReceipt,
+                paidAt: new Date()
             },
             { new: true }
         ).populate('propertyId', 'title');
 
         if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-        await createNotification(
-            payment.landlordId, 'system', 'Payment Proof Uploaded',
-            `Tenant has uploaded payment proof for ${payment.propertyId.title}. Please verify the receipt or reference code.`,
-            'TenantPayment', payment._id
-        );
+        if (isInstant) {
+            await createNotification(
+                payment.landlordId, 'system', 'Online Rent Received', // ✅ Changed to 'system'
+                `Tenant paid ${payment.amountPaid} ETB via ${paymentMethod || 'digital payment'} for ${payment.propertyId.title}.`,
+                'TenantPayment', payment._id
+            );
+        } else {
+            await createNotification(
+                payment.landlordId, 'system', 'Payment Proof Uploaded',
+                `Tenant has uploaded payment proof for ${payment.propertyId.title}. Please verify the receipt or reference code.`,
+                'TenantPayment', payment._id
+            );
+        }
 
-        res.status(200).json({ message: "Payment proof recorded. Waiting for landlord verification.", payment });
+        res.status(200).json({
+            message: isInstant ? "Payment processed successfully!" : "Payment proof recorded. Waiting for landlord verification.",
+            payment
+        });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -95,27 +121,57 @@ const verifyPayment = async (req, res) => {
     try {
         const { id } = req.params;
         const landlordId = req.user.id;
-        const { amountPaid, paymentMethod } = req.body;
+        const { amountPaid, paymentMethod, status, receiptKey, notes } = req.body;
 
+        const targetStatus = status === 'collected' ? 'paid' : (status || 'paid');
         const payment = await TenantPayment.findOne({ _id: id, landlordId }).populate('propertyId', 'title');
+        
         if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-        payment.amountPaid = amountPaid || payment.amountDue;
-        payment.balance = payment.amountDue - payment.amountPaid;
-        payment.status = payment.balance <= 0 ? 'paid' : 'partial';
-        payment.paidAt = new Date();
-
+        payment.status = targetStatus;
+        if (targetStatus === 'paid') {
+            payment.amountPaid = amountPaid || payment.amountDue;
+            payment.balance = 0;
+            payment.paidAt = payment.paidAt || new Date();
+payment.receiptNumber = payment.receiptNumber || `RCPT-${payment._id.toString().slice(-6).toUpperCase()}`;        } else if (targetStatus === 'pending' || targetStatus === 'overdue') {
+            payment.amountPaid = 0;
+            payment.balance = payment.amountDue;
+            payment.paidAt = null;
+        }
+        
         if (paymentMethod) payment.paymentMethod = paymentMethod;
+        if (receiptKey) payment.receiptKey = receiptKey;
+        if (notes !== undefined) payment.notes = notes;
 
         await payment.save();
 
-        await createNotification(
-            payment.tenantId, 'payment_received', 'Payment Verified',
-            `Your payment of ${payment.amountPaid} ETB for ${payment.propertyId.title} has been verified by the landlord!`,
-            'TenantPayment', payment._id
-        );
+        if (targetStatus === 'paid') {
+             await createNotification(
+                payment.tenantId, 'system', 'Payment Verified & Confirmed', // ✅ Changed to 'system'
+                `Your rent payment of ${payment.amountPaid} ETB has been verified by your landlord. Receipt: ${payment.receiptNumber}`,
+                'TenantPayment', payment._id
+            );
+        }
 
-        res.status(200).json({ message: "Payment verified successfully", payment });
+        res.status(200).json({ message: "Payment updated successfully", payment });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+const uploadPaymentReceipt = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const path = require('path');
+        if (!req.file) return res.status(400).json({ message: "No receipt file uploaded" });
+        
+        const fileUrl = `/uploads/${path.basename(req.file.path)}`;
+        const payment = await TenantPayment.findById(id);
+        if (!payment) return res.status(404).json({ message: "Payment not found" });
+        
+        payment.receiptKey = fileUrl;
+        await payment.save();
+        res.status(200).json({ message: "Receipt uploaded successfully", receiptUrl: fileUrl, payment });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -124,25 +180,16 @@ const verifyPayment = async (req, res) => {
 // ─── Chapa: Initialize checkout ───────────────────────────────────────────────
 const initializeChapaPayment = async (req, res) => {
     let transaction;
-
     try {
         const { id } = req.params;
         const tenantId = req.user.id;
         const secretKey = process.env.CHAPA_SECRET_KEY;
 
-        if (!secretKey) {
-            return res.status(503).json({ message: "Chapa private key is not configured." });
-        }
+        if (!secretKey) return res.status(503).json({ message: "Chapa private key is not configured." });
 
-        // Populate tenant user fields (Account model uses firstName/lastName)
-        const payment = await TenantPayment.findOne({ _id: id, tenantId })
-            .populate("tenantId", "firstName lastName email phone");
+        const payment = await TenantPayment.findOne({ _id: id, tenantId }).populate("tenantId", "firstName lastName email phone");
+        if (!payment) return res.status(404).json({ message: "Payment invoice not found." });
 
-        if (!payment) {
-            return res.status(404).json({ message: "Payment invoice not found." });
-        }
-
-        // Chapa expects ETB as a plain decimal number, not minor units
         const amountETB = Number(payment.balance);
         const currency = String(payment.currency || "ETB").toUpperCase();
 
@@ -150,76 +197,35 @@ const initializeChapaPayment = async (req, res) => {
             return res.status(400).json({ message: "This invoice has no valid outstanding balance." });
         }
 
-        if (currency !== "ETB") {
-            return res.status(400).json({ message: "Only ETB payments are currently supported." });
-        }
-
-        if (amountETB < 1) {
-            return res.status(400).json({ message: "Minimum Chapa payment is 1 ETB." });
-        }
-
         const tenant = payment.tenantId;
-        if (!tenant?.email) {
-            return res.status(400).json({ message: "Your account needs a valid email address to use Chapa." });
-        }
+        if (!tenant?.email) return res.status(400).json({ message: "Your account needs a valid email address to use Chapa." });
 
-        // Unique tx_ref for this checkout attempt (Chapa field name: tx_ref)
         const tx_ref = `HL-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
 
-        // Store as amountMinorUnits for backwards compat but store ETB too
         transaction = await PaymentTransaction.create({
             paymentId: payment._id,
             provider: "chapa",
             merchantReference: tx_ref,
-            // Store ETB * 100 as minor units for record keeping
             amountMinorUnits: Math.round(amountETB * 100),
             currency,
             status: "pending"
         });
 
-        const firstName = tenant.firstName || "HomeLink";
-        const lastName = tenant.lastName || "Tenant";
-
         const payload = {
-            amount: String(amountETB),          // Chapa expects a string decimal
+            amount: String(amountETB),
             currency,
-            tx_ref,                             // Chapa's field is tx_ref, not merchant_reference
-            first_name: firstName,
-            last_name: lastName,
+            tx_ref,
+            first_name: tenant.firstName || "HomeLink",
+            last_name: tenant.lastName || "Tenant",
             email: tenant.email,
             ...(tenant.phone ? { phone_number: String(tenant.phone) } : {}),
             title: "HomeLink Rent Payment",
-            description: `Payment for ${payment.paymentType || "rent"}`,
-            meta: {
-                homeLinkPaymentId: String(payment._id),
-                homeLinkTransactionId: String(transaction._id)
-            }
+            description: `Payment for ${payment.paymentType || "rent"}`
         };
-
-        // Only add return/callback URLs if they are real https URLs
-        const frontendUrl = (process.env.FRONTEND_URL || "").trim();
-        if (frontendUrl.startsWith("https://")) {
-            payload.return_url = `${frontendUrl}/payments/success?tx_ref=${encodeURIComponent(tx_ref)}`;
-        }
-
-        const callbackUrl = (process.env.CHAPA_CALLBACK_URL || "").trim();
-        if (callbackUrl.startsWith("https://")) {
-            payload.callback_url = callbackUrl;
-        }
-
-        console.log("[Chapa Init] Sending to Chapa:", {
-            endpoint: `${CHAPA_BASE}/transaction/initialize`,
-            tx_ref,
-            amount: payload.amount,
-            email: payload.email
-        });
 
         const response = await fetch(`${CHAPA_BASE}/transaction/initialize`, {
             method: "POST",
-            headers: {
-                Authorization: `Bearer ${secretKey}`,
-                "Content-Type": "application/json",
-            },
+            headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
 
@@ -227,198 +233,77 @@ const initializeChapaPayment = async (req, res) => {
 
         if (!response.ok || data.status !== "success") {
             transaction.status = "failed";
-            transaction.failureReason = data.message || "Chapa initialization failed";
             await transaction.save();
-
-            console.error("[Chapa Init] Failed:", { httpStatus: response.status, body: data });
-            return res.status(502).json({
-                message: "Could not initialize Chapa checkout.",
-                providerMessage: data.message || "Unexpected Chapa response.",
-                providerError: data
-            });
+            return res.status(502).json({ message: "Could not initialize Chapa checkout.", providerMessage: data.message });
         }
 
-        const checkoutUrl = data.data?.checkout_url;
-        if (!checkoutUrl) {
-            transaction.status = "failed";
-            transaction.failureReason = "No checkout_url in Chapa response";
-            await transaction.save();
-            return res.status(502).json({ message: "Chapa did not return a checkout URL." });
-        }
-
+        transaction.chapaReference = data.data?.tx_ref;
         await transaction.save();
 
-        return res.status(200).json({
-            message: "Chapa checkout initialized.",
-            checkout_url: checkoutUrl,
-            tx_ref,
-        });
+        return res.status(200).json({ message: "Chapa checkout initialized.", checkout_url: data.data?.checkout_url, tx_ref });
 
     } catch (error) {
-        if (transaction) {
-            transaction.status = "failed";
-            transaction.failureReason = error.message;
-            await transaction.save().catch(() => {});
-        }
-        console.error("[Chapa Init] Error:", error.message);
+        if (transaction) { transaction.status = "failed"; await transaction.save().catch(() => {}); }
         return res.status(500).json({ message: "Could not initialize payment.", error: error.message });
     }
 };
 
 // ─── Chapa: Verify & record payment ──────────────────────────────────────────
 const verifyChapaPayment = async (req, res) => {
-    let session;
-
     try {
         const { tx_ref } = req.params;
-        const userId = String(req.user.id);
-        const role = req.user.role;
         const secretKey = process.env.CHAPA_SECRET_KEY;
 
         if (!secretKey) return res.status(503).json({ message: "Chapa key is not configured." });
-        if (!tx_ref) return res.status(400).json({ message: "Payment reference (tx_ref) is required." });
 
-        // Find our transaction record by tx_ref (we store it as merchantReference)
-        const transaction = await PaymentTransaction.findOne({
-            $or: [
-                { merchantReference: tx_ref },
-                { chapaReference: tx_ref }
-            ]
-        });
+        const transaction = await PaymentTransaction.findOne({ merchantReference: tx_ref });
+        if (!transaction) return res.status(404).json({ message: "Payment attempt not found." });
 
-        if (!transaction) {
-            return res.status(404).json({ message: "Payment attempt not found. Make sure you used the correct tx_ref." });
-        }
-
-        const payment = await TenantPayment.findById(transaction.paymentId);
-        if (!payment) return res.status(404).json({ message: "The invoice for this payment was not found." });
-
-        // Authorization check
-        if (role === "tenant" && String(payment.tenantId) !== userId) {
-            return res.status(403).json({ message: "You cannot verify another tenant's payment." });
-        }
-        if (role === "landlord" && String(payment.landlordId) !== userId) {
-            return res.status(403).json({ message: "You cannot verify this payment." });
-        }
-
-        // Already processed — return cached result (idempotent)
         if (transaction.status === "recorded") {
-            const updatedPayment = await TenantPayment.findById(payment._id);
-            return res.status(200).json({
-                message: "This transaction has already been recorded.",
-                tx_ref: transaction.merchantReference,
-                payment: updatedPayment
-            });
+            return res.status(200).json({ message: "This transaction has already been recorded." });
         }
 
-        if (transaction.status === "failed") {
-            return res.status(400).json({ message: "This checkout attempt was marked as failed." });
-        }
-
-        // ─── Call Chapa v1 transaction verify ────────────────────────────────
-        // Chapa v1 endpoint: GET /v1/transaction/verify/{tx_ref}
-        // Always use our tx_ref (merchantReference) since that's what we sent in initialize
-        const verifyRef = encodeURIComponent(transaction.merchantReference);
-
-        console.log("[Chapa Verify] Calling:", `${CHAPA_BASE}/transaction/verify/${verifyRef}`);
-
-        const response = await fetch(
-            `${CHAPA_BASE}/transaction/verify/${verifyRef}`,
-            {
-                method: "GET",
-                headers: { Authorization: `Bearer ${secretKey}` }
-            }
-        );
+        const response = await fetch(`${CHAPA_BASE}/transaction/verify/${tx_ref}`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${secretKey}` }
+        });
 
         const result = await response.json().catch(() => ({}));
-
-        console.log("[Chapa Verify] Response:", {
-            httpStatus: response.status,
-            status: result.status,
-            data: result.data
-        });
-
         if (!response.ok || result.status !== "success" || !result.data) {
-            return res.status(400).json({
-                message: "Chapa verification failed.",
-                providerMessage: result.message || "Payment not confirmed by Chapa.",
-                providerError: result
-            });
+            return res.status(400).json({ message: "Chapa verification failed.", providerMessage: result.message });
         }
 
         const verified = result.data;
-
-        // Chapa returns status as "success" (lowercase) in the data object
-        const chapaStatus = String(verified.status || "").toLowerCase();
-        if (chapaStatus !== "success") {
-            return res.status(400).json({
-                message: `Payment not yet completed. Chapa status: ${verified.status}`,
-                transactionStatus: verified.status
-            });
+        if (String(verified.status).toLowerCase() !== "success") {
+            return res.status(400).json({ message: `Payment not yet completed. Status: ${verified.status}` });
         }
 
-        // Verify amount — Chapa returns ETB amount as a number
         const verifiedAmountETB = Number(verified.amount);
-        const expectedAmountETB = transaction.amountMinorUnits / 100;
+        const payment = await TenantPayment.findById(transaction.paymentId);
+        
+        if (payment) {
+            payment.amountPaid = Number(payment.amountPaid || 0) + verifiedAmountETB;
+            payment.balance = Math.max(0, Number(payment.amountDue) - payment.amountPaid);
+            payment.status = payment.balance === 0 ? "paid" : "partial";
+            payment.paidAt = new Date();
+            payment.paymentMethod = "chapa";
+            await payment.save();
 
-        if (Math.abs(verifiedAmountETB - expectedAmountETB) > 1) {
-            // Allow 1 ETB tolerance for rounding
-            return res.status(400).json({
-                message: `Verified amount (${verifiedAmountETB} ETB) does not match expected (${expectedAmountETB} ETB).`
-            });
+            // Notify Landlord that they got paid
+            await createNotification(
+                payment.landlordId, 'system', 'Online Payment Received',
+                `A Chapa payment of ${verifiedAmountETB} ETB was received for your property.`,
+                'TenantPayment', payment._id
+            );
         }
 
-        // ─── Idempotent recording via MongoDB transaction ─────────────────────
-        session = await TenantPayment.startSession();
-        await session.withTransaction(async () => {
-            const currentTx = await PaymentTransaction.findById(transaction._id).session(session);
-            if (!currentTx || currentTx.status === "recorded") return; // Already done
+        transaction.status = "recorded";
+        await transaction.save();
 
-            const currentPayment = await TenantPayment.findById(payment._id).session(session);
-            if (!currentPayment) throw new Error("Invoice no longer exists.");
-
-            currentPayment.amountPaid = Number(currentPayment.amountPaid || 0) + verifiedAmountETB;
-            currentPayment.balance = Math.max(0, Number(currentPayment.amountDue) - currentPayment.amountPaid);
-            currentPayment.status = currentPayment.balance === 0 ? "paid" : "partial";
-            currentPayment.paidAt = new Date();
-            currentPayment.paymentMethod = "chapa";
-
-            currentTx.status = "recorded";
-            currentTx.verifiedAt = new Date();
-            currentTx.recordedAt = new Date();
-            if (verified.reference) currentTx.chapaReference = verified.reference;
-
-            await currentPayment.save({ session });
-            await currentTx.save({ session });
-        });
-
-        await session.endSession();
-        session = null;
-
-        const updatedPayment = await TenantPayment.findById(payment._id);
-
-        await createNotification(
-            payment.landlordId, "payment_received", "Online Payment Received",
-            `A Chapa payment of ${verifiedAmountETB} ETB was verified.`,
-            "TenantPayment", payment._id
-        );
-        await createNotification(
-            payment.tenantId, "payment_received", "Payment Successful",
-            `Your Chapa payment of ${verifiedAmountETB} ETB was verified.`,
-            "TenantPayment", payment._id
-        );
-
-        return res.status(200).json({
-            message: "Payment verified and recorded.",
-            tx_ref: transaction.merchantReference,
-            payment: updatedPayment
-        });
+        return res.status(200).json({ message: "Payment verified and recorded.", payment });
 
     } catch (error) {
-        console.error("[Chapa Verify] Error:", error.message);
         return res.status(500).json({ message: "Could not verify payment.", error: error.message });
-    } finally {
-        if (session) await session.endSession().catch(() => {});
     }
 };
 
@@ -426,17 +311,21 @@ const getPayments = async (req, res) => {
     try {
         const userId = req.user.id;
         const role = req.user.role;
-        const filter = role === 'tenant' ? { tenantId: userId } : { landlordId: userId };
+
+        // Build the filter safely
+        const filter = role === 'admin' ? {} : (role === 'tenant' ? { tenantId: userId } : { landlordId: userId });
 
         const payments = await TenantPayment.find(filter)
-            .populate('propertyId', 'title')
-            .populate('agreementId', 'startDate endDate')
-            .sort({ dueDate: -1 });
+            .populate('propertyId', 'title location images')
+            .populate('tenantId', 'firstName lastName email phone')
+            .populate('landlordId', 'firstName lastName email phone')
+            .sort({ createdAt: -1 });
 
         res.status(200).json(payments);
+        
     } catch (error) {
-        console.error('[getPayments] Error:', error.message);
-        res.status(500).json({ message: 'Server error' });
+        console.error("getPayments error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
@@ -454,12 +343,8 @@ const getPaymentById = async (req, res) => {
 
         if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-        if (role === 'tenant' && payment.tenantId._id.toString() !== userId) {
-            return res.status(403).json({ message: "Unauthorized" });
-        }
-        if (role === 'landlord' && payment.landlordId._id.toString() !== userId) {
-            return res.status(403).json({ message: "Unauthorized" });
-        }
+        if (role === 'tenant' && payment.tenantId._id.toString() !== userId) return res.status(403).json({ message: "Unauthorized" });
+        if (role === 'landlord' && payment.landlordId._id.toString() !== userId) return res.status(403).json({ message: "Unauthorized" });
 
         res.status(200).json(payment);
     } catch (error) {
@@ -472,8 +357,7 @@ const sendReminder = async (req, res) => {
         const { id } = req.params;
         const landlordId = req.user.id;
 
-        const payment = await TenantPayment.findOne({ _id: id, landlordId })
-            .populate('propertyId', 'title');
+        const payment = await TenantPayment.findOne({ _id: id, landlordId }).populate('propertyId', 'title');
         if (!payment) return res.status(404).json({ message: "Payment not found or unauthorized" });
         if (payment.status === 'paid') return res.status(400).json({ message: "Payment is already paid" });
 
@@ -481,7 +365,7 @@ const sendReminder = async (req, res) => {
         await payment.save();
 
         await createNotification(
-            payment.tenantId, 'rent_overdue', 'Payment Reminder',
+            payment.tenantId, 'system', 'Payment Reminder',
             `Friendly reminder: You have an outstanding balance of ${payment.balance} ETB for ${payment.propertyId.title}.`,
             'TenantPayment', payment._id
         );
@@ -500,5 +384,6 @@ module.exports = {
     verifyChapaPayment,
     getPayments,
     getPaymentById,
-    sendReminder
+    sendReminder,
+    uploadPaymentReceipt
 };

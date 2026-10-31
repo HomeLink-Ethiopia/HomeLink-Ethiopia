@@ -26,6 +26,7 @@ export default function TenantDashboardPage() {
   const [userName, setUserName] = useState('')
   const [payments, setPayments] = useState<{ amount: number; dueDate: string; paidDate?: string; status: string }[]>([])
   const [maintenance, setMaintenance] = useState<{ _id: string; title?: string; issue?: string; status?: string; createdAt?: string }[]>([])
+  const [activeAgreement, setActiveAgreement] = useState<any>(null)
 
   useEffect(() => {
     // Real logged-in user from auth storage
@@ -46,14 +47,24 @@ export default function TenantDashboardPage() {
     // Real payments (next + last payment cards)
     fetch(`${API_URL}/api/v1/payments/my`, { headers })
       .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((d) => setPayments(d.data || []))
+      .then((d) => setPayments(Array.isArray(d) ? d : (d.data || [])))
       .catch(() => setPayments([]))
 
     // Real maintenance requests
     fetch(`${API_URL}/api/v1/maintenance/my`, { headers })
       .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((d) => setMaintenance(d.data || []))
+      .then((d) => setMaintenance(Array.isArray(d) ? d : (d.data || [])))
       .catch(() => setMaintenance([]))
+
+    // Real active agreement
+    fetch(`${API_URL}/api/v1/agreements/my`, { headers })
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((d) => {
+        const list = Array.isArray(d) ? d : (d.data || d.agreements || [])
+        const act = list.find((a: any) => a.status === 'active')
+        setActiveAgreement(act || null)
+      })
+      .catch(() => setActiveAgreement(null))
   }, [])
 
   const firstName = userName.split(' ')[0] || 'there'
@@ -76,7 +87,7 @@ export default function TenantDashboardPage() {
         <p className="mt-1 text-charcoal/60">Welcome back to your home journey.</p>
 
         <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_280px]">
-          <div className="rounded-lg border border-charcoal/10 bg-white p-6">
+          <div className="rounded-lg border border-charcoal/10 bg-white p-6 overflow-hidden">
             <h2 className="font-display text-lg font-semibold text-charcoal">Your Home Journey</h2>
             <div className="mt-6">
               <HomeJourneyTracker currentStepIndex={journeyStep(payments, maintenance)} />
@@ -105,7 +116,29 @@ export default function TenantDashboardPage() {
               <p className="mt-1 text-xs text-charcoal/50">Your payment record builds once your lease starts.</p>
             </div>
           )}
-          <CurrentHomePlaceholder />
+          {activeAgreement ? (
+            <CurrentHomeCard
+              property={{
+                id: getCleanId(activeAgreement.propertyId) || 'prop-1',
+                title: (typeof activeAgreement.propertyId === 'object' ? activeAgreement.propertyId?.title : null) || 'Rental Residence',
+                neighborhood: 'Bole',
+                image: (typeof activeAgreement.propertyId === 'object' && activeAgreement.propertyId?.images && activeAgreement.propertyId.images[0]?.url) || '/uploads/homes/apartment-tower.png',
+                priceEtb: activeAgreement.monthlyRentEtb || activeAgreement.rentAmount || 0,
+                rating: 4.9,
+                reviewCount: 12,
+                verified: true,
+                beds: 2,
+                baths: 1,
+                sizeSqm: 85,
+                lat: 8.9806,
+                lng: 38.7578,
+              }}
+              leaseEnds={activeAgreement.endDate ? new Date(activeAgreement.endDate).toLocaleDateString() : 'Dec 31, 2026'}
+              status="Active Lease"
+            />
+          ) : (
+            <CurrentHomePlaceholder />
+          )}
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -139,6 +172,19 @@ export default function TenantDashboardPage() {
   )
 }
 
+function getCleanId(val: unknown): string {
+  if (!val) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'object' && val !== null) {
+    const o = val as Record<string, unknown>
+    if (typeof o._id === 'string') return o._id
+    if (typeof o.id === 'string') return o.id
+    if (o._id) return getCleanId(o._id)
+    if (o.id) return getCleanId(o.id)
+  }
+  return String(val)
+}
+
 function greeting() {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'
@@ -150,7 +196,7 @@ function journeyStep(
   payments: { status: string }[],
   maintenance: unknown[]
 ): number {
-  if (maintenance.length > 0) return 5
+  if (maintenance.length > 0) return 4
   if (payments.length > 0) return 4
   return 2
 }

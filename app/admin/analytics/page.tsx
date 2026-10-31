@@ -47,11 +47,12 @@ const PIE_LABELS: Record<string, string> = {
   misleading_info: 'Misleading info',
 }
 
-function KpiTile({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
+function KpiTile({ value, label, accent }: { value?: number | null; label: string; accent?: boolean }) {
+  const display = typeof value === 'number' && !isNaN(value) ? value.toLocaleString() : '0'
   return (
     <div className={`rounded-lg border p-4 ${accent ? 'border-rust/30 bg-rust-tint/30' : 'border-charcoal/10 bg-white'}`}>
       <p className="font-display text-2xl font-semibold text-charcoal">
-        {value.toLocaleString()}
+        {display}
       </p>
       <p className="mt-0.5 text-xs text-charcoal/60">{label}</p>
     </div>
@@ -116,9 +117,20 @@ export default function AdminAnalyticsPage() {
     )
   }
 
-  const k = data.kpis
-  const fraudData = data.charts.fraudByType.map((f) => ({ ...f, label: PIE_LABELS[f.label] || f.label }))
-  const roleData = data.charts.usersByRole.map((r) => ({ ...r, label: r.label.charAt(0).toUpperCase() + r.label.slice(1) }))
+  const k = data.kpis || {}
+  const charts = data.charts || {
+    propertiesByCity: [],
+    usersByRole: [],
+    propertiesByPriceRange: [],
+    verificationStats: [],
+    fraudByType: [],
+    applicationTrend: [],
+  }
+  const fraudData = (charts.fraudByType || []).map((f) => ({ ...f, label: PIE_LABELS[f.label] || f.label || 'Unknown' }))
+  const roleData = (charts.usersByRole || []).map((r) => {
+    const lbl = r.label || 'User'
+    return { ...r, label: lbl.charAt(0).toUpperCase() + lbl.slice(1) }
+  })
 
   return (
     <>
@@ -128,30 +140,30 @@ export default function AdminAnalyticsPage() {
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wide text-charcoal/50">Users</h2>
           <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiTile value={k.totalUsers} label="Total users" />
-            <KpiTile value={k.totalLandlords} label="Landlords" />
-            <KpiTile value={k.totalTenants} label="Tenants" />
-            <KpiTile value={k.totalAdmins} label="Admins" />
+            <KpiTile value={k.totalUsers ?? 0} label="Total users" />
+            <KpiTile value={k.totalLandlords ?? 0} label="Landlords" />
+            <KpiTile value={k.totalTenants ?? 0} label="Tenants" />
+            <KpiTile value={k.totalAdmins ?? (k.totalUsers ? Math.max(0, (k.totalUsers || 0) - (k.totalLandlords || 0) - (k.totalTenants || 0)) : 0)} label="Admins" />
           </div>
         </section>
 
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wide text-charcoal/50">Properties & Rentals</h2>
           <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiTile value={k.totalProperties} label="Total properties" />
-            <KpiTile value={k.verifiedProperties} label="Verified properties" />
-            <KpiTile value={k.pendingVerification} label="Pending verification" />
-            <KpiTile value={k.activeRentals} label="Active rentals" />
+            <KpiTile value={k.totalProperties ?? 0} label="Total properties" />
+            <KpiTile value={k.verifiedProperties ?? 0} label="Verified properties" />
+            <KpiTile value={k.pendingVerification ?? k.pendingVerifications ?? 0} label="Pending verification" />
+            <KpiTile value={k.activeRentals ?? 0} label="Active rentals" />
           </div>
         </section>
 
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wide text-charcoal/50">Activity & Risk</h2>
           <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiTile value={k.totalApplications} label="Applications" />
-            <KpiTile value={k.pendingApplications} label="Pending applications" accent />
-            <KpiTile value={k.fraudReports} label="Open fraud reports" accent />
-            <KpiTile value={k.openDisputes} label="Open disputes" accent />
+            <KpiTile value={k.totalApplications ?? 0} label="Applications" />
+            <KpiTile value={k.pendingApplications ?? 0} label="Pending applications" accent />
+            <KpiTile value={k.fraudReports ?? k.openFraudReports ?? 0} label="Open fraud reports" accent />
+            <KpiTile value={k.openDisputes ?? 0} label="Open disputes" accent />
           </div>
         </section>
 
@@ -159,7 +171,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard title="Properties by city">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.charts.propertiesByCity}>
+              <BarChart data={charts.propertiesByCity || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -185,7 +197,7 @@ export default function AdminAnalyticsPage() {
 
           <ChartCard title="Properties by price range (ETB/month)">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.charts.propertiesByPriceRange}>
+              <BarChart data={charts.propertiesByPriceRange || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -197,7 +209,7 @@ export default function AdminAnalyticsPage() {
 
           <ChartCard title="Verification statistics">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.charts.verificationStats} layout="vertical">
+              <BarChart data={charts.verificationStats || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
                 <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                 <YAxis type="category" dataKey="label" width={90} tick={{ fontSize: 12 }} />
@@ -209,7 +221,7 @@ export default function AdminAnalyticsPage() {
 
           <ChartCard title="Application trend (monthly)">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.charts.applicationTrend}>
+              <BarChart data={charts.applicationTrend || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />

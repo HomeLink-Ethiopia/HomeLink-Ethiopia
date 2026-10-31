@@ -10,14 +10,18 @@ backend/.env
 .freebuff/
 *.tmp
 homelink-backend-temp/
-backend/
+*.lnk
 tsconfig.tsbuildinfo
+.tools/
+*.bak
+*.diff
 
 # Local backend backup (contains user data snapshots) - never publish
 backend-backup-kidist/
 
 # mock-mode persisted users (demo data)
 mock-users.json
+backend/backups/
 
 # Python / Virtual Environments
 venv/

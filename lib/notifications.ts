@@ -21,6 +21,7 @@ export type NotificationKind =
   | 'application_accepted'
   | 'application_rejected'
   | 'application_under_review'
+  | 'review_submitted'
 
 export interface AppNotification {
   id: string

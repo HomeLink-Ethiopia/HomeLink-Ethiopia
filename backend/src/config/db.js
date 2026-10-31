@@ -1,157 +1,36 @@
 const mongoose = require("mongoose");
 
-// ─── IN-MEMORY MOCK STORE FOR OFFLINE / LOCAL DEVELOPMENT ───
-let mockMode = false;
+// STRICT MODE: Only use mock if we explicitly say so in .env
+const isMockMode = () => process.env.USE_MOCK_DB === "true";
 
+// Minimal mock store just in case you ever need it
 const mockStore = {
   users: new Map(),
   landlordProfiles: new Map(),
   tenantPreferences: new Map(),
-  disputes: [],
-  maintenanceRequests: [],
+  properties: [],
   applications: [],
-  viewings: [
-    {
-      _id: "66d1f801e12a4b001a555555",
-      propertyId: {
-        _id: "66d1f801e12a4b001a111111",
-        title: "Modern 2BR Apartment in Bole",
-        location: { city: "Addis Ababa", subCity: "Bole", neighborhood: "Edna Mall Area" },
-        rentAmount: 42000,
-        images: [{ url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800" }]
-      },
-      tenantId: "mock-tenant-1",
-      landlordId: "mock-landlord-1",
-      requestedSlots: [
-        { date: new Date(Date.now() + 86400000).toISOString(), startTime: "10:00", endTime: "11:00" }
-      ],
-      confirmedSlot: { date: new Date(Date.now() + 86400000).toISOString(), startTime: "10:00", endTime: "11:00" },
-      status: "confirmed",
-      tenantNote: "Looking forward to seeing the apartment in Bole.",
-      landlordNote: "Confirmed. See you tomorrow at 10 AM.",
-      createdAt: new Date().toISOString()
-    }
-  ],
-  properties: [
-    {
-      _id: "66d1f801e12a4b001a111111",
-      title: "Modern 2BR Apartment in Bole",
-      description: "Bright and spacious apartment near Edna Mall with high-speed internet, backup generator, and water tank.",
-      propertyType: "apartment",
-      rentAmount: 42000,
-      bedrooms: 2,
-      bathrooms: 1,
-      sizeM2: 85,
-      furnished: true,
-      location: { city: "Addis Ababa", subCity: "Bole", neighborhood: "Edna Mall Area" },
-      amenities: ["generator", "water_tank", "wifi", "elevator", "parking"],
-      listingStatus: "active",
-      verificationStatus: "verified",
-      fraudRiskScore: 4,
-      riskLevel: "low",
-      redFlags: [],
-      images: [
-        { key: "bole-apt-1.jpg", url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800", isPrimary: true }
-      ],
-      landlordId: "mock-landlord-1",
-      createdAt: new Date()
-    },
-    {
-      _id: "66d1f801e12a4b001a222222",
-      title: "Spacious 3BR Villa in CMC",
-      description: "Quiet residential villa with private garden, modern kitchen, and 24/7 security in a gated compound.",
-      propertyType: "house",
-      rentAmount: 55000,
-      bedrooms: 3,
-      bathrooms: 2,
-      sizeM2: 140,
-      furnished: false,
-      location: { city: "Addis Ababa", subCity: "CMC", neighborhood: "St. Michael" },
-      amenities: ["water_tank", "garden", "security", "parking"],
-      listingStatus: "active",
-      verificationStatus: "verified",
-      fraudRiskScore: 6,
-      riskLevel: "low",
-      redFlags: [],
-      images: [
-        { key: "cmc-villa-1.jpg", url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800", isPrimary: true }
-      ],
-      landlordId: "mock-landlord-1",
-      createdAt: new Date()
-    },
-    {
-      _id: "66d1f801e12a4b001a333333",
-      title: "Executive 1BR Studio in Kazanchis",
-      description: "Fully furnished executive studio walking distance to UNECA and luxury hotels. Excellent for expats and professionals.",
-      propertyType: "studio",
-      rentAmount: 30000,
-      bedrooms: 1,
-      bathrooms: 1,
-      sizeM2: 50,
-      furnished: true,
-      location: { city: "Addis Ababa", subCity: "Kazanchis", neighborhood: "UNECA area" },
-      amenities: ["generator", "water_tank", "elevator", "gym", "security"],
-      listingStatus: "active",
-      verificationStatus: "verified",
-      fraudRiskScore: 3,
-      riskLevel: "low",
-      redFlags: [],
-      images: [
-        { key: "kazanchis-studio-1.jpg", url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800", isPrimary: true }
-      ],
-      landlordId: "mock-landlord-1",
-      createdAt: new Date()
-    },
-    {
-      _id: "66d1f801e12a4b001a444444",
-      title: "Luxury 4BR Residence in Old Airport",
-      description: "Premium diplomatic residence featuring expansive living rooms, en-suite bathrooms, and generator backup.",
-      propertyType: "house",
-      rentAmount: 95000,
-      bedrooms: 4,
-      bathrooms: 3,
-      sizeM2: 230,
-      furnished: true,
-      location: { city: "Addis Ababa", subCity: "Old Airport", neighborhood: "Embassy Row" },
-      amenities: ["generator", "water_tank", "garden", "security", "parking"],
-      listingStatus: "active",
-      verificationStatus: "verified",
-      fraudRiskScore: 5,
-      riskLevel: "low",
-      redFlags: [],
-      images: [
-        { key: "oldairport-1.jpg", url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800", isPrimary: true }
-      ],
-      landlordId: "mock-landlord-1",
-      createdAt: new Date()
-    }
-  ]
+  viewings: [],
+  agreements: []
 };
-
-// Seed a default landlord profile for tests
-mockStore.landlordProfiles.set("mock-landlord-1", {
-  _id: "mock-landlord-1",
-  accountId: "mock-landlord-1",
-  legalName: "HomeLink Verified Landlord",
-  verificationStatus: "verified",
-  verifiedPropertiesCount: 4
-});
-
-const isMockMode = () => mockMode || mongoose.connection.readyState !== 1;
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/homelink";
+  
+  if (isMockMode()) {
+    console.warn("⚠️  [MOCK MODE ENABLED] Using in-memory store (data will NOT persist).");
+    return;
+  }
+
   try {
-    // Disable operation buffering so queries don't hang if disconnected
     mongoose.set('bufferCommands', false);
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
-    mockMode = false;
-    console.log("✅ MongoDB connected successfully to:", uri);
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+    console.log("✅ MongoDB connected successfully to:", uri.split('@')[1] || uri);
   } catch (error) {
-    mockMode = true;
-    console.warn("⚠️ MongoDB connection unavailable (" + error.message + ").");
-    console.log("⚡ [MOCK DB ACTIVATED] HomeLink is running in in-memory development mode.");
-    console.log("💡 All features (Auth, Properties, AI endpoints) will operate in-memory without crashing.");
+    console.error("❌ MongoDB connection FAILED:", error.message);
+    console.error("⚠️  The server will start, but database operations will fail.");
+    console.error("💡 If you are in Ethiopia, turn on your VPN to connect to Atlas!");
+    // DO NOT silently fall back to mock mode. Let it fail loudly.
   }
 };
 

@@ -37,6 +37,7 @@ export default function ActionCard({
       </div>
 
       <div className="mt-6 space-y-3">
+
         <button
           type="button"
           onClick={() => openModal('application', { propertyId, propertyTitle })}

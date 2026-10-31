@@ -35,7 +35,7 @@ export default function RoleSwitcher() {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-[90] -translate-x-1/2">
+    <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2">
       <div className="flex flex-col items-center gap-1">
         {err && (
           <span className="rounded-full bg-red-50 px-3 py-1 text-xs text-red-600 shadow-sm">

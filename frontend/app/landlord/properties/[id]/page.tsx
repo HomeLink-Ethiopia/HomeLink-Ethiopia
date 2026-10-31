@@ -1,0 +1,652 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import TopBar from '@/components/landlord/TopBar'
+import { mapApiProperty } from '@/services/api'
+import { resolveImageUrl } from '@/lib/image-url'
+
+// Real Leaflet map (same component as the public property page) — client-only
+const PropertyMap = dynamic(() => import('@/components/discovery/PropertyMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-charcoal/5 text-xs text-charcoal/40">
+      Loading map…
+    </div>
+  ),
+})
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+interface PropertyImage {
+  url: string
+  isPrimary: boolean
+  caption?: string
+}
+
+interface Property {
+  _id: string
+  title: string
+  description?: string
+  propertyType: string
+  rentAmount: number
+  depositAmount?: number
+  bedrooms?: number
+  bathrooms?: number
+  sizeM2?: number
+  floor?: number
+  furnished?: boolean
+  amenities?: string[]
+  buildingDetails?: {
+    isMultiUnit?: boolean
+    rentalScope?: string
+    totalFloors?: number
+    totalUnits?: number
+    units?: Array<{
+      unitId?: string
+      id?: string
+      unitNumber: string
+      name?: string
+      spaceType: string
+      floorNumber: number
+      sizeM2?: number
+      rentAmount?: number
+      monthlyRent?: number
+      status: 'available' | 'reserved' | 'rented'
+    }>
+  }
+  location?: {
+    address?: string
+    subCity?: string
+    woreda?: string
+    city?: string
+    coordinates?: { coordinates?: number[] }
+  }
+  listingStatus: string
+  verificationStatus: string
+  images?: PropertyImage[]
+  availableFrom?: string
+  createdAt: string
+}
+
+const TYPE_ICONS: Record<string, string> = {
+  apartment: 'Apt', house: 'House', villa: 'Villa', studio: 'Studio', room: 'Room', compound: 'Compound', commercial: 'Commercial',
+}
+
+const STATUS_MAP: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+  active: { label: 'Available', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' },
+  reserved: { label: 'Reserved', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
+  rented: { label: 'Rented', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', dot: 'bg-blue-500' },
+  inactive: { label: 'Inactive', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' },
+  draft: { label: 'Draft', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', dot: 'bg-purple-500' },
+}
+
+const VERIFICATION_MAP: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+  verified: { label: 'Verified', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' },
+  pending: { label: 'Pending Review', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
+  unverified: { label: 'Unverified', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' },
+  rejected: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
+}
+
+export default function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
+  const router = useRouter()
+  const [property, setProperty] = useState<Property | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [showFullGallery, setShowFullGallery] = useState(false)
+  const [statusMenu, setStatusMenu] = useState(false)
+
+  useEffect(() => {
+    const fetchProperty = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const token = localStorage.getItem('hl_token')
+        const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+          const data = await res.json()
+          setProperty(data.data || data)
+        } else if (res.status === 401) {
+          setError('Please log in as a landlord to view this property.')
+        } else if (res.status === 404) {
+          setError('Property not found. It may have been deleted.')
+        } else {
+          setError(`Could not load this property (${res.status}).`)
+        }
+      } catch {
+        setError('Cannot reach the server. Make sure the backend is running on port 5000.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProperty()
+  }, [id])
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!property) return
+    try {
+      setActionLoading(true)
+      const token = localStorage.getItem('hl_token')
+      const res = await fetch(`${API_URL}/api/v1/properties/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ listingStatus: newStatus }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.message || `Status change failed (${res.status})`)
+      } else {
+        setProperty(prev => prev ? { ...prev, listingStatus: newStatus } : null)
+      }
+    } catch {
+      setError('Status change failed — network error')
+    } finally {
+      setActionLoading(false)
+      setStatusMenu(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this property? This action cannot be undone.')) return
+    try {
+      setActionLoading(true)
+      const token = localStorage.getItem('hl_token')
+      await fetch(`${API_URL}/api/v1/properties/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      router.push('/landlord/properties')
+    } catch {
+      router.push('/landlord/properties')
+    }
+  }
+
+  const handleUnitStatusChange = async (unitIdentifier: string, newStatus: 'available' | 'reserved' | 'rented') => {
+    if (!property?.buildingDetails?.units) return
+    const updatedUnits = property.buildingDetails.units.map((u) => {
+      const match = (u.unitId && u.unitId === unitIdentifier) || (u.id && u.id === unitIdentifier) || u.unitNumber === unitIdentifier
+      if (match) {
+        return { ...u, status: newStatus }
+      }
+      return u
+    })
+    const updatedBuildingDetails = {
+      ...property.buildingDetails,
+      units: updatedUnits,
+    }
+    setProperty(prev => prev ? { ...prev, buildingDetails: updatedBuildingDetails } : null)
+
+    try {
+      const token = localStorage.getItem('hl_token')
+      await fetch(`${API_URL}/api/v1/properties/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ buildingDetails: updatedBuildingDetails }),
+      })
+    } catch (e) {
+      console.error('Failed to update unit status:', e)
+    }
+  }
+
+  if (loading) {
+    return (
+      <>
+        <TopBar title="Property Details" />
+        <div className="flex-1 px-6 py-8 space-y-4">
+          <div className="h-64 animate-pulse rounded-xl bg-charcoal/5" />
+          <div className="h-8 animate-pulse rounded bg-charcoal/5 w-1/3" />
+          <div className="h-4 animate-pulse rounded bg-charcoal/5 w-1/2" />
+        </div>
+      </>
+    )
+  }
+
+  if (error && !property) {
+    return (
+      <>
+        <TopBar title="Property Details" />
+        <div className="flex-1 px-6 py-8">
+          <div className="mx-auto max-w-md rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm font-medium text-red-800">{error}</p>
+            <a href="/landlord/properties" className="mt-4 inline-block rounded-lg bg-rust px-5 py-2 text-sm font-medium text-white hover:bg-rust/90">
+              Back to My Properties
+            </a>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (!property) {
+    return (
+      <>
+        <TopBar title="Property Details" />
+        <div className="flex-1 px-6 py-8 text-center">
+          <span className="text-5xl">🔍</span>
+          <p className="mt-4 text-charcoal/50 text-lg">Property not found</p>
+          <Link href="/landlord/properties" className="mt-4 inline-block text-rust hover:underline">← Back to Properties</Link>
+        </div>
+      </>
+    )
+  }
+
+  const status = STATUS_MAP[property.listingStatus] || STATUS_MAP.inactive
+  const verification = VERIFICATION_MAP[property.verificationStatus] || VERIFICATION_MAP.unverified
+  const loc = property.location || {}
+  const neighborhood = loc.subCity || loc.address || 'Unknown'
+  const typeLabel = TYPE_ICONS[property.propertyType] || property.propertyType
+  const images = property.images || []
+  const hasImages = images.length > 0
+
+  return (
+    <>
+      <TopBar title="Property Details" />
+
+      <div className="flex-1 px-6 py-8 sm:px-8">
+        {/* Back link */}
+        <Link href="/landlord/properties" className="inline-flex items-center gap-1 text-sm text-charcoal/50 hover:text-charcoal mb-4">
+          ← Back to Properties
+        </Link>
+
+        {/* ═══ IMAGE GALLERY ═══ */}
+        <div className="mb-6 rounded-xl overflow-hidden bg-charcoal/5">
+          {hasImages ? (
+            <>
+              {/* Main Image */}
+              <div className="relative aspect-[16/9] sm:aspect-[21/9] bg-charcoal/5">
+                <img
+                  src={resolveImageUrl(images[activeImageIndex]?.url)}
+                  alt={property.title}
+                  className="w-full h-full object-cover"
+                />
+                {/* Image count badge */}
+                {images.length > 1 && (
+                  <button
+                    onClick={() => setShowFullGallery(true)}
+                    className="absolute bottom-3 right-3 bg-black/60 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-black/80 transition-colors"
+                  >
+                     {images.length} photos — View all
+                  </button>
+                )}
+                {/* Navigation arrows */}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : images.length - 1)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-charcoal shadow-lg"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex(prev => prev < images.length - 1 ? prev + 1 : 0)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-charcoal shadow-lg"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+              </div>
+              {/* Thumbnails */}
+              {images.length > 1 && (
+                <div className="flex gap-2 p-3 overflow-x-auto">
+                  {images.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImageIndex(i)}
+                      className={`w-16 h-12 rounded overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                        i === activeImageIndex ? 'border-rust' : 'border-transparent hover:border-charcoal/20'
+                      }`}
+                    >
+                      <img src={resolveImageUrl(img.url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="aspect-[16/9] sm:aspect-[21/9] flex items-center justify-center">
+              <div className="text-center">
+                <span className="text-3xl font-medium text-charcoal/20 uppercase">{typeLabel}</span>
+                <p className="mt-2 text-sm text-charcoal/40">No photos uploaded yet</p>
+                <Link href={`/landlord/properties/${id}/edit`} className="mt-2 inline-block text-sm text-rust hover:underline">
+                  Add photos →
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-charcoal">{property.title}</h1>
+              <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${status.bg} ${status.color}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${status.dot} inline-block`}></span> {status.label}
+              </span>
+              <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${verification.bg} ${verification.color}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${verification.dot} inline-block`}></span> {verification.label}
+              </span>
+            </div>
+            <p className="text-charcoal/50 text-sm mt-1">
+              {neighborhood}, {loc.city || 'Addis Ababa'} {loc.address && `• ${loc.address}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* ═══ MAIN CONTENT ═══ */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* ═══ BUILDING FLOORS & UNITS MANAGEMENT (FOR BUILDINGS) ═══ */}
+            {property.buildingDetails?.units && property.buildingDetails.units.length > 0 && (
+              <div className="rounded-xl border-2 border-rust/30 bg-white p-6 shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-charcoal/10 pb-4">
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-charcoal flex items-center gap-2">
+                      <svg className="h-5 w-5 text-rust shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Building Floors & Room Occupancy (የፎቆች እና ክፍሎች ሁኔታ)
+                    </h2>
+                    <p className="text-xs text-charcoal/60 mt-0.5">
+                      Manage room vacancies floor-by-floor. 1-click toggle to mark rooms Available or Rented!
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                      {property.buildingDetails.units.filter(u => u.status === 'available').length} Available
+                    </span>
+                    <span className="rounded-full bg-sand px-3 py-1 text-xs font-semibold text-charcoal/70">
+                      {property.buildingDetails.units.length} Total Units
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grouped by Floor */}
+                {(() => {
+                  const units = property.buildingDetails.units
+                  const distinctFloors = Array.from(new Set(units.map(u => typeof u.floorNumber === 'number' ? u.floorNumber : 0))).sort((a, b) => a - b)
+
+                  return (
+                    <div className="space-y-4">
+                      {distinctFloors.map(floor => {
+                        const floorUnits = units.filter(u => (typeof u.floorNumber === 'number' ? u.floorNumber : 0) === floor)
+                        const floorTitle = floor === 0 ? 'Ground Floor (ምድር ቤት)' : floor === 1 ? '1st Floor (1ኛ ፎቅ)' : floor === 2 ? '2nd Floor (2ኛ ፎቅ)' : `${floor}th Floor (${floor}ኛ ፎቅ)`
+
+                        return (
+                          <div key={floor} className="rounded-lg border border-charcoal/15 bg-sand/20 p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-display text-sm font-bold text-charcoal flex items-center gap-2">
+                                <span className="inline-block h-2 w-2 rounded-full bg-rust"></span>
+                                {floorTitle}
+                              </span>
+                              <span className="text-xs text-charcoal/60 font-medium">
+                                {floorUnits.length} room{floorUnits.length === 1 ? '' : 's'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                              {floorUnits.map((u, uIdx) => {
+                                const uId = u.unitId || u.id || u.unitNumber || `u-${uIdx}`
+                                const isAvail = u.status === 'available'
+                                const rent = u.monthlyRent ?? (u as any).rentAmount ?? 0
+
+                                return (
+                                  <div
+                                    key={uId}
+                                    className={`rounded-lg border p-3 flex flex-col justify-between transition-all bg-white ${
+                                      isAvail ? 'border-emerald-200 shadow-xs' : 'border-charcoal/15 bg-gray-50 opacity-80'
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-display text-xs font-bold text-charcoal">{u.unitNumber}</span>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                          isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
+                                        }`}>
+                                          {isAvail ? 'Available' : 'Rented'}
+                                        </span>
+                                      </div>
+                                      <p className="text-[11px] text-charcoal/60 mt-1 truncate">{u.name || u.unitNumber}</p>
+                                      <p className="text-[11px] text-charcoal/50">{u.sizeM2} m² • ETB {rent.toLocaleString()}/mo</p>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnitStatusChange(uId, isAvail ? 'rented' : 'available')}
+                                      className={`mt-2.5 w-full py-1.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                                        isAvail
+                                          ? 'border border-charcoal/20 text-charcoal/70 hover:bg-red-50 hover:border-red-300 hover:text-red-700'
+                                          : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                      }`}
+                                    >
+                                      {isAvail ? 'Mark as Rented' : 'Mark as Available'}
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+
+            {/* Description */}
+            {property.description && (
+              <div className="rounded-xl border border-charcoal/10 bg-white p-6">
+                <h2 className="text-base font-semibold text-charcoal mb-3">Description</h2>
+                <p className="text-sm text-charcoal/70 leading-relaxed whitespace-pre-wrap">{property.description}</p>
+              </div>
+            )}
+
+            {/* Property Details Grid */}
+            <div className="rounded-xl border border-charcoal/10 bg-white p-6">
+              <h2 className="text-base font-semibold text-charcoal mb-4">Property Details</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: 'Type', value: property.propertyType, highlight: false },
+                  { label: 'Bedrooms', value: property.bedrooms || 'N/A', highlight: false },
+                  { label: 'Bathrooms', value: property.bathrooms || 'N/A', highlight: false },
+                  { label: 'Size', value: property.sizeM2 ? `${property.sizeM2} m²` : 'N/A', highlight: false },
+                  { label: 'Floor', value: property.floor ? `${property.floor}${property.floor === 1 ? 'st' : property.floor === 2 ? 'nd' : property.floor === 3 ? 'rd' : 'th'}` : 'N/A', highlight: false },
+                  { label: 'Furnished', value: property.furnished ? ' Yes' : ' No', highlight: false },
+                  { label: 'Available', value: property.availableFrom ? new Date(property.availableFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Now', highlight: false },
+                  { label: 'Listed', value: new Date(property.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), highlight: false },
+                ].map((item, i) => (
+                  <div key={i} className="rounded-lg bg-charcoal/5 p-3 text-center">
+                    <p className="text-[11px] text-charcoal/40 uppercase tracking-wider">{item.label}</p>
+                    <p className="text-sm font-medium text-charcoal mt-0.5 capitalize">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Amenities */}
+            {property.amenities && property.amenities.length > 0 && (
+              <div className="rounded-xl border border-charcoal/10 bg-white p-6">
+                <h2 className="text-base font-semibold text-charcoal mb-3">Amenities</h2>
+                <div className="flex flex-wrap gap-2">
+                  {property.amenities.map((a, i) => (
+                    <span key={i} className="rounded-full bg-rust/10 px-3 py-1.5 text-xs font-medium text-rust">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Location */}
+            <div className="rounded-xl border border-charcoal/10 bg-white p-6">
+              <h2 className="text-base font-semibold text-charcoal mb-3">Location</h2>
+              <div className="space-y-2 text-sm">
+                {loc.address && <p className="text-charcoal/70">{loc.address}</p>}
+                {loc.subCity && <p className="text-charcoal/50">Sub-City: <span className="font-medium text-charcoal/70">{loc.subCity}</span></p>}
+                {loc.woreda && <p className="text-charcoal/50">Woreda: <span className="font-medium text-charcoal/70">{loc.woreda}</span></p>}
+                <p className="text-charcoal/50">City: <span className="font-medium text-charcoal/70">{loc.city || 'Addis Ababa'}</span></p>
+              </div>
+              {/* Real map — property coordinates from the DB (OpenStreetMap) */}
+              <div className="mt-4 h-56 overflow-hidden rounded-lg border border-charcoal/10">
+                <PropertyMap properties={[mapApiProperty(property)]} />
+              </div>
+              {(() => {
+                const c = property.location?.coordinates?.coordinates
+                if (!c || c.length < 2) return null
+                return (
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${c[1]}&mlon=${c[0]}#map=16/${c[1]}/${c[0]}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-xs font-medium text-rust hover:text-rust-dark"
+                  >
+                    Open larger map ↗
+                  </a>
+                )
+              })()}
+            </div>
+          </div>
+
+          {/* ═══ SIDEBAR ═══ */}
+          <div className="space-y-6">
+            {/* Pricing */}
+            <div className="rounded-xl border border-charcoal/10 bg-white p-6 sticky top-4">
+              <h2 className="text-base font-semibold text-charcoal mb-4">Pricing</h2>
+              <div className="text-center mb-4">
+                <p className="text-3xl font-bold text-charcoal">ETB {property.rentAmount.toLocaleString()}</p>
+                <p className="text-sm text-charcoal/50">/month</p>
+              </div>
+              {property.depositAmount && (
+                <div className="rounded-lg bg-charcoal/5 p-3 text-center mb-3">
+                  <p className="text-xs text-charcoal/40">Security Deposit</p>
+                  <p className="text-sm font-medium text-charcoal">ETB {property.depositAmount.toLocaleString()}</p>
+                </div>
+              )}
+              {property.availableFrom && (
+                <div className="rounded-lg bg-charcoal/5 p-3 text-center mb-4">
+                  <p className="text-xs text-charcoal/40">Available From</p>
+                  <p className="text-sm font-medium text-charcoal">
+                    {new Date(property.availableFrom).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+              )}
+
+              {/* Quick Stats */}
+              <div className="border-t border-charcoal/10 pt-4 mb-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-charcoal/50">Status</span>
+                  <span className={`font-medium ${status.color}`}><span className={`w-1.5 h-1.5 rounded-full ${status.dot} inline-block`}></span> {status.label}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-2">
+                  <span className="text-charcoal/50">Verification</span>
+                  <span className={`font-medium ${verification.color}`}><span className={`w-1.5 h-1.5 rounded-full ${verification.dot} inline-block`}></span> {verification.label}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2">
+                <Link
+                  href={`/landlord/properties/${id}/edit`}
+                  className="block w-full rounded-lg bg-rust px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-rust/90 transition-colors"
+                >
+                  Edit Property
+                </Link>
+
+                {/* Status Change */}
+                <div className="relative">
+                  <button
+                    onClick={() => setStatusMenu(!statusMenu)}
+                    disabled={actionLoading}
+                    className="block w-full rounded-lg border border-charcoal/20 px-4 py-2.5 text-center text-sm font-medium text-charcoal/70 hover:bg-charcoal/5 transition-colors disabled:opacity-50"
+                  >
+                    {property.listingStatus === 'active' ? 'Deactivate' : property.listingStatus === 'reserved' ? 'Mark Available' : 'Mark Available'} ▾
+                  </button>
+                  {statusMenu && (
+                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-white rounded-lg border border-charcoal/15 shadow-xl py-1 z-30">
+                      {Object.entries(STATUS_MAP).map(([key, config]) => (
+                        <button
+                          key={key}
+                          onClick={() => handleStatusChange(key)}
+                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-charcoal/5 transition-colors ${
+                            property.listingStatus === key ? 'font-medium text-rust' : 'text-charcoal/70'
+                          }`}
+                        >
+                          {config.label}
+                          {property.listingStatus === key && ' ✓'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleDelete}
+                  disabled={actionLoading}
+                  className="block w-full rounded-lg border border-red-200 px-4 py-2.5 text-center text-sm font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                >
+                  Delete Property
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ FULL GALLERY MODAL ═══ */}
+      {showFullGallery && hasImages && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+          <div className="w-full max-w-4xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white text-lg font-semibold">{property.title} — Photos</h3>
+              <button onClick={() => setShowFullGallery(false)} className="text-white/60 hover:text-white text-2xl">✕</button>
+            </div>
+            <div className="relative">
+              <img
+                src={resolveImageUrl(images[activeImageIndex]?.url)}
+                alt={`Photo ${activeImageIndex + 1}`}
+                className="w-full rounded-lg max-h-[70vh] object-contain"
+              />
+              <button
+                onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : images.length - 1)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-2xl"
+              >
+                ‹
+              </button>
+              <button
+                onClick={() => setActiveImageIndex(prev => prev < images.length - 1 ? prev + 1 : 0)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-2xl"
+              >
+                ›
+              </button>
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
+                {activeImageIndex + 1} / {images.length}
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4 overflow-x-auto justify-center">
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveImageIndex(i)}
+                  className={`w-20 h-14 rounded overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                    i === activeImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img src={resolveImageUrl(img.url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}

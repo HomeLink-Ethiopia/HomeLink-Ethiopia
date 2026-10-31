@@ -5,6 +5,9 @@ const viewingSchema = new mongoose.Schema({
   tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   landlordId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   
+  date: Date,
+  preferredDate: Date,
+  preferredTime: String,
   requestedSlots: [{
     date: Date,
     startTime: String,

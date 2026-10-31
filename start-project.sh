@@ -15,7 +15,7 @@ echo "[2/3] Starting AI FastAPI Backend (Port 8000)..."
 
 echo ""
 echo "[3/3] Starting Next.js Frontend (Port 3000)..."
-npm install && npm run dev &
+(cd frontend && npm install && npm run dev) &
 
 echo ""
 echo "Boot sequence initiated!"

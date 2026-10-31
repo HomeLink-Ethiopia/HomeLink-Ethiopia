@@ -1,0 +1,204 @@
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRef } from 'react'
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import type { Property } from '@/lib/properties'
+import { formatEtb } from '@/lib/properties'
+import { useFavoritesStore } from '@/lib/store'
+import { useLanguage } from '@/lib/language-context'
+
+// NOTE: never wrap next/link's <Link> in motion() — framer-motion owns the
+// wrapper element's DOM node and unmounting it mid-navigation crashes React
+// with "Failed to execute 'removeChild' on 'Node'". The tilt/hover motion
+// values live on an inner motion.div instead; navigation stays a plain Link.
+
+interface PropertyCardProps {
+  property: Property
+  /** Controlled hover state, e.g. driven by a synced map pin. Falls back to the card's own pointer events when omitted. */
+  isHighlighted?: boolean
+  onHoverChange?: (hovering: boolean) => void
+  className?: string
+}
+
+/**
+ * A real 3D tilt (not just a translateY lift): rotation follows pointer
+ * position within the card, clamped to a subtle range so it reads as
+ * "premium" rather than gimmicky. Falls back gracefully — with no
+ * pointer events (touch, keyboard focus) the card still gets the
+ * lift + shadow expansion via whileHover/whileFocus.
+ */
+export default function PropertyCard({
+  property,
+  isHighlighted,
+  onHoverChange,
+  className = '',
+}: PropertyCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const saved = useFavoritesStore((s) => s.favorites.has(property.id))
+  const { locale } = useLanguage()
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
+
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [4, -4]), {
+    stiffness: 300,
+    damping: 25,
+  })
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-4, 4]), {
+    stiffness: 300,
+    damping: 25,
+  })
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const rect = cardRef.current?.getBoundingClientRect()
+    if (!rect) return
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5)
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5)
+  }
+
+  function resetTilt() {
+    mouseX.set(0)
+    mouseY.set(0)
+  }
+
+  return (
+    <Link
+      href={`/property/${property.id}`}
+      className={`group block overflow-hidden rounded-lg bg-white focus:outline-none ${className}`}
+    >
+      <motion.div
+        ref={cardRef}
+        style={{ rotateX, rotateY, transformPerspective: 800 }}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={() => {
+          resetTilt()
+          onHoverChange?.(false)
+        }}
+        onPointerEnter={() => onHoverChange?.(true)}
+        whileHover={{ y: -8, scale: 1.015 }}
+        whileFocus={{ y: -8, scale: 1.015 }}
+        animate={
+          isHighlighted
+            ? { y: -8, scale: 1.015, boxShadow: '0 24px 40px -16px rgba(42,37,33,0.35)' }
+            : { y: 0, scale: 1, boxShadow: '0 1px 0 rgba(42,37,33,0.06)' }
+        }
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="block"
+        tabIndex={-1}
+      >
+      <div className="relative aspect-[4/3] overflow-hidden bg-sand/40">
+        {property.image ? (
+          <Image
+            src={property.image}
+            alt={`${property.title} in ${property.neighborhood}`}
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center text-charcoal/40">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-10 w-10 text-rust/60">
+              <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="mt-2 text-xs font-medium text-charcoal/60 capitalize">{property.propertyType || 'Residence'}</span>
+          </div>
+        )}
+
+        {property.verified && (
+          <span className="absolute left-3 top-3 flex items-center gap-1 rounded bg-verified px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+              <path
+                fillRule="evenodd"
+                d="M10 1.5l6.5 2.9v5c0 4.6-2.8 8.7-6.5 9.9-3.7-1.2-6.5-5.3-6.5-9.9v-5L10 1.5zm3.4 6.4a.75.75 0 00-1.1-1L9 10.2 7.7 8.9a.75.75 0 10-1 1.1l1.8 1.8c.3.3.8.3 1 0l3.9-3.9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            {locale === 'EN' ? 'Verified' : 'የተረጋገጠ'}
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            toggleFavorite(property.id)
+          }}
+          aria-label={saved ? 'Remove from saved homes' : 'Save this home'}
+          aria-pressed={saved}
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-charcoal transition-colors hover:text-rust"
+        >
+          <svg
+            viewBox="0 0 20 20"
+            className="h-4 w-4"
+            fill={saved ? '#B8451F' : 'none'}
+            stroke="currentColor"
+            strokeWidth={1.6}
+          >
+            <path d="M10 17.3s-6.5-3.9-8.5-8.1C.4 6.2 2 3.3 5 3c1.8-.2 3.6.7 5 2.4C11.4 3.7 13.2 2.8 15 3c3 .3 4.6 3.2 3.5 6.2-2 4.2-8.5 8.1-8.5 8.1z" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="p-4">
+        <h3 className="font-display text-lg font-semibold text-charcoal">{property.title}</h3>
+        <p className="mt-0.5 flex items-center gap-1 text-sm text-charcoal/60">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-rust">
+            <path
+              fillRule="evenodd"
+              d="M10 18s6-5.7 6-10.5A6 6 0 004 7.5C4 12.3 10 18 10 18zm0-8a2 2 0 100-4 2 2 0 000 4z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {property.neighborhood}, {locale === 'EN' ? 'Addis Ababa' : 'አዲስ አበባ'}
+        </p>
+
+        {property.landlordId && (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-charcoal/70">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5 text-rust shrink-0">
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="truncate">
+              Listed by <strong className="font-semibold text-charcoal">{typeof property.landlordId === 'object' && (property.landlordId as any).legalName ? (property.landlordId as any).legalName : 'Verified Landlord'}</strong>
+            </span>
+          </p>
+        )}
+
+        <p className="mt-3 font-display text-base font-semibold text-charcoal">
+          {formatEtb(property.priceEtb)} <span className="font-sans text-sm font-normal text-charcoal/50">{locale === 'EN' ? '/ month' : '/ ወር'}</span>
+        </p>
+
+        <div className="mt-3 flex items-center gap-4 text-sm text-charcoal/70">
+          {property.propertyType === 'building' || property.propertyType === 'commercial' ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 font-semibold text-rust">
+                <svg className="h-4 w-4 shrink-0 text-rust" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                {property.buildingDetails?.units?.length || 10} Available Units / Rooms
+              </span>
+              <span>{property.sizeSqm} m² Total</span>
+            </>
+          ) : (
+            <>
+              <span>{property.beds} {locale === 'EN' ? 'Beds' : 'መኝታ'}</span>
+              <span>{property.baths} {locale === 'EN' ? 'Bath' : 'መታጠቢያ'}</span>
+              <span>{property.sizeSqm} m²</span>
+            </>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-1 text-sm">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-rust">
+            <path d="M10 1.5l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.2 6-.8L10 1.5z" />
+          </svg>
+          <span className="font-medium text-charcoal">{property.rating}</span>
+          <span className="text-charcoal/50">({property.reviewCount})</span>
+        </div>
+      </div>
+      </motion.div>
+    </Link>
+  )
+}

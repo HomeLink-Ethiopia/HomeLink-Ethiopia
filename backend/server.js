@@ -37,6 +37,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── ROUTES ───
 app.use('/api/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/properties', propertyRoutes);
 app.use('/api/public/properties', propertyRoutes);
 app.use('/api/v1/verification', verificationRoutes);

@@ -26,3 +26,29 @@ class FraudAnalysisResponse(BaseModel):
     red_flags: List[str] = Field(default_factory=list, description="List of red flags identified.")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score for the risk assessment.")
     model_version: str = Field(default="fraud-risk-v1", description="Version of the fraud risk engine.")
+
+
+class DocumentForensicsRequest(BaseModel):
+    """Input payload for automated document authenticity and fraud analysis."""
+
+    document_type: str = Field(default="kebele_id", description="Type of document, e.g. kebele_id, fayda_id, title_deed")
+    file_name: str = Field(..., description="Uploaded original file name")
+    mime_type: str = Field(default="image/jpeg", description="MIME type of uploaded file")
+    file_size_bytes: int = Field(default=250000, description="File size in bytes")
+    account_legal_name: str = Field(..., description="Registered account legal name for consistency check")
+    metadata: dict = Field(default_factory=dict, description="Optional document metadata")
+
+
+class DocumentForensicsResponse(BaseModel):
+    """Comprehensive forensic report on document authenticity."""
+
+    authenticityScore: int = Field(..., ge=0, le=100, description="Overall authenticity score 0-100")
+    verdict: str = Field(..., description="'authentic', 'review_recommended', or 'suspected_counterfeit'")
+    confidence: float = Field(default=0.94)
+    summary: str
+    detectedName: str
+    nameMatchScore: int = Field(..., ge=0, le=100)
+    checks: dict
+    extractedData: dict
+    redFlags: List[str] = Field(default_factory=list)
+

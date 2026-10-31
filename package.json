@@ -1,34 +1,16 @@
 {
   "name": "homelink-ethiopia",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "HomeLink Ethiopia - Full-Stack Monorepo (Next.js Frontend + Node.js Backend + FastAPI AI)",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "framer-motion": "^11.3.19",
-    "leaflet": "^1.9.4",
-    "next": "14.2.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-leaflet": "^4.2.1",
-    "recharts": "^2.12.7",
-    "zustand": "^4.5.4",
-    "react-hook-form": "^7.52.2",
-    "zod": "^3.23.8",
-    "@hookform/resolvers": "^3.9.0"
-  },
-  "devDependencies": {
-    "@types/leaflet": "^1.9.12",
-    "@types/node": "^20.14.9",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.4",
-    "typescript": "^5.5.3"
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "lint": "npm --prefix frontend run lint",
+    "backend:dev": "npm --prefix backend start",
+    "backend:install": "npm --prefix backend install",
+    "frontend:install": "npm --prefix frontend install",
+    "install:all": "npm install --prefix frontend && npm install --prefix backend"
   }
 }

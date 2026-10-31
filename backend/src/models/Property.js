@@ -16,8 +16,40 @@ const propertySchema = new Schema({
     description: String,
     propertyType: {
         type: String,
-        enum: ["apartment", "house", "room", "studio", "villa", "compound", "commercial"],
+        enum: ["apartment", "house", "room", "studio", "villa", "compound", "commercial", "building"],
         required: true
+    },
+    buildingDetails: {
+        isMultiUnit: { type: Boolean, default: false },
+        rentalScope: {
+            type: String,
+            enum: ["entire_building", "by_floor", "individual_rooms", "flexible"],
+            default: "entire_building"
+        },
+        totalFloors: { type: Number, default: 1 },
+        totalUnits: { type: Number, default: 1 },
+        units: [{
+            unitId: String,
+            unitNumber: String,
+            name: String,
+            spaceType: {
+                type: String,
+                enum: ["office_room", "whole_floor", "entire_building", "retail_shop", "coworking_desk", "residential_unit"],
+                default: "office_room"
+            },
+            floorNumber: { type: Number, default: 1 },
+            sizeM2: Number,
+            rentAmount: Number,
+            depositAmount: Number,
+            suitableFor: [String],
+            status: {
+                type: String,
+                enum: ["available", "reserved", "rented"],
+                default: "available"
+            },
+            image: String,
+            amenities: [String]
+        }]
     },
     location: {
         address: String,

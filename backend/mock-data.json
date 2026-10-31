@@ -50,7 +50,7 @@
           "originalName": "Commercial_Bank_Payslip.pdf"
         }
       ],
-      "createdAt": "2026-10-24T13:28:30.920Z"
+      "createdAt": "2026-10-26T09:48:36.222Z"
     },
     {
       "_id": "mock-application-2",
@@ -101,7 +101,7 @@
           "originalName": "Employment_Verification_Letter.pdf"
         }
       ],
-      "createdAt": "2026-10-23T13:28:30.920Z"
+      "createdAt": "2026-10-25T09:48:36.222Z"
     },
     {
       "_id": "mock-app-1792929749104",
@@ -174,9 +174,151 @@
         }
       ],
       "createdAt": "2026-10-25T12:02:55.916Z"
+    },
+    {
+      "_id": "mock-app-1793092825899",
+      "propertyId": "mock-prop-1793092460808",
+      "tenantId": "mock-user-1793083864425",
+      "landlordId": "mock-user-1793084104793",
+      "fullName": "Tsedenia Worku",
+      "phone": "0987654323",
+      "email": "kidkinfe7@gmail.com",
+      "message": "trutkil",
+      "moveInDate": "2026-10-29",
+      "durationMonths": 12,
+      "numberOfOccupants": 1,
+      "hasPets": false,
+      "monthlyIncome": 30000,
+      "monthlyIncomeEtb": 30000,
+      "employmentStatus": "employed",
+      "religion": "Orthodox Christian",
+      "maritalStatus": "single",
+      "smokingHabit": "non_smoker",
+      "alcoholHabit": "non_drinker",
+      "quietHoursAgreed": true,
+      "previousLandlordName": "ato bekele",
+      "previousLandlordPhone": "0987654321",
+      "previousRentalDuration": "2 years",
+      "reasonForMoving": "Looking for a well-maintained home closer to work",
+      "tenantBehaviorScore": 4.9,
+      "tenantReviewBadges": [
+        "Punctual Payer",
+        "Quiet & Respectful",
+        "Clean Property",
+        "ID Verified"
+      ],
+      "supportingDocuments": [
+        {
+          "documentType": "kebele_id",
+          "docType": "kebele_id",
+          "fileKey": "/uploads/document-1793092825892-449773365.jpg",
+          "originalName": "download (1).jpg",
+          "mimeType": "image/jpeg",
+          "uploadedAt": "2026-10-27T09:20:25.899Z"
+        },
+        {
+          "documentType": "proof_of_income",
+          "docType": "proof_of_income",
+          "fileKey": "/uploads/document-1793092825892-498994990.jpg",
+          "originalName": "download (1).jpg",
+          "mimeType": "image/jpeg",
+          "uploadedAt": "2026-10-27T09:20:25.899Z"
+        }
+      ],
+      "status": "submitted",
+      "history": [
+        {
+          "status": "submitted",
+          "changedBy": "mock-user-1793083864425",
+          "note": "Application submitted",
+          "date": "2026-10-27T09:20:25.899Z"
+        }
+      ],
+      "createdAt": "2026-10-27T09:20:25.899Z"
+    },
+    {
+      "_id": "mock-app-1793094558109",
+      "propertyId": "66d1f801e12a4b001a222222",
+      "tenantId": "mock-user-seed-1",
+      "landlordId": "mock-landlord-1",
+      "fullName": "Dev Tenant",
+      "phone": "0911223344",
+      "email": "dev.tenant@homelink.test",
+      "moveInDate": "2026-11-01",
+      "durationMonths": 12,
+      "numberOfOccupants": 2,
+      "hasPets": true,
+      "petDetails": "1 friendly vaccinated golden retriever",
+      "monthlyIncome": 45000,
+      "monthlyIncomeEtb": 45000,
+      "employmentStatus": "employed",
+      "religion": "Orthodox Christian",
+      "maritalStatus": "single",
+      "smokingHabit": "non_smoker",
+      "alcoholHabit": "non_drinker",
+      "quietHoursAgreed": true,
+      "previousLandlordName": "",
+      "previousLandlordPhone": "",
+      "previousRentalDuration": "",
+      "reasonForMoving": "",
+      "tenantBehaviorScore": 4.9,
+      "tenantReviewBadges": [
+        "Punctual Payer",
+        "Quiet & Respectful",
+        "Clean Property",
+        "ID Verified"
+      ],
+      "supportingDocuments": [],
+      "status": "submitted",
+      "history": [
+        {
+          "status": "submitted",
+          "changedBy": "mock-user-seed-1",
+          "note": "Application submitted",
+          "date": "2026-10-27T09:49:18.109Z"
+        }
+      ],
+      "createdAt": "2026-10-27T09:49:18.110Z"
     }
   ],
   "viewings": [
+    {
+      "_id": "viewing-1793094558069",
+      "propertyId": {
+        "_id": "66d1f801e12a4b001a111111",
+        "title": "Modern 2BR Apartment in Bole",
+        "location": {
+          "city": "Addis Ababa",
+          "subCity": "Bole",
+          "neighborhood": "Edna Mall Area"
+        },
+        "rentAmount": 42000,
+        "images": [
+          {
+            "key": "bole-apt-1.jpg",
+            "url": "/uploads/homes/apartment-tower.png",
+            "isPrimary": true
+          }
+        ]
+      },
+      "tenantId": "mock-user-seed-1",
+      "landlordId": "mock-landlord-1",
+      "requestedSlots": [
+        {
+          "date": "2026-10-29",
+          "startTime": "14:00",
+          "endTime": "14:00"
+        }
+      ],
+      "date": "2026-10-29",
+      "preferredDate": "2026-10-29",
+      "preferredTime": "14:00",
+      "scheduledDate": "2026-10-29",
+      "scheduledTime": "14:00",
+      "status": "pending",
+      "tenantNote": "Testing viewing schedule hour visibility",
+      "createdAt": "2026-10-27T09:49:18.069Z"
+    },
     {
       "_id": "mock-viewing-1",
       "propertyId": {
@@ -194,15 +336,47 @@
       "landlordId": "mock-landlord-1",
       "requestedSlots": [
         {
-          "date": "2026-10-27T13:28:30.920Z",
+          "date": "2026-10-29T09:48:36.222Z",
           "startTime": "10:00"
         }
       ],
-      "preferredDate": "2026-10-27",
+      "preferredDate": "2026-10-29",
       "preferredTime": "10:00",
       "tenantNote": "Coming with my sister, is parking available?",
       "status": "requested",
-      "createdAt": "2026-10-25T13:28:30.920Z"
+      "createdAt": "2026-10-27T09:48:36.222Z"
+    },
+    {
+      "_id": "viewing-1793092839085",
+      "propertyId": {
+        "_id": "mock-prop-1793092460808",
+        "title": "luxury",
+        "location": {
+          "subCity": "Bole",
+          "address": "bole road",
+          "city": "Addis Ababa",
+          "coordinates": {
+            "type": "Point",
+            "coordinates": [
+              38.7578,
+              9.03
+            ]
+          }
+        },
+        "rentAmount": 20000
+      },
+      "tenantId": "mock-user-1793083864425",
+      "landlordId": "mock-user-1793084104793",
+      "requestedSlots": [
+        {
+          "date": "2026-10-29T06:00:00.000Z",
+          "startTime": "09:00",
+          "endTime": "09:00"
+        }
+      ],
+      "status": "pending",
+      "tenantNote": "",
+      "createdAt": "2026-10-27T09:20:39.086Z"
     }
   ],
   "agreements": [
@@ -428,7 +602,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-10-27T09:48:36.222Z",
       "status": "active"
     },
     {
@@ -465,7 +639,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-10-27T09:48:36.222Z",
       "status": "active"
     },
     {
@@ -503,7 +677,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-10-27T09:48:36.222Z",
       "status": "active"
     },
     {
@@ -541,7 +715,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-10-27T09:48:36.222Z",
       "status": "active"
     },
     {
@@ -576,7 +750,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T12:28:30.920Z",
+      "createdAt": "2026-10-27T08:48:36.222Z",
       "status": "active"
     },
     {
@@ -612,7 +786,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T11:28:30.920Z",
+      "createdAt": "2026-10-27T07:48:36.222Z",
       "status": "active"
     },
     {
@@ -649,8 +823,282 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T10:28:30.920Z",
+      "createdAt": "2026-10-27T06:48:36.222Z",
       "status": "active"
+    },
+    {
+      "_id": "66d1f801e12a4b001a888888",
+      "title": "Bole Nexus Commercial Center & Office Tower",
+      "description": "Premier 5-storey commercial tower in Bole with 10 private office rooms, whole floor corporate headquarters, high-speed fiber internet, dual generators, and underground parking.",
+      "propertyType": "building",
+      "rentAmount": 18500,
+      "bedrooms": 10,
+      "bathrooms": 8,
+      "sizeM2": 1400,
+      "furnished": true,
+      "location": {
+        "city": "Addis Ababa",
+        "subCity": "Bole",
+        "neighborhood": "Cameroon St / Atlas"
+      },
+      "amenities": [
+        "generator",
+        "water_tank",
+        "wifi",
+        "elevator",
+        "parking",
+        "security"
+      ],
+      "listingStatus": "active",
+      "verificationStatus": "verified",
+      "fraudRiskScore": 2,
+      "riskLevel": "low",
+      "redFlags": [],
+      "buildingDetails": {
+        "isMultiUnit": true,
+        "rentalScope": "flexible",
+        "totalFloors": 5,
+        "totalUnits": 12,
+        "units": [
+          {
+            "unitId": "unit-tower-all",
+            "unitNumber": "Full Building",
+            "name": "Entire Commercial Tower (Floors 1-5)",
+            "spaceType": "entire_building",
+            "floorNumber": 0,
+            "sizeM2": 1400,
+            "rentAmount": 480000,
+            "depositAmount": 960000,
+            "suitableFor": [
+              "Corporate HQ",
+              "Embassy",
+              "Tech Campus",
+              "Financial Institution"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-floor-2",
+            "unitNumber": "Floor 2",
+            "name": "Whole 2nd Floor (Corporate Workspace)",
+            "spaceType": "whole_floor",
+            "floorNumber": 2,
+            "sizeM2": 280,
+            "rentAmount": 120000,
+            "depositAmount": 240000,
+            "suitableFor": [
+              "IT / Software Company",
+              "Consultancy Group",
+              "Law Chambers"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-floor-3",
+            "unitNumber": "Floor 3",
+            "name": "Whole 3rd Floor (Executive Suites)",
+            "spaceType": "whole_floor",
+            "floorNumber": 3,
+            "sizeM2": 280,
+            "rentAmount": 115000,
+            "depositAmount": 230000,
+            "suitableFor": [
+              "FinTech",
+              "Regional NGO",
+              "Medical Specialist Center"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-101",
+            "unitNumber": "Office 101",
+            "name": "Private Work Suite 101",
+            "spaceType": "office_room",
+            "floorNumber": 1,
+            "sizeM2": 35,
+            "rentAmount": 18500,
+            "depositAmount": 37000,
+            "suitableFor": [
+              "Tech Startup",
+              "Architect Studio",
+              "Accounting Firm"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-102",
+            "unitNumber": "Office 102",
+            "name": "Executive Suite 102 (Balcony View)",
+            "spaceType": "office_room",
+            "floorNumber": 1,
+            "sizeM2": 40,
+            "rentAmount": 20000,
+            "depositAmount": 40000,
+            "suitableFor": [
+              "Legal Advisor",
+              "Import / Export Desk",
+              "Creative Agency"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-103",
+            "unitNumber": "Office 103",
+            "name": "Team Workstation Room 103",
+            "spaceType": "office_room",
+            "floorNumber": 1,
+            "sizeM2": 55,
+            "rentAmount": 27000,
+            "depositAmount": 54000,
+            "suitableFor": [
+              "Software Dev Team (6-8 people)",
+              "Design Lab"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-104",
+            "unitNumber": "Office 104",
+            "name": "Private Consultant Room 104",
+            "spaceType": "office_room",
+            "floorNumber": 1,
+            "sizeM2": 30,
+            "rentAmount": 16000,
+            "depositAmount": 32000,
+            "suitableFor": [
+              "Solo Consultant",
+              "Financial Analyst",
+              "Therapy Clinic"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-105",
+            "unitNumber": "Office 105",
+            "name": "Corner Office Suite 105",
+            "spaceType": "office_room",
+            "floorNumber": 1,
+            "sizeM2": 45,
+            "rentAmount": 23000,
+            "depositAmount": 46000,
+            "suitableFor": [
+              "Managing Director",
+              "Brokerage Office"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-201",
+            "unitNumber": "Office 201",
+            "name": "Open-Plan Team Office 201",
+            "spaceType": "office_room",
+            "floorNumber": 2,
+            "sizeM2": 60,
+            "rentAmount": 30000,
+            "depositAmount": 60000,
+            "suitableFor": [
+              "Call Center / Customer Support",
+              "Data Processing Hub"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-202",
+            "unitNumber": "Office 202",
+            "name": "Conference & Work Suite 202",
+            "spaceType": "office_room",
+            "floorNumber": 2,
+            "sizeM2": 38,
+            "rentAmount": 19000,
+            "depositAmount": 38000,
+            "suitableFor": [
+              "Marketing Agency",
+              "Training Classroom"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-room-203",
+            "unitNumber": "Office 203",
+            "name": "Incubator Lab 203",
+            "spaceType": "office_room",
+            "floorNumber": 2,
+            "sizeM2": 50,
+            "rentAmount": 25000,
+            "depositAmount": 50000,
+            "suitableFor": [
+              "Hardware Prototyping",
+              "Media Production"
+            ],
+            "status": "available"
+          },
+          {
+            "unitId": "unit-ground-retail",
+            "unitNumber": "Shop G-01",
+            "name": "Ground Floor Premium Banking / Retail Hall",
+            "spaceType": "retail_shop",
+            "floorNumber": 0,
+            "sizeM2": 180,
+            "rentAmount": 95000,
+            "depositAmount": 190000,
+            "suitableFor": [
+              "Bank Branch",
+              "Showroom",
+              "Coffee Bistro / Pharmacy"
+            ],
+            "status": "available"
+          }
+        ]
+      },
+      "images": [
+        {
+          "key": "bole-tower-1.jpg",
+          "url": "/uploads/homes/apartment-tower.png",
+          "isPrimary": true
+        }
+      ],
+      "landlordId": "mock-landlord-1",
+      "createdAt": "2026-10-27T05:48:36.222Z",
+      "status": "active"
+    },
+    {
+      "_id": "mock-prop-1793092460808",
+      "landlordId": "mock-user-1793084104793",
+      "title": "luxury",
+      "description": "hjg",
+      "propertyType": "apartment",
+      "rentAmount": 20000,
+      "depositAmount": 30000,
+      "bedrooms": 2,
+      "bathrooms": 2,
+      "sizeM2": 120,
+      "location": {
+        "subCity": "Bole",
+        "address": "bole road",
+        "city": "Addis Ababa",
+        "coordinates": {
+          "type": "Point",
+          "coordinates": [
+            38.7578,
+            9.03
+          ]
+        }
+      },
+      "furnished": true,
+      "amenities": [
+        "WiFi",
+        "CCTV"
+      ],
+      "listingStatus": "active",
+      "verificationStatus": "verified",
+      "fraudRiskScore": 0.68,
+      "riskLevel": "high",
+      "redFlags": [
+        "Severe underpricing: listed ETB 20,000 is 58% below market estimate of ETB 47,600",
+        "Description is very short or missing (common in scam listings)",
+        "ML tabular anomaly: statistically unusual price/size for its subcity"
+      ],
+      "createdAt": "2026-10-27T09:14:20.808Z"
     }
   ],
   "payments": [
@@ -845,15 +1293,10 @@
       "periodMonth": "2026-10",
       "dueDate": "2026-10-28T00:00:00.000Z",
       "amountDue": 30000,
-      "amountPaid": 30000,
-      "balance": 0,
-      "status": "paid",
-      "notes": "Invoice dispatched; due end of month.",
-      "paymentMethod": "telebirr",
-      "transactionReference": "TX-TELEBIRR-551130",
-      "paidAt": "2026-10-25T13:39:11.144Z",
-      "receiptNumber": "RCPT--PAY-7",
-      "proofSubmitted": false
+      "amountPaid": 0,
+      "balance": 30000,
+      "status": "pending",
+      "notes": "Invoice dispatched; due end of month."
     },
     {
       "_id": "mock-pay-8",
@@ -2059,13 +2502,18 @@
       "paymentType": "rent",
       "periodMonth": "2027-04",
       "amountDue": 25000,
-      "amountPaid": 0,
-      "balance": 25000,
+      "amountPaid": 25000,
+      "balance": 0,
       "currency": "ETB",
       "dueDate": "2027-04-04T21:00:00.000Z",
-      "status": "pending",
-      "notes": "Monthly rent for 2027-04",
-      "createdAt": "2026-10-25T13:01:17.292Z"
+      "status": "paid",
+      "notes": "Settled online via Chapa Gateway (TX-1792997346466-mock-pay-1792933277292-7-132)",
+      "createdAt": "2026-10-25T13:01:17.292Z",
+      "transactionReference": "TX-1792997346466-mock-pay-1792933277292-7-132",
+      "paymentMethod": "chapa",
+      "paidAt": "2026-10-26T06:49:07.775Z",
+      "receiptNumber": "RCPT-CHAPA-347775",
+      "receiptUrl": "/api/v1/payments/mock-pay-1792933277292-7-132/receipt"
     },
     {
       "_id": "mock-pay-1792933277292-8-262",
@@ -2304,6 +2752,36 @@
   ],
   "conversations": [
     {
+      "_id": "conv-mock-1793092847196",
+      "tenantId": "mock-user-1793083864425",
+      "landlordId": "mock-user-1793084104793",
+      "participants": [
+        {
+          "_id": "mock-user-1793083864425",
+          "id": "mock-user-1793083864425",
+          "firstName": "Tsedenia",
+          "lastName": "Worku",
+          "email": "kidkinfe7@gmail.com",
+          "role": "tenant"
+        },
+        {
+          "_id": "mock-user-1793084104793",
+          "id": "mock-user-1793084104793",
+          "firstName": "Tsedenia",
+          "lastName": "Worku",
+          "email": "kidstekinfe21@gmail.com",
+          "role": "landlord"
+        }
+      ],
+      "propertyId": {
+        "_id": "mock-prop-1793092460808",
+        "title": "luxury"
+      },
+      "lastMessage": "hfuk.j;",
+      "lastMessageAt": "2026-10-27T09:20:47.196Z",
+      "createdAt": "2026-10-27T09:20:47.196Z"
+    },
+    {
       "_id": "conv-mock-1792919192749",
       "tenantId": "mock-user-1792919189883",
       "landlordId": "mock-landlord-1",
@@ -2357,8 +2835,8 @@
         "_id": "66d1f801e12a4b001a111111",
         "title": "Modern 2BR Apartment in Bole"
       },
-      "lastMessage": "Hello Landlord! Is the Bole apartment available for move-in next week?",
-      "lastMessageAt": "2026-10-25T10:06:36.480Z",
+      "lastMessage": "DASS",
+      "lastMessageAt": "2026-10-25T20:31:13.791Z",
       "createdAt": "2026-10-24T06:39:47.834Z"
     }
   ],
@@ -2526,6 +3004,50 @@
       "isRead": true,
       "createdAt": "2026-10-25T10:26:55.156Z",
       "readAt": "2026-10-25T11:51:59.972Z"
+    },
+    {
+      "_id": "msg-1792960273790",
+      "conversationId": "conv-mock-1",
+      "senderId": {
+        "_id": "mock-user-seed-1",
+        "firstName": "Dev",
+        "lastName": "Tenant",
+        "email": "dev.tenant@homelink.test",
+        "phone": "0911223344",
+        "password": "$2b$10$qEZelSSlV1BbLhDpzy5vHeNyBD1eddykCN.ja6G3.Y/v8dIsHYV1.",
+        "role": "tenant",
+        "emailVerified": true,
+        "identityStatus": "verified"
+      },
+      "receiverId": "mock-landlord-1",
+      "text": "DASS",
+      "body": "DASS",
+      "mediaKeys": [],
+      "isRead": false,
+      "createdAt": "2026-10-25T20:31:13.791Z"
+    },
+    {
+      "_id": "msg-1793092847196",
+      "conversationId": "conv-mock-1793092847196",
+      "senderId": {
+        "_id": "mock-user-1793083864425",
+        "firstName": "Tsedenia",
+        "lastName": "Worku",
+        "email": "kidkinfe7@gmail.com",
+        "phone": "0987654321",
+        "password": "$2b$10$A8pILCrUpkpI1/P1lmQjWediXqKF2xl/.qzm3xpbAPu9dbZt/qRtC",
+        "role": "tenant",
+        "identityStatus": "verified",
+        "emailVerified": true,
+        "emailVerificationCode": "$2b$10$Bx5boP0KCRLJaaMa33/VnemloJ6vnyaz6Fao9.SmAmI3jRJT4NUD6",
+        "emailVerificationExpires": "2026-10-27T07:01:04.158Z"
+      },
+      "receiverId": "mock-user-1793084104793",
+      "text": "hfuk.j;",
+      "body": "hfuk.j;",
+      "mediaKeys": [],
+      "isRead": false,
+      "createdAt": "2026-10-27T09:20:47.196Z"
     }
   ],
   "landlordProfiles": [
@@ -2562,7 +3084,7 @@
             "name": "ownership-lease.pdf"
           }
         ],
-        "createdAt": "2026-10-24T13:28:30.921Z"
+        "createdAt": "2026-10-26T09:48:36.227Z"
       }
     ],
     [
@@ -2582,7 +3104,25 @@
         "accountId": "mock-user-1792917808150",
         "legalName": "Tsedenia Worku",
         "verificationStatus": "verified",
-        "verifiedPropertiesCount": 0
+        "verifiedPropertiesCount": 0,
+        "identityStatus": "verified",
+        "faydaVerified": true,
+        "faydaFinMasked": "9482-****-****-2914",
+        "verifiedAt": "2026-10-27T08:38:10.471Z",
+        "auditTrail": [
+          {
+            "action": "FAYDA_BIOMETRIC_VERIFIED",
+            "performedByName": "National ID Program of Ethiopia (Fayda)",
+            "notes": "Instant e-KYC biometric authentication confirmed for Fayda FIN 9482-****-****-2914",
+            "timestamp": "2026-10-27T08:38:10.471Z"
+          },
+          {
+            "action": "FAYDA_BIOMETRIC_VERIFIED",
+            "performedByName": "National ID Program of Ethiopia (Fayda)",
+            "notes": "Instant e-KYC biometric authentication confirmed for Fayda FIN 1234-****-****-3456",
+            "timestamp": "2026-10-27T08:21:04.349Z"
+          }
+        ]
       }
     ],
     [
@@ -2647,7 +3187,7 @@
         "_id": "mock-user-1792921045037",
         "accountId": "mock-user-1792921045037",
         "legalName": "Tsedenia Worku",
-        "verificationStatus": "verified",
+        "verificationStatus": "unverified",
         "verifiedPropertiesCount": 0
       }
     ],
@@ -2657,7 +3197,7 @@
         "_id": "mock-user-1792921991258",
         "accountId": "mock-user-1792921991258",
         "legalName": "New Landlord",
-        "verificationStatus": "verified",
+        "verificationStatus": "unverified",
         "verifiedPropertiesCount": 0
       }
     ],
@@ -2667,7 +3207,290 @@
         "_id": "mock-user-1792922240694",
         "accountId": "mock-user-1792922240694",
         "legalName": "Tsedenia Worku",
+        "verificationStatus": "unverified",
+        "verifiedPropertiesCount": 0
+      }
+    ],
+    [
+      "mock-user-1793084104793",
+      {
+        "_id": "mock-user-1793084104793",
+        "accountId": "mock-user-1793084104793",
+        "legalName": "Tsedenia Worku",
         "verificationStatus": "verified",
+        "verifiedPropertiesCount": 0,
+        "submittedDocuments": [
+          {
+            "docType": "kebele_id",
+            "fileKey": "/uploads/document-1793091726992-473558539.jpg",
+            "originalName": "download (1).jpg",
+            "mimeType": "image/jpeg",
+            "fileSize": 8598,
+            "uploadedAt": "2026-10-27T09:02:07.168Z",
+            "automatedScan": {
+              "authenticityScore": 80,
+              "verdict": "review_recommended",
+              "confidence": 0.94,
+              "summary": "Automated analysis identified potential discrepancies requiring manual admin confirmation.",
+              "detectedName": "HomeLink Landlord",
+              "nameMatchScore": 100,
+              "checks": {
+                "tamperAnalysis": {
+                  "passed": true,
+                  "status": "Clean",
+                  "detail": "Original camera compression verified. No digital modification or Photoshop layers found"
+                },
+                "resolutionCheck": {
+                  "passed": false,
+                  "status": "Low Quality / Blurry",
+                  "detail": "File size (8.4 KB) lacks micro-text resolution required for forensic verification"
+                },
+                "nameMatch": {
+                  "passed": true,
+                  "matchPercentage": 100,
+                  "extractedName": "HomeLink Landlord",
+                  "accountName": "HomeLink Landlord",
+                  "status": "Verified Match",
+                  "detail": "100% match with registered landlord legal profile"
+                },
+                "officialSeal": {
+                  "passed": true,
+                  "status": "Authentic Stamp Detected",
+                  "detail": "Embossed Sub-City & Woreda round administration stamp verified"
+                },
+                "qrBarcode": {
+                  "passed": true,
+                  "status": "Cryptographically Valid",
+                  "detail": "Digital QR payload checksum validated against national document schema"
+                },
+                "expiryCheck": {
+                  "passed": true,
+                  "status": "Valid",
+                  "detail": "Document valid until October 2028 (Active)"
+                }
+              },
+              "extractedData": {
+                "documentNumber": "AA-K03/892041",
+                "documentTypeLabel": "Kebele Resident ID",
+                "issuingAuthority": "City Government of Addis Ababa — Sub-City Administration",
+                "issueDate": "2023-10-15",
+                "expiryDate": "2028-10-15"
+              },
+              "redFlags": [
+                "Document resolution is critically low or heavily compressed"
+              ]
+            }
+          },
+          {
+            "docType": "title_deed",
+            "fileKey": "/uploads/document-1793091726998-4907751.jpg",
+            "originalName": "download (1).jpg",
+            "mimeType": "image/jpeg",
+            "fileSize": 8598,
+            "uploadedAt": "2026-10-27T09:02:07.167Z",
+            "automatedScan": {
+              "authenticityScore": 80,
+              "verdict": "review_recommended",
+              "confidence": 0.94,
+              "summary": "Automated analysis identified potential discrepancies requiring manual admin confirmation.",
+              "detectedName": "HomeLink Landlord",
+              "nameMatchScore": 100,
+              "checks": {
+                "tamperAnalysis": {
+                  "passed": true,
+                  "status": "Clean",
+                  "detail": "Original camera compression verified. No digital modification or Photoshop layers found"
+                },
+                "resolutionCheck": {
+                  "passed": false,
+                  "status": "Low Quality / Blurry",
+                  "detail": "File size (8.4 KB) lacks micro-text resolution required for forensic verification"
+                },
+                "nameMatch": {
+                  "passed": true,
+                  "matchPercentage": 100,
+                  "extractedName": "HomeLink Landlord",
+                  "accountName": "HomeLink Landlord",
+                  "status": "Verified Match",
+                  "detail": "100% match with registered landlord legal profile"
+                },
+                "officialSeal": {
+                  "passed": true,
+                  "status": "Authentic Stamp Detected",
+                  "detail": "Addis Ababa Land Development & Management Bureau security seal and parcel boundary confirmed"
+                },
+                "qrBarcode": {
+                  "passed": true,
+                  "status": "Cryptographically Valid",
+                  "detail": "Digital QR payload checksum validated against national document schema"
+                },
+                "expiryCheck": {
+                  "passed": true,
+                  "status": "Valid",
+                  "detail": "Document valid until October 2028 (Active)"
+                }
+              },
+              "extractedData": {
+                "documentNumber": "LDB-AA-BOL-04/99120",
+                "documentTypeLabel": "Title Deed Certificate (Carta)",
+                "issuingAuthority": "Land Development & Management Bureau of Addis Ababa",
+                "issueDate": "2023-10-15",
+                "expiryDate": "2028-10-15"
+              },
+              "redFlags": [
+                "Document resolution is critically low or heavily compressed"
+              ]
+            }
+          },
+          {
+            "docType": "utility_bill",
+            "fileKey": "/uploads/document-1793091727001-247607145.jpg",
+            "originalName": "download (1).jpg",
+            "mimeType": "image/jpeg",
+            "fileSize": 8598,
+            "uploadedAt": "2026-10-27T09:02:07.170Z",
+            "automatedScan": {
+              "authenticityScore": 80,
+              "verdict": "review_recommended",
+              "confidence": 0.94,
+              "summary": "Automated analysis identified potential discrepancies requiring manual admin confirmation.",
+              "detectedName": "HomeLink Landlord",
+              "nameMatchScore": 100,
+              "checks": {
+                "tamperAnalysis": {
+                  "passed": true,
+                  "status": "Clean",
+                  "detail": "Original camera compression verified. No digital modification or Photoshop layers found"
+                },
+                "resolutionCheck": {
+                  "passed": false,
+                  "status": "Low Quality / Blurry",
+                  "detail": "File size (8.4 KB) lacks micro-text resolution required for forensic verification"
+                },
+                "nameMatch": {
+                  "passed": true,
+                  "matchPercentage": 100,
+                  "extractedName": "HomeLink Landlord",
+                  "accountName": "HomeLink Landlord",
+                  "status": "Verified Match",
+                  "detail": "100% match with registered landlord legal profile"
+                },
+                "officialSeal": {
+                  "passed": true,
+                  "status": "Authentic Stamp Detected",
+                  "detail": "Official service provider utility meter verification confirmed"
+                },
+                "qrBarcode": {
+                  "passed": true,
+                  "status": "Cryptographically Valid",
+                  "detail": "Digital QR payload checksum validated against national document schema"
+                },
+                "expiryCheck": {
+                  "passed": true,
+                  "status": "Valid",
+                  "detail": "Document valid until October 2028 (Active)"
+                }
+              },
+              "extractedData": {
+                "documentNumber": "EEU-MET-884019",
+                "documentTypeLabel": "Utility Service Statement",
+                "issuingAuthority": "Ethiopian Electric Utility (EEU)",
+                "issueDate": "2023-10-15",
+                "expiryDate": "2028-10-15"
+              },
+              "redFlags": [
+                "Document resolution is critically low or heavily compressed"
+              ]
+            }
+          },
+          {
+            "docType": "tax_receipt",
+            "fileKey": "/uploads/document-1793091727002-313411287.jpg",
+            "originalName": "download (1).jpg",
+            "mimeType": "image/jpeg",
+            "fileSize": 8598,
+            "uploadedAt": "2026-10-27T09:02:07.174Z",
+            "automatedScan": {
+              "authenticityScore": 80,
+              "verdict": "review_recommended",
+              "confidence": 0.94,
+              "summary": "Automated analysis identified potential discrepancies requiring manual admin confirmation.",
+              "detectedName": "HomeLink Landlord",
+              "nameMatchScore": 100,
+              "checks": {
+                "tamperAnalysis": {
+                  "passed": true,
+                  "status": "Clean",
+                  "detail": "Original camera compression verified. No digital modification or Photoshop layers found"
+                },
+                "resolutionCheck": {
+                  "passed": false,
+                  "status": "Low Quality / Blurry",
+                  "detail": "File size (8.4 KB) lacks micro-text resolution required for forensic verification"
+                },
+                "nameMatch": {
+                  "passed": true,
+                  "matchPercentage": 100,
+                  "extractedName": "HomeLink Landlord",
+                  "accountName": "HomeLink Landlord",
+                  "status": "Verified Match",
+                  "detail": "100% match with registered landlord legal profile"
+                },
+                "officialSeal": {
+                  "passed": true,
+                  "status": "Authentic Stamp Detected",
+                  "detail": "Official service provider utility meter verification confirmed"
+                },
+                "qrBarcode": {
+                  "passed": true,
+                  "status": "Cryptographically Valid",
+                  "detail": "Digital QR payload checksum validated against national document schema"
+                },
+                "expiryCheck": {
+                  "passed": true,
+                  "status": "Valid",
+                  "detail": "Document valid until October 2028 (Active)"
+                }
+              },
+              "extractedData": {
+                "documentNumber": "EEU-MET-884019",
+                "documentTypeLabel": "Utility Service Statement",
+                "issuingAuthority": "Ethiopian Electric Utility (EEU)",
+                "issueDate": "2023-10-15",
+                "expiryDate": "2028-10-15"
+              },
+              "redFlags": [
+                "Document resolution is critically low or heavily compressed"
+              ]
+            }
+          }
+        ],
+        "aiTrustScore": 80,
+        "updatedAt": "2026-10-27T09:02:07.174Z",
+        "auditTrail": [
+          {
+            "action": "IDENTITY_SUBMITTED",
+            "performedByName": "HomeLink Landlord",
+            "notes": "Landlord submitted identity documents. AI Pre-Scan calculated 80% Authenticity score (Clean EXIF, stamps verified).",
+            "timestamp": "2026-10-27T09:02:07.174Z"
+          },
+          {
+            "action": "LANDLORD_VERIFIED",
+            "performedByName": "Admin Reviewer",
+            "notes": "Landlord marked verified",
+            "timestamp": "2026-10-27T09:05:47.374Z"
+          }
+        ],
+        "verifiedAt": "2026-10-27T09:05:47.374Z"
+      }
+    ],
+    [
+      "mock-user-1793086770086",
+      {
+        "_id": "mock-user-1793086770086",
+        "accountId": "mock-user-1793086770086",
+        "legalName": "New Landlord",
+        "verificationStatus": "unverified",
         "verifiedPropertiesCount": 0
       }
     ]

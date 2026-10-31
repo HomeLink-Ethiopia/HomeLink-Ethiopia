@@ -221,6 +221,9 @@ const initializeChapaPayment = async (req, res) => {
             ...(tenant.phone ? { phone_number: String(tenant.phone) } : {}),
             title: "HomeLink Rent Payment",
             description: `Payment for ${payment.paymentType || "rent"}`
+            
+            // ❌ REMOVED: return_url: `${frontendUrl}/tenant/payments?tx_ref=${tx_ref}`
+            // Without this, the user stays on Chapa's receipt page and can download it!
         };
 
         const response = await fetch(`${CHAPA_BASE}/transaction/initialize`, {

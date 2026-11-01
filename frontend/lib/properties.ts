@@ -458,8 +458,9 @@ export const PROPERTIES: Property[] = RAW.map((p, i) => {
   }
 })
 
-export function formatEtb(price: number) {
-  return `ETB ${price.toLocaleString('en-US')}`
+export function formatEtb(price: number | undefined | null) {
+    // ✅ Added a fallback: if price is undefined or null, it defaults to 0
+    return `ETB ${(price || 0).toLocaleString('en-US')}`
 }
 
 /** Short label used on map pins, e.g. "18K", "22K". */

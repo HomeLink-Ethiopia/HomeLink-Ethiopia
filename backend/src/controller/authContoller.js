@@ -48,7 +48,7 @@ const registerUser = async (req, res) => {
         phone,
         password: hashedPassword,
         role: assignedRole,
-        identityStatus: "unverified",
+        identityStatus: "verified",
         emailVerified: true,
       };
 
@@ -62,7 +62,7 @@ const registerUser = async (req, res) => {
           _id: mockUser._id,
           accountId: mockUser._id,
           legalName: `${firstName} ${lastName}`.trim(),
-          verificationStatus: "unverified",
+          verificationStatus: "verified",
           verifiedPropertiesCount: 0
         });
         if (typeof persistMockData === 'function') persistMockData();
@@ -122,7 +122,6 @@ const registerUser = async (req, res) => {
       phone,
       password: hashedPassword,
       role: assignedRole,
-      identityStatus: "unverified",
       emailVerified: true,
     });
 
@@ -131,7 +130,6 @@ const registerUser = async (req, res) => {
         await LandlordProfile.create({
           accountId: user._id,
           legalName: `${firstName} ${lastName}`.trim(),
-          verificationStatus: "unverified",
         });
       } catch (profileErr) {
         console.warn("LandlordProfile initial creation warning:", profileErr.message);

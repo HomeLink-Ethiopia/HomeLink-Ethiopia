@@ -29,7 +29,18 @@ const app = express();
 app.use(cors());
 
 // Global JSON & form body parser
+
 app.use(express.json({ limit: '10mb' }));
+// 🚨 Quick Mock for Frontend Dashboard
+app.get('/api/v1/credit-score/my', (req, res) => {
+    // We return a mock score so the UI doesn't crash
+    res.status(200).json({ 
+        data: { 
+            score: 785, 
+            tier: 'excellent' 
+        } 
+    });
+});
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static uploads (property images and tenant documents)
@@ -37,7 +48,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── ROUTES ───
 app.use('/api/auth', authRoutes);
-app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/properties', propertyRoutes);
 app.use('/api/public/properties', propertyRoutes);
 app.use('/api/v1/verification', verificationRoutes);

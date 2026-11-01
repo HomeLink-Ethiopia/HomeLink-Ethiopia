@@ -92,6 +92,7 @@ flowchart TD
     
     BE -- "HTTPS (Initialize/Verify)" --> CHAPA
     BE -- "REST API (In-Progress)" --> AI
+```
 Getting Started (Local Setup)
 Prerequisites
 Node.js (v18+)

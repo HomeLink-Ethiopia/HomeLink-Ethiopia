@@ -12,5 +12,8 @@
     "backend:install": "npm --prefix backend install",
     "frontend:install": "npm --prefix frontend install",
     "install:all": "npm install --prefix frontend && npm install --prefix backend"
+  },
+  "devDependencies": {
+    "next": "14.2.5"
   }
 }

@@ -638,24 +638,16 @@ function lookup(key: string): string | undefined {
   return DICT_LOWER[key.toLowerCase()]
 }
 
-interface PhraseEntry {
-  phrase: string
-  lower: string
-  len: number
-  tr: string
-}
-
-/** Multi-word dictionary phrases pre-lowercased, longest first, for fast substring substitution. */
-const PREPARED_PHRASES: PhraseEntry[] = Object.entries(UI_DICTIONARY)
+/** Multi-word dictionary phrases, longest first, for substring substitution. */
+const PHRASE_KEYS: [string, string][] = Object.entries(UI_DICTIONARY)
   .filter(([k]) => k.includes(' '))
-  .map(([k, v]) => ({ phrase: k, lower: k.toLowerCase(), len: k.length, tr: v }))
-  .sort((a, b) => b.len - a.len)
+  .sort((a, b) => b[0].length - a[0].length)
 
 /** Replace the first case-insensitive occurrence of `phrase` in `hay`. */
-function replacePhraseFast(hay: string, lowerHay: string, entry: PhraseEntry): string {
-  const idx = lowerHay.indexOf(entry.lower)
+function replacePhrase(hay: string, phrase: string, tr: string): string {
+  const idx = hay.toLowerCase().indexOf(phrase.toLowerCase())
   if (idx === -1) return hay
-  return hay.slice(0, idx) + entry.tr + hay.slice(idx + entry.len)
+  return hay.slice(0, idx) + tr + hay.slice(idx + phrase.length)
 }
 
 /**
@@ -669,7 +661,7 @@ function replacePhraseFast(hay: string, lowerHay: string, entry: PhraseEntry): s
  */
 function translateTextNode(textNode: Text) {
   const content = textNode.nodeValue ?? ''
-  if (!content.trim() || isAmharic(content) || !/[A-Za-z]/.test(content)) return
+  if (!content.trim() || isAmharic(content)) return
   const parent = textNode.parentElement
   if (!parent || SKIP_TAGS.has(parent.tagName) || parent.isContentEditable) return
 
@@ -688,15 +680,12 @@ function translateTextNode(textNode: Text) {
   }
 
   // Pass 1.5 — multi-word phrase substitution inside longer text
-  // Only scan if text is long enough to contain multi-word phrases (> 8 chars)
+  // (e.g. "near the airport" inside a neighborhood subtitle). Doesn't
+  // return early — the word pass below still handles the remaining words.
   let text = content
-  if (content.length > 8 && content.includes(' ')) {
-    let lowerText = text.toLowerCase()
-    for (const entry of PREPARED_PHRASES) {
-      if (lowerText.includes(entry.lower)) {
-        text = replacePhraseFast(text, lowerText, entry)
-        lowerText = text.toLowerCase()
-      }
+  for (const [phrase, tr] of PHRASE_KEYS) {
+    if (text.toLowerCase().includes(phrase.toLowerCase())) {
+      text = replacePhrase(text, phrase, tr)
     }
   }
 

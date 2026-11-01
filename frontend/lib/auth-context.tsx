@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               name: `${res.user.firstName || ''} ${res.user.lastName || ''}`.trim() || res.user.name || 'User',
               email: res.user.email,
               role: res.user.role as Role,
-              verificationStatus: (res.user.verificationStatus || res.user.identityStatus || (res.user.role === 'admin' ? 'verified' : 'unverified')) as VerificationStatus
+              verificationStatus: (res.user.verificationStatus || res.user.identityStatus || (res.user.emailVerified ? 'verified' : 'pending')) as VerificationStatus
             }
             localStorage.setItem('hl_user', JSON.stringify(freshUser))
             setSessionCookie(freshUser.id, freshUser.role)
@@ -173,29 +173,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.name || 'User',
               email: data.user.email,
               role: data.user.role as Role,
-              verificationStatus: (data.user.verificationStatus || data.user.identityStatus || (data.user.role === 'admin' ? 'verified' : 'unverified')) as VerificationStatus
+              verificationStatus: (data.user.verificationStatus || data.user.identityStatus || (data.user.emailVerified ? 'verified' : 'pending')) as VerificationStatus
             }
             
             // Store user for session persistence
             localStorage.setItem('hl_user', JSON.stringify(apiUser))
-            setSessionCookie(apiUser.id, apiUser.role)
+            setSessionCookie(data.user.id, apiUser.role)
             setUser(apiUser)
             try {
               useFavoritesStore.getState().hydrate(apiUser.id)
             } catch { /* ignore */ }
-
-            // Determine safe role destination
-            let destination = ROLE_HOME[apiUser.role]
-            if (redirectTo && !redirectTo.startsWith('/login') && !redirectTo.startsWith('/signup')) {
-              const isCrossRole =
-                (apiUser.role === 'landlord' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/admin'))) ||
-                (apiUser.role === 'tenant' && (redirectTo.startsWith('/landlord') || redirectTo.startsWith('/admin'))) ||
-                (apiUser.role === 'admin' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/landlord')))
-              if (!isCrossRole) {
-                destination = redirectTo
-              }
+            if (redirectTo) {
+              router.push(redirectTo)
+            } else {
+              router.push(ROLE_HOME[apiUser.role])
             }
-            router.push(destination)
             return { success: true, user: apiUser }
           }
         } catch (error) {
@@ -218,18 +210,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           useFavoritesStore.getState().hydrate(result.user.id)
         } catch { /* ignore */ }
-
-        let destination = ROLE_HOME[result.user.role]
-        if (redirectTo && !redirectTo.startsWith('/login') && !redirectTo.startsWith('/signup')) {
-          const isCrossRole =
-            (result.user.role === 'landlord' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/admin'))) ||
-            (result.user.role === 'tenant' && (redirectTo.startsWith('/landlord') || redirectTo.startsWith('/admin'))) ||
-            (result.user.role === 'admin' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/landlord')))
-          if (!isCrossRole) {
-            destination = redirectTo
-          }
+        if (redirectTo) {
+          router.push(redirectTo)
+        } else {
+          router.push(ROLE_HOME[result.user.role])
         }
-        router.push(destination)
         return { success: true, user: userObj }
       }
 

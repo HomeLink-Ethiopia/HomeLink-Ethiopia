@@ -70,7 +70,7 @@ export function createUser(data: {
     fullName: data.fullName,
     phone: data.phone,
     role: data.role,
-    verificationStatus: data.role === 'admin' ? 'verified' : 'unverified',
+    verificationStatus: isDevelopment ? 'verified' : 'pending', // ← Auto-verify in dev mode
     verificationToken: isDevelopment ? undefined : generateToken(),
     createdAt: new Date().toISOString(),
   }
@@ -242,14 +242,6 @@ export function initializeDemoUsers() {
       password: 'Password123!',
       fullName: 'Dev Admin',
       phone: '+251 911 000003',
-      role: 'admin',
-      verificationStatus: 'verified',
-    },
-    {
-      email: 'yegibhualyeshidagna@gmail.com',
-      password: 'Qwertyuiop1@',
-      fullName: 'Yegibhual Yeshidagna',
-      phone: '+251 911 002233',
       role: 'admin',
       verificationStatus: 'verified',
     }

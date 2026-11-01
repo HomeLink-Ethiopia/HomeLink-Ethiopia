@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏠 HomeLink Ethiopia : https://home-link-ethiopia-vrzr.vercel.app/
+# 🏠 HomeLink Ethiopia: https://home-link-ethiopia-vrzr.vercel.app/
 
 **A Trusted Digital Housing Ecosystem**
 

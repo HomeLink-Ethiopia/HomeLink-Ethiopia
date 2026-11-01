@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏠 HomeLink Ethiopia : https://home-link-ethiopia-vrzr.vercel.app/
+# 🏠 HomeLink Ethiopia: https://home-link-ethiopia-vrzr.vercel.app/
 
 **A Trusted Digital Housing Ecosystem**
 
@@ -92,7 +92,8 @@ flowchart TD
     
     BE -- "HTTPS (Initialize/Verify)" --> CHAPA
     BE -- "REST API (In-Progress)" --> AI
-
+    
+```
 Getting Started (Local Setup)
 Prerequisites
 Node.js (v18+)
@@ -117,7 +118,7 @@ env
 PORT=5000
 MONGO_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=your_jwt_secret
-CHAPA_SECRET_KEY=secret_key
+CHAPA_SECRET_KEY=secret_test_key
 FRONTEND_URL=http://localhost:3000
 Start the backend server:
 
@@ -141,16 +142,15 @@ npm run dev
 4. Access the Application
 Open your browser and navigate to http://localhost:3000.
 
-WEBSITE:https://home-link-ethiopia-vrzr.vercel.app/
+website:https://home-link-ethiopia-vrzr.vercel.app
 
 👥 The Team
-This project was designed and built for [Insert Competition Name].
 
-Kidist Kinfe — Backend Lead (Node.js, Express, Auth, Payments, System Architecture)
+Kidist Kinfe — Backend Lead (Node.js, Express, Auth, Payments, System Architecture),Database,Deployment,Payment,Testing
 
 Tsedenia Worku — Frontend Lead (Next.js, React, UI/UX, Client-side Logic)
 
-Yirgalem — Database & Verification Lead (MongoDB Design, Verification Workflows, AI Integration)
+Yirgalem — Database & Verification Lead
 
 Addisu — Testing, DevOps & AI Lead (API Testing, CI/CD, FastAPI Microservice, Deployment)
 

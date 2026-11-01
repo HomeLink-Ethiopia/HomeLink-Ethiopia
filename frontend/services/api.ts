@@ -1,25 +1,12 @@
 import { PROPERTIES, type Property } from '@/lib/properties'
 export type { Property }
-import { post, get, patch } from '@/lib/http-client'
+import { post, get, put } from '@/lib/http-client' // Removed 'patch' as it's no longer used
 
 /**
  * API Layer with Mock & Real API Support
- *
- * Every function here has the exact shape (params in, typed Promise out)
- * that a real fetch() call against HomeLink's REST API would have.
- *
- * To switch between mock and real API:
- * 1. Set NEXT_PUBLIC_MOCK_MODE=false in .env.local to use real API
- * 2. Set NEXT_PUBLIC_MOCK_MODE=true to use mock/local data
- *
- * The HTTP client (lib/http-client.ts) handles:
- * - Error handling and retry logic
- * - Request/response logging
- * - Timeout management
- * - Automatic JSON serialization
  */
 
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE !== 'false'
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 
 function delay<T>(value: T, ms = 500): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms))
@@ -66,7 +53,6 @@ export function mapApiProperty(raw: any): Property {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-  // Only use real landlord-uploaded photos — do not show fake stock images
   let image = ''
   if (raw.images && raw.images.length > 0) {
     const primary = raw.images.find((img: any) => img.isPrimary) || raw.images[0]
@@ -76,7 +62,6 @@ export function mapApiProperty(raw: any): Property {
     }
   }
 
-  // Real coordinates from neighborhood or DB coordinates
   let lat = raw.location?.coordinates?.coordinates?.[1] ?? raw.location?.coordinates?.[1]
   let lng = raw.location?.coordinates?.coordinates?.[0] ?? raw.location?.coordinates?.[0]
   if (!lat || !lng || (lat === 9.03 && lng === 38.7578)) {
@@ -116,32 +101,6 @@ export function mapApiProperty(raw: any): Property {
     lng,
     description: raw.description,
     propertyType: raw.propertyType,
-    buildingDetails: raw.buildingDetails
-      ? {
-          ...raw.buildingDetails,
-          units: (raw.buildingDetails.units || []).map((u: any, idx: number) => {
-            const rent = typeof u.monthlyRent === 'number' ? u.monthlyRent : (typeof u.rentAmount === 'number' ? u.rentAmount : 0)
-            const dep = typeof u.depositAmount === 'number' ? u.depositAmount : rent * 2
-            const uid = u.id || u.unitId || u._id || `unit-${idx + 1}`
-            return {
-              ...u,
-              id: uid,
-              unitId: uid,
-              unitNumber: u.unitNumber || `Unit ${idx + 1}`,
-              name: u.name || u.unitNumber || `Unit ${idx + 1}`,
-              spaceType: u.spaceType || 'office_room',
-              floorNumber: typeof u.floorNumber === 'number' ? u.floorNumber : 0,
-              sizeM2: u.sizeM2 || u.sizeSqm || 0,
-              monthlyRent: rent,
-              rentAmount: rent,
-              depositAmount: dep,
-              suitableFor: Array.isArray(u.suitableFor) ? u.suitableFor : [],
-              status: u.status || 'available',
-              amenities: Array.isArray(u.amenities) ? u.amenities : [],
-            }
-          }),
-        }
-      : undefined,
     amenities: raw.amenities,
     images: (raw.images || []).map((img: any) => {
       const u = typeof img === 'string' ? img : img.url
@@ -157,42 +116,26 @@ export function mapApiProperty(raw: any): Property {
 export async function searchProperties(filters: PropertyFilters = {}): Promise<SearchPropertiesResult> {
   try {
     const params = new URLSearchParams()
-    if (filters.neighborhood && !filters.neighborhood.startsWith('__header')) {
-      params.append('neighborhood', filters.neighborhood)
-      params.append('subCity', filters.neighborhood)
-    }
+    if (filters.neighborhood) params.append('neighborhood', filters.neighborhood)
     if (filters.city) params.append('city', filters.city)
-    if (filters.propertyType) params.append('propertyType', filters.propertyType)
-    if (filters.minPrice !== undefined && filters.minPrice !== null) params.append('minPrice', String(filters.minPrice))
-    if (filters.maxPrice !== undefined && filters.maxPrice !== null) params.append('maxPrice', String(filters.maxPrice))
-    if (filters.beds !== undefined && filters.beds !== null) {
-      params.append('beds', String(filters.beds))
-      params.append('bedrooms', String(filters.beds))
-    }
-    if (filters.baths !== undefined && filters.baths !== null) {
-      params.append('baths', String(filters.baths))
-      params.append('bathrooms', String(filters.baths))
-    }
-    if (filters.furnished !== undefined) params.append('furnished', String(filters.furnished))
+    if (filters.minPrice) params.append('minPrice', String(filters.minPrice))
+    if (filters.maxPrice) params.append('maxPrice', String(filters.maxPrice))
+    if (filters.beds) params.append('beds', String(filters.beds))
     if (filters.verifiedOnly) params.append('verifiedOnly', 'true')
-    if (filters.sort) params.append('sort', filters.sort)
-    if (filters.page) params.append('page', String(filters.page))
-    if (filters.limit) params.append('limit', String(filters.limit))
-    if (filters.query) params.append('query', filters.query)
 
     const query = params.toString()
     const endpoint = query ? `/api/v1/properties/search?${query}` : '/api/v1/properties/search'
-
-    const response = await get<{ data: any[]; pagination?: any }>(endpoint)
-    const rawProperties = response.data?.data || []
-    const pagination = response.data?.pagination || {}
-    const properties = rawProperties.map(mapApiProperty)
-
+    
+    // ✅ FIX: Type the response to handle the backend's pagination structure
+    const response = await get<any>(endpoint)
+    const rawProperties = response.data.data || []
+    
+    // ✅ FIX: Return the expected object structure, not just the array!
     return {
-      properties,
-      total: typeof pagination.total === 'number' ? pagination.total : properties.length,
-      pages: typeof pagination.totalPages === 'number' ? pagination.totalPages : 1,
-      page: typeof pagination.page === 'number' ? pagination.page : 1,
+      properties: rawProperties.map(mapApiProperty),
+      total: response.data.pagination?.total || rawProperties.length,
+      pages: response.data.pagination?.totalPages || 1,
+      page: response.data.pagination?.page || 1
     }
   } catch (error) {
     console.error('Failed to search properties from API:', error)
@@ -207,12 +150,21 @@ export async function fetchProperties(filters: PropertyFilters = {}): Promise<Pr
 
 async function fetchPropertyFromAPI(id: string): Promise<Property | null> {
   try {
-    const response = await get<{ data: any }>(`/api/public/properties/${id}`)
-    const raw = response.data.data
-    return raw ? mapApiProperty(raw) : null
+    const response = await get<any>(`/api/v1/properties/${id}`)
+    const body = response.data as any
+    const raw = body?.data || body
+    return raw && raw._id ? mapApiProperty(raw) : null
   } catch (error) {
     console.error(`Failed to fetch property ${id} from API:`, error)
-    return PROPERTIES.find((p) => p.id === id) ?? null
+    try {
+      const allRes = await get<any>(`/api/v1/properties/search?limit=100`)
+      const body = allRes.data as any
+      const all: any[] = Array.isArray(body) ? body : body?.data || []
+      const found = all.find((p: any) => p._id === id)
+      return found ? mapApiProperty(found) : (PROPERTIES.find((p) => p.id === id) ?? null)
+    } catch {
+      return PROPERTIES.find((p) => p.id === id) ?? null
+    }
   }
 }
 
@@ -231,7 +183,7 @@ export interface PropertyListingInput {
   title: string
   neighborhood: string
   address: string
-  propertyType: 'apartment' | 'house' | 'studio' | 'villa' | 'building' | 'commercial'
+  propertyType: 'apartment' | 'house' | 'studio' | 'villa'
   beds: number
   baths: number
   sizeSqm: number
@@ -242,7 +194,6 @@ export interface PropertyListingInput {
   photoUrls: string[]
   ownershipDocUrl: string
   landlordIdDocUrl: string
-  buildingDetails?: any
 }
 
 export interface VerificationRecord {
@@ -255,6 +206,8 @@ async function submitPropertyListingToAPI(
   input: PropertyListingInput
 ): Promise<VerificationRecord> {
   try {
+    // Note: backend expects a propertyId for verification, but we are sending the full listing.
+    // Ensure the backend route handles this (or adjust to POST /api/v1/properties first)
     const response = await post<{ data: VerificationRecord }>('/api/v1/verification/submit', input)
     return response.data.data
   } catch (error) {
@@ -285,7 +238,8 @@ async function verifyPropertyFromAPI(
   notes?: string
 ): Promise<VerificationRecord> {
   try {
-    const response = await patch<{ data: VerificationRecord }>(`/api/v1/verification/${propertyId}/review`, {
+    // ✅ FIX: Changed to PUT as the backend uses router.put('/:id/review')
+    const response = await put<{ data: VerificationRecord }>(`/api/v1/verification/${propertyId}/review`, {
       status: decision,
       reviewNotes: notes,
     })
@@ -320,8 +274,8 @@ export async function verifyProperty(
 
 export interface ViewingRequestInput {
   propertyId: string
-  preferredDate: string // ISO date
-  preferredTime: string // e.g. "14:00"
+  preferredDate: string
+  preferredTime: string
   note?: string
 }
 
@@ -334,7 +288,7 @@ async function submitViewingRequestToAPI(
   input: ViewingRequestInput
 ): Promise<ViewingRequestRecord> {
   try {
-    const response = await post<ViewingRequestRecord>('/api/viewings/request', input)
+    const response = await post<ViewingRequestRecord>('/api/v1/viewings', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit viewing request to API:', error)
@@ -362,7 +316,7 @@ export interface ApplicationInput {
   email: string
   employmentStatus: 'employed' | 'self_employed' | 'student' | 'other'
   monthlyIncomeEtb: number
-  moveInDate: string // ISO date
+  moveInDate: string
   note?: string
 }
 
@@ -374,7 +328,7 @@ export interface ApplicationRecord extends ApplicationInput {
 
 async function submitApplicationToAPI(input: ApplicationInput): Promise<ApplicationRecord> {
   try {
-    const response = await post<ApplicationRecord>('/api/applications/submit', input)
+    const response = await post<ApplicationRecord>('/api/v1/applications', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit application to API:', error)
@@ -419,7 +373,7 @@ async function submitMaintenanceRequestToAPI(
   input: MaintenanceRequestInput
 ): Promise<MaintenanceRequestRecord> {
   try {
-    const response = await post<MaintenanceRequestRecord>('/api/maintenance/request', input)
+    const response = await post<MaintenanceRequestRecord>('/api/v1/maintenance', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit maintenance request to API:', error)
@@ -473,7 +427,7 @@ export interface FraudReportRecord extends FraudReportInput {
 
 async function submitFraudReportToAPI(input: FraudReportInput): Promise<FraudReportRecord> {
   try {
-    const response = await post<FraudReportRecord>('/api/fraud/report', input)
+    const response = await post<FraudReportRecord>('/api/v1/fraud-reports', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit fraud report to API:', error)
@@ -515,7 +469,7 @@ export interface DisputeRecord extends DisputeInput {
 
 async function submitDisputeToAPI(input: DisputeInput): Promise<DisputeRecord> {
   try {
-    const response = await post<DisputeRecord>('/api/disputes/submit', input)
+    const response = await post<DisputeRecord>('/api/v1/disputes', input)
     return response.data
   } catch (error) {
     console.error('Failed to submit dispute to API:', error)
@@ -564,7 +518,7 @@ export interface RentEstimateResult {
 
 export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentEstimateResult> {
   if (MOCK_MODE) {
-    await delay(null, 500); // Simulate network latency
+    await delay(null, 500)
     const fair = (input.sizeM2 || 50) * 350 + (input.bedrooms * 2000);
     return {
       low: Math.round(fair * 0.85),
@@ -575,11 +529,11 @@ export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentE
     };
   }
 
-  const response = await post<any>('/api/v1/properties/estimate-rent', {
-    subCity: input.subCity,
+  const response = await post<any>('/api/ai/estimate-rent', {
+    subcity: input.subCity,
     bedrooms: input.bedrooms,
     bathrooms: input.bathrooms || 1,
-    sizeM2: input.sizeM2 || 50,
+    area_sqm: input.sizeM2 || input.area_sqm || 50,
     is_furnished: input.is_furnished || false,
     has_water_tank: input.has_water_tank || false,
     has_generator: input.has_generator || false,
@@ -587,8 +541,7 @@ export async function fetchRentEstimate(input: RentEstimateInput): Promise<RentE
 
   const data = response.data?.data || response.data;
   
-  // Handle different response structures gracefully
-  const fair = Math.round(data.estimated_market_rent || data.estimated_rent_etb || data.estimate?.fair || 25000)
+  const fair = Math.round(data.estimated_rent_etb || data.estimated_market_rent || data.estimate?.fair || 25000)
   const low = Math.round(data.range_low || data.estimate?.low || fair * 0.88)
   const high = Math.round(data.range_high || data.estimate?.high || fair * 1.15)
   
@@ -605,12 +558,16 @@ export async function fetchAIRecommendations(
   prefs?: any
 ): Promise<Array<Property & { matchScore: number; matchReasons: string[] }>> {
   try {
-    const response = await get<{ data: any[] }>('/api/v1/properties/recommendations')
-    if (response.data?.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
-      return response.data.data.map((p: any) => ({
+    const response = await get<any>('/api/v1/properties/recommendations')
+    const body = response.data as any
+    const items: any[] = Array.isArray(body) ? body
+      : body?.recommendations?.map((r: any) => r.property).filter(Boolean)
+      || body?.data || []
+    if (items.length > 0) {
+      return items.map((p: any) => ({
         ...mapApiProperty(p),
-        matchScore: p.matchScore || 85,
-        matchReasons: p.matchReasons || ['Matched to your criteria']
+        matchScore: p.matchScore || p.match_score || 85,
+        matchReasons: p.matchReasons || p.match_reasons || ['Matched to your criteria']
       }))
     }
   } catch (error) {
@@ -651,31 +608,38 @@ export async function fetchAiMatches(params: any): Promise<AiMatchResponse> {
       amenities: params.amenities || [],
       furnished: params.amenities?.includes('Furnished') || false
     };
-    await post('/api/v1/properties/preferences', prefsPayload);
+    try {
+      await post('/api/v1/properties/preferences', prefsPayload);
+    } catch {
+      await put('/api/v1/properties/preferences', prefsPayload).catch(() => {});
+    }
   } catch (e) {
     console.warn('Failed to save preferences to backend:', e);
   }
 
-  const response = await get<{ data: any[] }>('/api/v1/properties/recommendations');
-  const items = response.data?.data || [];
+  const response = await get<any>('/api/v1/properties/recommendations');
+  const body = response.data as any;
+  const recs: any[] = body?.recommendations || body?.data || [];
   
   return {
-    matches: items.map((p: any) => ({
-      propertyId: p._id || p.id,
-      score: p.matchScore || 0,
-      title: p.title,
-      location: p.location,
-      rentAmount: p.rentAmount || p.priceEtb || 0,
-      bedrooms: p.bedrooms || 0,
-      bathrooms: p.bathrooms || 0,
-      verificationStatus: p.verificationStatus || 'unverified',
-      images: p.images || (p.image ? [{url: p.image}] : []),
-      matchReasons: p.matchReasons || []
-    })),
-    meta: { total: items.length }
+    matches: recs.map((r: any) => {
+      const p = r.property || r;
+      return {
+        propertyId: r.property_id || p._id || p.id,
+        score: r.match_score || r.matchScore || 0,
+        title: p.title || '',
+        location: p.location,
+        rentAmount: p.rentAmount || p.priceEtb || 0,
+        bedrooms: p.bedrooms || 0,
+        bathrooms: p.bathrooms || 0,
+        verificationStatus: p.verificationStatus || 'unverified',
+        images: p.images || (p.image ? [{url: p.image}] : []),
+        matchReasons: r.match_reasons || r.matchReasons || []
+      };
+    }),
+    meta: { total: recs.length }
   };
 }
-
 
 export interface AiFraudPriorityItem {
   propertyId: string;
@@ -694,5 +658,3 @@ export async function fetchFraudPriority(): Promise<{ queue: AiFraudPriorityItem
     return { queue: [], summary: { note: 'Priority queue unavailable' } };
   }
 }
-
-

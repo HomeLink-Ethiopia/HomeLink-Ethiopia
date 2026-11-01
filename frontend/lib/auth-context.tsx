@@ -7,7 +7,7 @@ import { ROLE_HOME } from '@/types/roles'
 import { authenticateUser, getUserById, type User as DbUser } from './auth-db'
 import { useFavoritesStore } from './store'
 
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE !== 'false'
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected'
@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               name: `${res.user.firstName || ''} ${res.user.lastName || ''}`.trim() || res.user.name || 'User',
               email: res.user.email,
               role: res.user.role as Role,
-              verificationStatus: (res.user.verificationStatus || res.user.identityStatus || (res.user.role === 'admin' ? 'verified' : 'unverified')) as VerificationStatus
+              verificationStatus: (res.user.verificationStatus || res.user.identityStatus || (res.user.emailVerified ? 'verified' : 'pending')) as VerificationStatus
             }
             localStorage.setItem('hl_user', JSON.stringify(freshUser))
             setSessionCookie(freshUser.id, freshUser.role)
@@ -146,67 +146,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string, redirectTo?: string): Promise<{ success: boolean; error?: string; requiresVerification?: boolean; email?: string; user?: User }> => {
-      // Try real API first if not in mock mode
-      if (!MOCK_MODE) {
-        try {
-          const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-          })
+      // 1. Always attempt backend API first
+      try {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+        
+        const data = await response.json().catch(() => ({}))
+        
+        if (response.ok && data.token) {
+          localStorage.setItem('hl_token', data.token)
           
-          const data = await response.json()
-          
-          if (!response.ok) {
-            if (data.requiresVerification) {
-              return { success: false, error: data.message, requiresVerification: true, email: data.email }
-            } else {
-              return { success: false, error: data.message || 'Login failed' }
-            }
-          } else {
-            // Store JWT token
-            localStorage.setItem('hl_token', data.token)
-            
-            // Map API response to User format
-            const apiUser: User = {
-              id: data.user.id || data.user._id,
-              name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.name || 'User',
-              email: data.user.email,
-              role: data.user.role as Role,
-              verificationStatus: (data.user.verificationStatus || data.user.identityStatus || (data.user.role === 'admin' ? 'verified' : 'unverified')) as VerificationStatus
-            }
-            
-            // Store user for session persistence
-            localStorage.setItem('hl_user', JSON.stringify(apiUser))
-            setSessionCookie(apiUser.id, apiUser.role)
-            setUser(apiUser)
-            try {
-              useFavoritesStore.getState().hydrate(apiUser.id)
-            } catch { /* ignore */ }
-
-            // Determine safe role destination
-            let destination = ROLE_HOME[apiUser.role]
-            if (redirectTo && !redirectTo.startsWith('/login') && !redirectTo.startsWith('/signup')) {
-              const isCrossRole =
-                (apiUser.role === 'landlord' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/admin'))) ||
-                (apiUser.role === 'tenant' && (redirectTo.startsWith('/landlord') || redirectTo.startsWith('/admin'))) ||
-                (apiUser.role === 'admin' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/landlord')))
-              if (!isCrossRole) {
-                destination = redirectTo
-              }
-            }
-            router.push(destination)
-            return { success: true, user: apiUser }
+          const apiUser: User = {
+            id: data.user.id || data.user._id,
+            name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.name || 'User',
+            email: data.user.email,
+            role: data.user.role as Role,
+            verificationStatus: (data.user.verificationStatus || data.user.identityStatus || (data.user.emailVerified ? 'verified' : 'pending')) as VerificationStatus
           }
-        } catch (error) {
-          console.error('Real API login failed:', error)
-          return { success: false, error: 'Cannot reach the server. Please try again in a moment.' }
+          
+          localStorage.setItem('hl_user', JSON.stringify(apiUser))
+          setSessionCookie(apiUser.id, apiUser.role)
+          setUser(apiUser)
+          try {
+            useFavoritesStore.getState().hydrate(apiUser.id)
+          } catch { /* ignore */ }
+          if (redirectTo) {
+            router.push(redirectTo)
+          } else {
+            router.push(ROLE_HOME[apiUser.role])
+          }
+          return { success: true, user: apiUser }
+        } else if (response.status === 401 || response.status === 400) {
+          if (data.requiresVerification) {
+            return { success: false, error: data.message, requiresVerification: true, email: data.email }
+          }
+          // If real backend explicitly rejected credentials, check local dev store as fallback
+          const mockCheck = authenticateUser(email, password)
+          if (mockCheck.success && mockCheck.user) {
+            const userObj = dbUserToUser(mockCheck.user)
+            setUser(userObj)
+            setSessionCookie(mockCheck.user.id, mockCheck.user.role)
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('hl_token', `dev_mock_jwt_token_${mockCheck.user.role}`)
+              localStorage.setItem('hl_user', JSON.stringify(userObj))
+            }
+            if (redirectTo) router.push(redirectTo)
+            else router.push(ROLE_HOME[mockCheck.user.role])
+            return { success: true, user: userObj }
+          }
+          return { success: false, error: data.message || 'Invalid email or password' }
         }
+      } catch (error) {
+        console.warn('Backend login network error, falling back to local store:', error)
       }
       
-      // Mock login (only when NEXT_PUBLIC_MOCK_MODE is explicitly not 'false')
+      // 2. Local fallback if backend network is unreachable
       const result = authenticateUser(email, password)
-      
       if (result.success && result.user) {
         const userObj = dbUserToUser(result.user)
         setUser(userObj)
@@ -218,22 +216,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           useFavoritesStore.getState().hydrate(result.user.id)
         } catch { /* ignore */ }
-
-        let destination = ROLE_HOME[result.user.role]
-        if (redirectTo && !redirectTo.startsWith('/login') && !redirectTo.startsWith('/signup')) {
-          const isCrossRole =
-            (result.user.role === 'landlord' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/admin'))) ||
-            (result.user.role === 'tenant' && (redirectTo.startsWith('/landlord') || redirectTo.startsWith('/admin'))) ||
-            (result.user.role === 'admin' && (redirectTo.startsWith('/tenant') || redirectTo.startsWith('/landlord')))
-          if (!isCrossRole) {
-            destination = redirectTo
-          }
+        if (redirectTo) {
+          router.push(redirectTo)
+        } else {
+          router.push(ROLE_HOME[result.user.role])
         }
-        router.push(destination)
         return { success: true, user: userObj }
       }
 
-      return { success: false, error: result.error }
+      return { success: false, error: result.error || 'Invalid email or password' }
     }, [router])
 
   const logout = useCallback((redirectTo?: string) => {
@@ -252,7 +243,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
-  return ctx
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }

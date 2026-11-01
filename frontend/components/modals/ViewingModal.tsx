@@ -88,11 +88,6 @@ export default function ViewingModal() {
         },
         body: JSON.stringify({
           propertyId: modalContext.propertyId ?? '',
-          preferredDate: values.preferredDate,
-          preferredTime: values.preferredTime,
-          scheduledDate: values.preferredDate,
-          scheduledTime: values.preferredTime,
-          date: `${values.preferredDate}T${values.preferredTime}:00`,
           requestedSlots: [
             {
               date: new Date(`${values.preferredDate}T${values.preferredTime}:00`).toISOString(),
@@ -112,8 +107,8 @@ export default function ViewingModal() {
       notify(
         'viewing_requested',
         'Viewing requested',
-        `Your viewing request for ${modalContext.propertyTitle || 'the property'} on ${values.preferredDate} at ${values.preferredTime} was sent to the landlord.`,
-        '/tenant/viewings'
+        `Your viewing request for ${modalContext.propertyTitle || 'the property'} was sent to the landlord.`,
+        '/tenant/applications'
       )
       setSubmitted(true)
     } catch (err: any) {
@@ -193,6 +188,13 @@ export default function ViewingModal() {
             >
               Sign In
             </a>
+            <button
+              type="button"
+              onClick={() => login('dev.tenant@homelink.test', 'Password123!')}
+              className="w-full rounded-lg border border-charcoal/20 bg-sand/30 py-2 font-mono text-xs font-semibold text-charcoal transition-colors hover:border-rust hover:text-rust"
+            >
+              ⚡ Dev: Continue as Dev Tenant
+            </button>
             <a
               href={`/signup?role=tenant&redirect=${encodeURIComponent(returnPath)}`}
               className="block w-full rounded-lg border-2 border-charcoal/15 px-5 py-2.5 text-sm font-bold text-charcoal transition-colors hover:border-rust hover:text-rust"
@@ -224,17 +226,6 @@ export default function ViewingModal() {
               Switch account
             </button>
           </div>
-
-          {modalContext.selectedUnit && (
-            <div className="rounded-lg border-2 border-rust bg-rust-tint/60 p-3 text-xs">
-              <span className="block font-bold uppercase tracking-wider text-rust">
-                Viewing Specific Unit / Space
-              </span>
-              <span className="mt-0.5 block font-display text-sm font-bold text-charcoal">
-                Unit {modalContext.selectedUnit.unitNumber} {modalContext.selectedUnit.floorNumber !== undefined ? `(Floor ${modalContext.selectedUnit.floorNumber})` : ''}
-              </span>
-            </div>
-          )}
 
           <Field label="Preferred date" error={errors.preferredDate}>
             <input type="date" min={minDate} className={inputClass} {...register('preferredDate')} />

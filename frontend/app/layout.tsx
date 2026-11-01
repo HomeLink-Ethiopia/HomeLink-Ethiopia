@@ -5,7 +5,6 @@ import { LanguageProvider } from '@/lib/language-context'
 import AutoTranslate from '@/lib/auto-translate'
 import ModalRoot from '@/components/modals/ModalRoot'
 import LeafletErrorGuard from '@/components/shared/LeafletErrorGuard'
-import RoleSwitcher from '@/components/RoleSwitcher'
 
 export const metadata: Metadata = {
   title: 'HomeLink Ethiopia — A Trusted Digital Housing Platform',
@@ -27,7 +26,6 @@ export default function RootLayout({
             {children}
             <AutoTranslate />
             <ModalRoot />
-            <RoleSwitcher />
           </AuthProvider>
         </LanguageProvider>
       </body>

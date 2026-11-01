@@ -1,0 +1,6 @@
+{
+  "buildCommand": "node build.cjs",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
+}
+

@@ -6,7 +6,7 @@ import { post, get, put } from '@/lib/http-client' // Removed 'patch' as it's no
  * API Layer with Mock & Real API Support
  */
 
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE !== 'false'
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 
 function delay<T>(value: T, ms = 500): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms))

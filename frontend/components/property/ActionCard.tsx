@@ -24,20 +24,22 @@ export default function ActionCard({
   const saved = useFavoritesStore((s) => s.favorites.has(propertyId))
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
 
+  const safePrice = Number(priceEtb || 0)
+  const safeDeposit = Number(depositEtb || 0)
+
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-6 shadow-sm">
       <div className="text-center">
         <p className="font-display text-4xl font-bold text-rust">
-          ETB {priceEtb.toLocaleString()}
+          ETB {safePrice.toLocaleString()}
         </p>
         <p className="mt-1 text-sm text-charcoal/60">/ month</p>
         <p className="mt-2 text-sm text-charcoal/70">
-          Deposit: <span className="font-semibold">ETB {depositEtb.toLocaleString()}</span>
+          Deposit: <span className="font-semibold">ETB {safeDeposit.toLocaleString()}</span>
         </p>
       </div>
 
       <div className="mt-6 space-y-3">
-
         <button
           type="button"
           onClick={() => openModal('application', { propertyId, propertyTitle })}
@@ -45,7 +47,7 @@ export default function ActionCard({
         >
           Apply Now
         </button>
-        
+
         <button
           type="button"
           onClick={() => openModal('viewing', { propertyId, propertyTitle })}

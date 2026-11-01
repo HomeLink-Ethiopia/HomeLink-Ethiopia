@@ -50,7 +50,7 @@
           "originalName": "Commercial_Bank_Payslip.pdf"
         }
       ],
-      "createdAt": "2026-10-24T13:28:30.920Z"
+      "createdAt": "2026-10-31T11:45:34.610Z"
     },
     {
       "_id": "mock-application-2",
@@ -101,7 +101,7 @@
           "originalName": "Employment_Verification_Letter.pdf"
         }
       ],
-      "createdAt": "2026-10-23T13:28:30.920Z"
+      "createdAt": "2026-10-30T11:45:34.610Z"
     },
     {
       "_id": "mock-app-1792929749104",
@@ -194,15 +194,15 @@
       "landlordId": "mock-landlord-1",
       "requestedSlots": [
         {
-          "date": "2026-10-27T13:28:30.920Z",
+          "date": "2026-11-03T11:45:34.609Z",
           "startTime": "10:00"
         }
       ],
-      "preferredDate": "2026-10-27",
+      "preferredDate": "2026-11-03",
       "preferredTime": "10:00",
       "tenantNote": "Coming with my sister, is parking available?",
       "status": "requested",
-      "createdAt": "2026-10-25T13:28:30.920Z"
+      "createdAt": "2026-11-01T11:45:34.610Z"
     }
   ],
   "agreements": [
@@ -428,7 +428,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-11-01T11:45:34.609Z",
       "status": "active"
     },
     {
@@ -465,7 +465,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-11-01T11:45:34.609Z",
       "status": "active"
     },
     {
@@ -503,7 +503,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-11-01T11:45:34.609Z",
       "status": "active"
     },
     {
@@ -541,7 +541,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T13:28:30.920Z",
+      "createdAt": "2026-11-01T11:45:34.609Z",
       "status": "active"
     },
     {
@@ -576,7 +576,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T12:28:30.920Z",
+      "createdAt": "2026-11-01T10:45:34.609Z",
       "status": "active"
     },
     {
@@ -612,7 +612,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T11:28:30.920Z",
+      "createdAt": "2026-11-01T09:45:34.609Z",
       "status": "active"
     },
     {
@@ -649,7 +649,7 @@
         }
       ],
       "landlordId": "mock-landlord-1",
-      "createdAt": "2026-10-25T10:28:30.920Z",
+      "createdAt": "2026-11-01T08:45:34.609Z",
       "status": "active"
     }
   ],
@@ -845,15 +845,10 @@
       "periodMonth": "2026-10",
       "dueDate": "2026-10-28T00:00:00.000Z",
       "amountDue": 30000,
-      "amountPaid": 30000,
-      "balance": 0,
-      "status": "paid",
-      "notes": "Invoice dispatched; due end of month.",
-      "paymentMethod": "telebirr",
-      "transactionReference": "TX-TELEBIRR-551130",
-      "paidAt": "2026-10-25T13:39:11.144Z",
-      "receiptNumber": "RCPT--PAY-7",
-      "proofSubmitted": false
+      "amountPaid": 0,
+      "balance": 30000,
+      "status": "pending",
+      "notes": "Invoice dispatched; due end of month."
     },
     {
       "_id": "mock-pay-8",
@@ -2562,7 +2557,7 @@
             "name": "ownership-lease.pdf"
           }
         ],
-        "createdAt": "2026-10-24T13:28:30.921Z"
+        "createdAt": "2026-10-31T11:45:34.612Z"
       }
     ],
     [
@@ -2667,6 +2662,28 @@
         "_id": "mock-user-1792922240694",
         "accountId": "mock-user-1792922240694",
         "legalName": "Tsedenia Worku",
+        "verificationStatus": "verified",
+        "verifiedPropertiesCount": 0
+      }
+    ],
+    [
+      "mock-user-landlord",
+      {
+        "_id": "mock-user-landlord",
+        "accountId": "mock-user-landlord",
+        "legalName": "Dev Landlord",
+        "phone": "0911223344",
+        "verificationStatus": "verified",
+        "submittedDocuments": [],
+        "auditTrail": []
+      }
+    ],
+    [
+      "mock-user-1793535266355",
+      {
+        "_id": "mock-user-1793535266355",
+        "accountId": "mock-user-1793535266355",
+        "legalName": "Kidis Tekinfe",
         "verificationStatus": "verified",
         "verifiedPropertiesCount": 0
       }

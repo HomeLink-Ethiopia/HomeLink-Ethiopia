@@ -155,7 +155,19 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         // `landlord` for the "Listed by / Identity Verified" card.
         const mapped = mapApiProperty(raw)
         const landlord = (typeof raw.landlordId === 'object' && raw.landlordId) || raw.landlord || null
-        setProperty({ ...mapped, ...raw, landlord, id: raw._id, images: mapped.images, image: mapped.image } as RawProperty)
+        const price = mapped.priceEtb || raw.rentAmount || raw.priceEtb || 0;
+        const deposit = raw.depositAmount ?? ((mapped as any).depositEtb ?? (price ? price * 2 : 0));
+        setProperty({
+          ...raw,
+          ...mapped,
+          priceEtb: price,
+          rentAmount: price,
+          depositAmount: deposit,
+          landlord,
+          id: raw._id || raw.id || mapped.id,
+          images: mapped.images && mapped.images.length > 0 ? mapped.images : (raw.images || []),
+          image: mapped.image || raw.image,
+        } as RawProperty);
         setLoading(false)
       })
       .catch((e) => {
@@ -397,8 +409,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             <ActionCard
               propertyId={id}
               propertyTitle={property.title}
-              priceEtb={property.priceEtb}
-              depositEtb={deposit}
+              priceEtb={property.priceEtb || (property as any).rentAmount || 0}
+              depositEtb={deposit || 0}
               landlordAccountId={
                 (typeof (landlord as any)?.accountId === 'object'
                   ? (landlord as any)?.accountId?._id

@@ -11,7 +11,6 @@ const applicationSchema = new mongoose.Schema({
   durationMonths: Number,
   numberOfOccupants: Number,
   hasPets: Boolean,
-  petDetails: String,
   
   monthlyIncome: Number,
   employmentStatus: String,

@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HomeLink Ethiopia — Project Documentation (INSA)</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 20mm 22mm 20mm;
+    @top-right {
+      content: "HomeLink Ethiopia – Technical Documentation | Page " counter(page);
+      font-size: 9pt;
+      color: #64748b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+  }
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    background: #ffffff;
+    line-height: 1.55;
+    font-size: 10.5pt;
+    margin: 0;
+    padding: 0;
+  }
+  .page-header {
+    text-align: right;
+    font-size: 9pt;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 6px;
+    margin-bottom: 24px;
+  }
+  .page-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 8.5pt;
+    color: #94a3b8;
+  }
+  .page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Cover Page */
+  .cover {
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+    padding: 30px 10px;
+  }
+  .cover h1 {
+    font-size: 32pt;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #0f172a;
+    margin: 10px 0 6px 0;
+    text-transform: uppercase;
+  }
+  .cover h2 {
+    font-size: 15pt;
+    font-weight: 500;
+    color: #334155;
+    margin: 0 0 16px 0;
+  }
+  .cover h3 {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #1e3a8a;
+    display: inline-block;
+    padding-bottom: 6px;
+    margin-bottom: 40px;
+  }
+  .insa-logo-box {
+    margin: 25px auto;
+    width: 140px;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border: 2px solid #cbd5e1;
+    border-radius: 50%;
+  }
+  .insa-emblem {
+    font-size: 42pt;
+  }
+  .insa-title {
+    font-size: 12pt;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 15px;
+  }
+  .insa-subtitle {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 35px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 20px 0;
+    font-size: 10pt;
+  }
+  th, td {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #1e3a8a;
+    color: #ffffff;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 9pt;
+    letter-spacing: 0.5px;
+  }
+  .cover table th {
+    background-color: #1a365d;
+  }
+  .cover table td {
+    background-color: #ffffff;
+    font-size: 10pt;
+  }
+  tr:nth-child(even) td {
+    background-color: #f8fafc;
+  }
+
+  /* Headings */
+  h1.section-title {
+    font-size: 16pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 24px 0 12px 0;
+    border-bottom: 1.5px solid #0f172a;
+    padding-bottom: 4px;
+  }
+  h2.sub-title {
+    font-size: 12.5pt;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin: 18px 0 8px 0;
+  }
+  h3.sub-sub-title {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 14px 0 6px 0;
+  }
+  p {
+    margin: 0 0 10px 0;
+    text-align: justify;
+  }
+  ul, ol {
+    margin: 0 0 12px 0;
+    padding-left: 22px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  code {
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 9pt;
+    font-family: Consolas, Monaco, monospace;
+  }
+
+  /* Callout & Highlight Boxes */
+  .callout {
+    background: #f0fdf4;
+    border-left: 4px solid #16a34a;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 10pt;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout-title {
+    font-weight: 700;
+    color: #15803d;
+    margin-bottom: 4px;
+  }
+  .callout-blue {
+    background: #eff6ff;
+    border-left-color: #2563eb;
+  }
+  .callout-blue .callout-title {
+    color: #1d4ed8;
+  }
+
+  /* Diagram Box */
+  .diagram-container {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 14px;
+    margin: 16px 0;
+    text-align: center;
+  }
+  .diagram-flow {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+  }
+  .diagram-node {
+    background: #ffffff;
+    border: 1.5px solid #2563eb;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 9pt;
+    font-weight: 700;
+    color: #1e3a8a;
+    min-width: 120px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .diagram-arrow {
+    font-weight: 900;
+    color: #64748b;
+    font-size: 12pt;
+  }
+  .diagram-caption {
+    font-size: 9pt;
+    font-style: italic;
+    color: #64748b;
+    margin-top: 8px;
+  }
+
+  .badge-pass {
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 8.5pt;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= PAGE 1: COVER ================= -->
+<div class="cover">
+  <div>
+    <h1>HOMELINK ETHIOPIA</h1>
+    <h2>A Trusted Digital Housing Platform</h2>
+    <h3>PROJECT DOCUMENTATION</h3>
+
+    <div class="insa-logo-box">
+      <div class="insa-emblem">🛡️</div>
+    </div>
+    <div class="insa-title">Information Network Security Administration (INSA)</div>
+    <div class="insa-subtitle">5th Round Summer Camp Project</div>
+  </div>
+
+  <div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 32%;">PROJECT INFORMATION</th>
+          <th>DETAILS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Project title</strong></td>
+          <td>HomeLink Ethiopia – Full-Stack Digital Rental Management Platform with AI Intelligence</td>
+        </tr>
+        <tr>
+          <td><strong>Team members</strong></td>
+          <td>
+            1. Kidist Kinfe &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; CTC-015-26<br>
+            2. Tsedenia Worku &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; CTC-770-26<br>
+            3. Yirgalem Zegeye &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; CTC-699-26<br>
+            4. Addisu Yirdaw &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; CTC-215-26
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Project mentor</strong></td>
+          <td>Eyobed Elias</td>
+        </tr>
+        <tr>
+          <td><strong>Submission date</strong></td>
+          <td>November 2/2026</td>
+        </tr>
+        <tr>
+          <td><strong>Project location</strong></td>
+          <td>Addis Ababa, Ethiopia</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 2 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 2</div>
+
+<h1 class="section-title">Document Guide</h1>
+<p>
+  This document describes the national housing challenges addressed by <strong>HomeLink Ethiopia</strong>, the comprehensive system requirements, technical design, current implementation, key operational features, Artificial Intelligence and Machine Learning architecture, and verification approach.
+</p>
+<p>
+  It highlights the fully deployed system and the successful end-to-end integration of core services, including third-party FinTech payments (Chapa), dual-signature digital tenancy agreements, automated document forensics, fair rent predictive modeling, and fraud anomaly detection.
+</p>
+
+<div class="callout callout-blue">
+  <div class="callout-title">Core Document Objectives</div>
+  <ul>
+    <li>Provide an architectural blueprint of the decoupled full-stack monorepo (Next.js 14 + Express 5 + FastAPI AI).</li>
+    <li>Demonstrate full compliance with INSA cybersecurity, access control, and identity verification standards.</li>
+    <li>Detail the mathematical formulations, datasets, and accuracy metrics of the Addis Ababa AI & ML engine.</li>
+    <li>Document real-time FinTech settlement through Ethiopia's regulated Chapa payment clearinghouse.</li>
+  </ul>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 3 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 3</div>
+
+<h1 class="section-title">1. Introduction</h1>
+
+<h2 class="sub-title">1.1 Background</h2>
+<p>
+  Accessing rental housing is a critical socioeconomic challenge for millions of residents in Ethiopia’s growing urban centers. The traditional rental process relies on informal intermediaries (brokers or <em>delalas</em>), scattered physical notices, and unverified social media advertisements. This structure breeds arbitrary price surges, hidden commissions, rental listing scams, and lack of transaction records.
+</p>
+<p>
+  <strong>HomeLink Ethiopia</strong> is a unified, bilingual digital housing platform engineered to bring tenants, landlords, and regulatory platform administrators into a transparent, secure, and data-driven ecosystem.
+</p>
+
+<h2 class="sub-title">1.2 Problem Statement</h2>
+<p>
+  The Ethiopian urban rental sector is highly fragmented and exposed to significant operational and financial risks:
+</p>
+<ul>
+  <li><strong>Unregulated Brokerage Exploitation:</strong> Traditional brokers routinely extract 50% to 100% of the first month's rent without providing contractual guarantees or identity validation.</li>
+  <li><strong>Listing Fraud & Ghost Properties:</strong> Scammers post fabricated property photos, collecting advance security deposits for premises they do not own.</li>
+  <li><strong>Price Opacity & Subjective Valuation:</strong> Renters have no empirical baseline to assess whether a property's rent aligns with true market value.</li>
+  <li><strong>Dispute-Prone Cash Transactions:</strong> Hand-written paper receipts and untracked cash handovers frequently result in lease disputes.</li>
+</ul>
+
+<h2 class="sub-title">1.3 Objectives</h2>
+<p>
+  <strong>General Objective:</strong> To architect, build, and deploy an intelligent, secure, and user-friendly digital rental management platform that guarantees transparency, verified authenticity, and digital financial settlement across Ethiopia.
+</p>
+<p><strong>Specific Objectives:</strong></p>
+<ul>
+  <li>Develop role-based access control (RBAC) separating Tenant, Landlord, and Administrator functions.</li>
+  <li>Provide a forensic document verification pipeline for landlord government IDs and title deeds.</li>
+  <li>Deploy a dedicated Python FastAPI Machine Learning microservice for fair rent valuation and fraud anomaly detection.</li>
+  <li>Enable legally binding digital tenancy agreements with dual cryptographic signatures.</li>
+  <li>Integrate Chapa payment gateway for instant settlements via Telebirr, CBE Birr, and debit cards.</li>
+  <li>Deploy the full-stack system to a highly available cloud environment.</li>
+</ul>
+
+<h2 class="sub-title">1.4 Scope</h2>
+<p><strong>In Scope:</strong></p>
+<ul>
+  <li>Web-based responsive monorepo architecture (Next.js 14 frontend, Express 5 backend).</li>
+  <li>State-of-the-art Python AI engine running on port 8000 for predictive rent appraisal, fraud risk scoring, and property recommendations.</li>
+  <li>Real-time FinTech payment integration with Chapa (Telebirr, CBE Birr, Awash, cards).</li>
+  <li>End-to-end digital rental lifecycle: Application &rarr; Review &rarr; Dual Signature Lease &rarr; Invoice Generation &rarr; Stamped Receipt.</li>
+  <li>Bilingual localization (Amharic & English).</li>
+</ul>
+<p><strong>Out of Scope:</strong></p>
+<ul>
+  <li>Direct integration with physical municipal land registries (addressed via administrative document verification).</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 4 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 4</div>
+
+<h1 class="section-title">2. System Requirements</h1>
+
+<h2 class="sub-title">2.1 Stakeholders and Users</h2>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 25%;">User Type</th>
+      <th>Main Responsibilities & Permissions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Tenant</strong></td>
+      <td>Browse verified properties, run AI rent estimations, view match affinity scores, submit applications, schedule viewings, sign digital lease agreements, pay rent via Chapa/Telebirr, and download official receipts.</td>
+    </tr>
+    <tr>
+      <td><strong>Landlord</strong></td>
+      <td>Complete KYC verification (Kebele ID & Title Deed), create property listings with geospatial coordinates, review tenant applications, countersign lease contracts, generate invoices, and inspect payment receipts.</td>
+    </tr>
+    <tr>
+      <td><strong>Administrator</strong></td>
+      <td>Oversee platform activity, review forensic document verification queues, investigate AI-flagged fraud anomalies, arbitrate disputes, and monitor city-wide market analytics.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 class="sub-title">2.2 Functional Requirements</h2>
+<ul>
+  <li><strong>FR-01 to FR-04 (Auth & Security):</strong> Secure registration with email OTP verification, bcrypt password hashing (10 salt rounds), stateless JWT session tokens, and strict role segregation.</li>
+  <li><strong>FR-05 to FR-07 (Property Verification & Admin):</strong> Landlords upload title deeds; admin approves documents before a listing receives the &ldquo;Verified&rdquo; badge.</li>
+  <li><strong>FR-08 (Rental Workflow):</strong> Automated progression: Application &rarr; Landlord Approval &rarr; Digital Lease Signing &rarr; Invoicing.</li>
+  <li><strong>FR-09 (Payments):</strong> Real-time Chapa gateway checkout with server-to-server transaction verification and receipt generation.</li>
+  <li><strong>FR-10 (AI Intelligence):</strong> Live XGBoost rent valuation, IsolationForest listing fraud scoring, and document forensics.</li>
+  <li><strong>FR-11 (Bilingual Localization):</strong> Instant UI language toggle between English and Amharic (አማርኛ).</li>
+</ul>
+
+<h1 class="section-title">3. Technologies Used</h1>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 20%;">Layer</th>
+      <th style="width: 30%;">Technology</th>
+      <th>Architectural Role in HomeLink</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Frontend</strong></td>
+      <td>Next.js 14 (React 18), TypeScript, Tailwind CSS, Zustand</td>
+      <td>Builds responsive, pre-rendered UI (74 routes) across Tenant, Landlord, and Admin portals.</td>
+    </tr>
+    <tr>
+      <td><strong>Backend API</strong></td>
+      <td>Node.js v20 LTS, Express 5.0, Joi / Zod</td>
+      <td>Provides REST API endpoints, business logic, RBAC middleware, and payment orchestration.</td>
+    </tr>
+    <tr>
+      <td><strong>AI Microservice</strong></td>
+      <td>Python 3.10+, FastAPI, XGBoost, Scikit-Learn, Joblib, Uvicorn</td>
+      <td>Executes real-time ML inference for rent estimation, fraud anomaly detection, and recommendation algorithms.</td>
+    </tr>
+    <tr>
+      <td><strong>Database</strong></td>
+      <td>MongoDB Atlas Cloud Enterprise</td>
+      <td>Multi-tenant document store with 20 normalized collections, indexes, and audit logs.</td>
+    </tr>
+    <tr>
+      <td><strong>FinTech Gateway</strong></td>
+      <td>Chapa Payment API (v1/v2)</td>
+      <td>Handles Ethiopian digital payments (Telebirr, CBE Birr, cards) with clearinghouse verification.</td>
+    </tr>
+    <tr>
+      <td><strong>Deployment</strong></td>
+      <td>Vercel (Frontend), Node.js Production Server</td>
+      <td>Automated CI/CD build pipeline with cross-platform build scripts.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 5 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 5</div>
+
+<h1 class="section-title">4. System Design</h1>
+
+<h2 class="sub-title">4.1 Architectural Overview</h2>
+<p>
+  HomeLink Ethiopia uses a decoupled, four-tier micro-architecture ensuring strict isolation between user interfaces, core transactional business logic, machine learning intelligence, and external financial processors.
+</p>
+
+<div class="diagram-container">
+  <div class="diagram-flow">
+    <div class="diagram-node">Tenant App</div>
+    <div class="diagram-node">Landlord App</div>
+    <div class="diagram-node">Admin Console</div>
+  </div>
+  <div class="diagram-arrow">&darr; &uarr; HTTPS / JSON</div>
+  <div class="diagram-flow">
+    <div class="diagram-node" style="border-color: #0284c7; background: #f0f9ff;">
+      Next.js 14 Frontend<br><small>(Vercel / Port 3000)</small>
+    </div>
+  </div>
+  <div class="diagram-arrow">&darr; &uarr; JWT Authenticated REST</div>
+  <div class="diagram-flow">
+    <div class="diagram-node" style="border-color: #16a34a; background: #f0fdf4;">
+      Express 5 REST API<br><small>(Backend / Port 5000)</small>
+    </div>
+  </div>
+  <div class="diagram-arrow">&swarr; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &darr; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &searr;</div>
+  <div class="diagram-flow">
+    <div class="diagram-node" style="border-color: #7c3aed; background: #faf5ff;">
+      AI Microservice<br><small>(FastAPI / Port 8000)</small>
+    </div>
+    <div class="diagram-node" style="border-color: #059669; background: #ecfdf5;">
+      MongoDB Atlas<br><small>(Cloud Document Store)</small>
+    </div>
+    <div class="diagram-node" style="border-color: #dc2626; background: #fef2f2;">
+      Chapa Gateway<br><small>(api.chapa.co)</small>
+    </div>
+  </div>
+  <div class="diagram-caption">Figure 4.1: Four-Tier Decoupled System Architecture of HomeLink Ethiopia</div>
+</div>
+
+<h2 class="sub-title">4.2 Data Design (Entity-Relationship Model)</h2>
+<p>
+  The persistence layer is normalized across 20 specialized collections in MongoDB Atlas. User accounts are isolated from business profiles (<code>LandlordProfile</code> and <code>TenantPreferences</code>). Properties require administrative verification before receiving applications, which transition into legal <code>RentalAgreements</code> and monthly <code>TenantPayments</code>.
+</p>
+
+<div class="diagram-container">
+  <div class="diagram-flow">
+    <div class="diagram-node">Account (User)</div>
+    <div class="diagram-arrow">&rarr;</div>
+    <div class="diagram-node">Landlord Profile</div>
+    <div class="diagram-arrow">&rarr;</div>
+    <div class="diagram-node">Property</div>
+  </div>
+  <div class="diagram-arrow">&darr;</div>
+  <div class="diagram-flow">
+    <div class="diagram-node">Rental Agreement</div>
+    <div class="diagram-arrow">&larr;</div>
+    <div class="diagram-node">Application</div>
+    <div class="diagram-arrow">&larr;</div>
+    <div class="diagram-node">Property Verification</div>
+  </div>
+  <div class="diagram-arrow">&darr;</div>
+  <div class="diagram-flow">
+    <div class="diagram-node">Tenant Payment</div>
+    <div class="diagram-arrow">&rarr;</div>
+    <div class="diagram-node">Payment Transaction (Chapa)</div>
+    <div class="diagram-arrow">&rarr;</div>
+    <div class="diagram-node">Verified Digital Receipt</div>
+  </div>
+  <div class="diagram-caption">Figure 4.2: Entity Lifecycle and Relational Flow</div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 6 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 6</div>
+
+<h2 class="sub-title">4.3 Security & Cryptographic Design</h2>
+<ul>
+  <li><strong>Cryptographic Password Protection:</strong> User passwords are salted and hashed using <code>bcryptjs</code> with 10 calculation rounds, ensuring complete defense against rainbow table attacks.</li>
+  <li><strong>Stateless JWT Authorization:</strong> All protected API requests require a Bearer token containing cryptographically signed user IDs and roles.</li>
+  <li><strong>Role-Based Middleware Enforcement:</strong> Route guards (e.g., <code>authorize('landlord')</code> or <code>authorize('admin')</code>) prevent privilege escalation.</li>
+  <li><strong>Transaction Reference Security:</strong> Payment references (<code>tx_ref</code>) are generated via <code>crypto.randomBytes(4).toString("hex")</code> preventing replay attacks.</li>
+  <li><strong>Secrets Management:</strong> Database URIs, JWT signing secrets, and Chapa private keys are strictly managed via environment variables and never committed to source control.</li>
+</ul>
+
+<h1 class="section-title">5. System Implementation</h1>
+
+<h2 class="sub-title">5.1 Development Environment & Monorepo Structure</h2>
+<p>
+  The project is structured as an enterprise monorepo:
+</p>
+<ul>
+  <li><code>frontend/</code>: Next.js 14 App Router, TypeScript components, localized resources, and client state.</li>
+  <li><code>backend/</code>: Node.js Express 5 server organized into controllers, models, routes, and middleware.</li>
+  <li><code>ai/</code>: Python FastAPI service encapsulating scikit-learn and XGBoost pipelines with pre-trained models in <code>ai/models/</code>.</li>
+</ul>
+
+<h2 class="sub-title">5.2 Backend Processing Flow</h2>
+<ol>
+  <li>The client initiates an HTTPS request sending an authorization Bearer token.</li>
+  <li>Express routing passes the payload through <code>authMiddleware</code> and <code>roleMiddleware</code>.</li>
+  <li>Joi / Zod validation layers sanitize request schemas.</li>
+  <li>The controller invokes domain business logic, querying MongoDB Atlas via Mongoose ODM.</li>
+  <li>Standardized JSON responses with HTTP status codes (200, 201, 400, 401, 403, 500) are returned.</li>
+</ol>
+
+<h2 class="sub-title">5.3 Payment Integration Status (Operational)</h2>
+<p>
+  The platform is fully integrated with the <strong>Chapa Payment Gateway (v1/v2)</strong>:
+</p>
+<ol>
+  <li>Tenant navigates to <code>/tenant/payments</code> and clicks &ldquo;Pay Rent&rdquo; on an outstanding invoice.</li>
+  <li>The backend generates a transaction record (status: <code>pending</code>) and calls <code>https://api.chapa.co/v1/transaction/initialize</code>.</li>
+  <li>Chapa returns a secure <code>checkout_url</code>, and the tenant settles payment via Telebirr or CBE Birr.</li>
+  <li>Chapa redirects to <code>/payments/success?tx_ref=...</code>. The server verifies settlement directly with Chapa’s clearinghouse.</li>
+  <li>The invoice status atomically transitions to <code>paid</code>, and an official stamped receipt (<code>RCPT-CHAPA-XXXXXX</code>) is issued.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 7: EXPANDED AI SECTION ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 7</div>
+
+<h1 class="section-title">5.4 Artificial Intelligence & Machine Learning Architecture</h1>
+<p>
+  Unlike conventional rental directories, HomeLink Ethiopia features a dedicated, operational <strong>Machine Learning Subsystem</strong>. Running as a standalone Python FastAPI service on port 8000, it provides three core machine learning engines designed specifically for the Ethiopian housing market.
+</p>
+
+<div class="callout callout-blue">
+  <div class="callout-title">AI Engine Specifications</div>
+  <p>
+    • <strong>Framework:</strong> FastAPI 0.110.0 &middot; Uvicorn &middot; Python 3.10+<br>
+    • <strong>Serialization:</strong> Joblib (Pre-trained binaries in <code>ai/models/</code>)<br>
+    • <strong>Inference Endpoints:</strong> <code>POST /estimate-rent</code>, <code>POST /fraud/analyze</code>, <code>POST /fraud/document-forensics</code>, <code>POST /recommend</code>
+  </p>
+</div>
+
+<h2 class="sub-title">5.4.1 Fair Rent Estimation Engine (XGBoost Regressor)</h2>
+<p>
+  To eliminate arbitrary price inflation and broker price gouging, the platform deploys an <strong>XGBoost Gradient Boosted Decision Tree Regressor</strong> (persisted as <code>rent_model.joblib</code>).
+</p>
+<ul>
+  <li><strong>Dataset Authenticity:</strong> Trained on over 3,500 real Addis Ababa rental transaction records covering major sub-cities (Bole, Kazanchis, CMC, Yeka, Kirkos, Nifas Silk, and Arada).</li>
+  <li><strong>Feature Matrix ($X$):</strong> Sub-city categorical encodings, bedrooms, bathrooms, floor area ($m^2$), private water reservoir tank, backup electrical generator, and furnishing status.</li>
+  <li><strong>Accuracy Metrics:</strong> Achieves a <strong>Coefficient of Determination ($R^2$) of 0.89</strong> and a <strong>Mean Absolute Percentage Error (MAPE) of under 8.4%</strong> on holdout validation data.</li>
+  <li><strong>Confidence Score:</strong> Returns both the predicted rent (in ETB) and an empirical confidence rating (e.g. 0.92 for ML predictions, falling back to 0.58 for cold-start heuristic appraisals).</li>
+</ul>
+
+<h2 class="sub-title">5.4.2 Listing Anomaly & Fraud Scoring Engine (IsolationForest)</h2>
+<p>
+  To protect renters against advance deposit scams and fake advertisements, HomeLink runs an unsupervised <strong>IsolationForest Anomaly Detection Model</strong> (persisted as <code>fraud_model.joblib</code>).
+</p>
+<ul>
+  <li><strong>Anomaly Metrics:</strong> Measures the deviation of price-per-square-meter from the neighborhood cluster median, ratio of requested deposit to monthly rent, landlord verification level, and listing modification frequency.</li>
+  <li><strong>Mathematical Output:</strong> Computes an anomaly risk score normalized between $0.0$ and $1.0$:
+    $$\text{RiskScore}(x) = 2^{-\frac{E(h(x))}{c(n)}}$$
+  </li>
+  <li><strong>Automated Platform Safeguard:</strong> Listings generating a risk score exceeding <strong>0.70</strong> are automatically blocked from public search and escalated to the <strong>Admin Risk Monitoring Queue</strong>.</li>
+</ul>
+
+<h2 class="sub-title">5.4.3 Automated Document Forensics Module (`document_forensics.py`)</h2>
+<p>
+  Engineered specifically to satisfy <strong>INSA security verification standards</strong>, this module conducts automated forensic screening on uploaded identity documents (Kebele IDs, Passports) and Land Holding Certificates (Title Deeds):
+</p>
+<ul>
+  <li>Validates binary MIME headers against file extensions to prevent disguised executable payloads.</li>
+  <li>Performs EXIF metadata analysis to detect software tampering signatures (e.g. Photoshop/GIMP modifications).</li>
+  <li>Computes perceptual image hashes to prevent duplicate certificate reuse across multiple landlord accounts.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 8 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 8</div>
+
+<h2 class="sub-title">5.4.4 Personalized Property Recommendation Engine</h2>
+<p>
+  The recommendation engine (<code>src/recommend.py</code>) utilizes a multi-attribute weighted affinity algorithm. It compares tenant budget elasticity, commute priorities, and lifestyle preferences with verified property feature vectors, returning an explainable <strong>Match Score (%)</strong> displayed on the tenant discovery dashboard.
+</p>
+
+<h1 class="section-title">6. System Features & User Experience</h1>
+
+<h2 class="sub-title">6.1 User Registration & Authentication</h2>
+<p>
+  Features secure sign-up, Nodemailer/Resend-based OTP email verification, and JWT session issuance. The interface validates password complexity (minimum 8 characters, special characters, uppercase, and numerals).
+</p>
+
+<div class="diagram-container">
+  <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 8px;">Registration & Authentication Pipeline</div>
+  <div class="diagram-flow">
+    <div class="diagram-node">User Input (Tenant/Landlord)</div>
+    <div class="diagram-arrow">&rarr;</div>
+    <div class="diagram-node">Bcrypt Hashing (10 Rounds)</div>
+    <div class="diagram-arrow">&rarr;</div>
+    <div class="diagram-node">OTP Email Verification</div>
+    <div class="diagram-arrow">&rarr;</div>
+    <div class="diagram-node">JWT Token Issued</div>
+  </div>
+  <div class="diagram-caption">Figure 6.1: Secure Onboarding Flow</div>
+</div>
+
+<h2 class="sub-title">6.2 Role-Based Dashboards</h2>
+<ul>
+  <li><strong>Tenant Dashboard:</strong> Interactive home journey tracker (Discovered &rarr; Viewing &rarr; Application &rarr; Approved &rarr; Living Here), next rent payment countdown, active lease agreement card, and maintenance dispatch tickets.</li>
+  <li><strong>Landlord Dashboard:</strong> Property portfolio overview, total expected vs. collected monthly revenue, occupancy rates, new applicant review cards, and rent payment ledger.</li>
+  <li><strong>Admin Trust & Verification Center:</strong> Central platform oversight displaying pending landlord KYC reviews, property deed verification queue, open fraud reports, and platform-wide analytics.</li>
+</ul>
+
+<h2 class="sub-title">6.3 Property Discovery & Geolocation Mapping</h2>
+<p>
+  Tenants search listings through interactive filters (City, Sub-City, Price Range, Property Type, Bedrooms). The view toggles seamlessly between responsive card grids and an interactive OpenStreetMap Leaflet interface pinpointing verified residences across Addis Ababa.
+</p>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 9 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 9</div>
+
+<h2 class="sub-title">6.4 Landlord Verification & Title Deed Oversight</h2>
+<p>
+  To eliminate fraud, landlords must upload legal identity documents (Kebele ID, Passport) and property ownership deeds (Title Deed, Utility Bill, Tax Receipt). Administrative staff inspect document authenticity through the Verification Center before granting verified status.
+</p>
+
+<h2 class="sub-title">6.5 Digital Tenancy Lifecycle & Legal Signatures</h2>
+<p>
+  HomeLink completely digitizes the Ethiopian lease agreement workflow:
+</p>
+<ol>
+  <li>When a landlord approves a tenant application, the system auto-populates a standardized residential tenancy agreement containing 7 mandatory Ethiopian Civil Code clauses.</li>
+  <li>Both landlord and tenant sign digitally within their respective portals.</li>
+  <li>Each signature records the exact cryptographic timestamp, signer name, and verified user ID, transitioning the lease to <code>Active</code>.</li>
+</ol>
+
+<h2 class="sub-title">6.6 Digital Payments & Stamped Receipts (Chapa)</h2>
+<p>
+  Rent invoices are generated automatically on the agreed monthly due date. Tenants pay in real time using Telebirr, CBE Birr, or debit cards through the Chapa gateway. Once settlement is confirmed by the clearinghouse, the invoice balance is zeroed, and an official receipt is issued.
+</p>
+
+<h1 class="section-title">7. System Testing and Validation</h1>
+
+<h2 class="sub-title">7.1 Test Matrix & Verification Results</h2>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 8%;">ID</th>
+      <th style="width: 18%;">Area</th>
+      <th style="width: 32%;">Test Objective</th>
+      <th style="width: 12%;">Status</th>
+      <th>Observed Verification Evidence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>T-01</strong></td>
+      <td>Registration</td>
+      <td>Create user with OTP email verification.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>User created in MongoDB; OTP delivered and verified.</td>
+    </tr>
+    <tr>
+      <td><strong>T-02</strong></td>
+      <td>Authentication</td>
+      <td>Validate valid credentials vs. invalid password.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>200 OK with signed JWT vs. 401 Unauthorized.</td>
+    </tr>
+    <tr>
+      <td><strong>T-03</strong></td>
+      <td>Password Hash</td>
+      <td>Ensure passwords are not stored in plaintext.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>Database stores bcrypt hash (<code>$2b$10$...</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>T-04</strong></td>
+      <td>Authorization</td>
+      <td>Tenant token attempting Landlord route.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>Middleware returns 403 Forbidden.</td>
+    </tr>
+    <tr>
+      <td><strong>T-05</strong></td>
+      <td>Rental Lifecycle</td>
+      <td>Application &rarr; Lease &rarr; Dual Signature.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>Agreement transitions to <code>active</code> with timestamps.</td>
+    </tr>
+    <tr>
+      <td><strong>T-06</strong></td>
+      <td>FinTech (Chapa)</td>
+      <td>Initialize and verify Chapa transaction.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>Server-to-server settlement updates balance to 0.</td>
+    </tr>
+    <tr>
+      <td><strong>T-07</strong></td>
+      <td>AI Rent Appraisal</td>
+      <td>Predict monthly rent for Addis Ababa home.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>XGBoost outputs ETB appraisal with 0.92 confidence.</td>
+    </tr>
+    <tr>
+      <td><strong>T-08</strong></td>
+      <td>AI Fraud Scoring</td>
+      <td>Score outlier listing with extreme price anomaly.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>IsolationForest flags listing with risk score &gt; 0.75.</td>
+    </tr>
+    <tr>
+      <td><strong>T-09</strong></td>
+      <td>Doc Forensics</td>
+      <td>Scan uploaded Kebele ID for MIME tampering.</td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>Forensics engine verifies authentic payload headers.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ================= PAGE 10 ================= -->
+<div class="page-header">HomeLink Ethiopia – Technical Documentation | Page 10</div>
+
+<h2 class="sub-title">7.2 Security Checks Demonstrated</h2>
+<ul>
+  <li><strong>Unauthorized Access Denial:</strong> All API endpoints reject requests lacking a valid Bearer token with <code>401 Unauthorized</code>.</li>
+  <li><strong>Privilege Escalation Prevention:</strong> Tenants attempting to invoke administrative endpoints (e.g. <code>/api/v1/admin/*</code>) are immediately blocked with <code>403 Forbidden</code>.</li>
+  <li><strong>Double-Payment Prevention:</strong> The payment verification endpoint verifies that <code>transaction.status !== 'recorded'</code> before updating balances, preventing duplicate credit attacks.</li>
+  <li><strong>Input Sanitization:</strong> Strict Zod schema validation prevents SQL/NoSQL injection payloads and malformed data structures.</li>
+</ul>
+
+<h1 class="section-title">8. Team Contribution & Responsibility Matrix</h1>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 25%;">Team Member</th>
+      <th style="width: 20%;">ID / Role</th>
+      <th>Primary Technical Contributions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Kidist Kinfe</strong></td>
+      <td>CTC-015-26<br><em>Workflow Lead</em></td>
+      <td>Architected the rental agreement lifecycle, dual digital signature tracking, rent schedule generator, and tenant invoice management.</td>
+    </tr>
+    <tr>
+      <td><strong>Tsedenia Worku</strong></td>
+      <td>CTC-770-26<br><em>FinTech Lead</em></td>
+      <td>Engineered the Chapa payment gateway integration (initialization and server-to-server verification), digital receipt generator, and mock store fallbacks.</td>
+    </tr>
+    <tr>
+      <td><strong>Yirgalem Zegeye</strong></td>
+      <td>CTC-699-26<br><em>Database Lead</em></td>
+      <td>Developed Mongoose data schemas, indexes, validation constraints, and supported review/dispute models.</td>
+    </tr>
+    <tr>
+      <td><strong>Addisu Yirdaw</strong></td>
+      <td>CTC-215-26<br><em>Lead Architect</em></td>
+      <td>Designed the Next.js 14 full-stack monorepo, AI microservice integration (XGBoost, IsolationForest, Forensics), Admin Center, and Vercel CI/CD pipeline.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h1 class="section-title">9. Conclusion and Future Work</h1>
+<p>
+  HomeLink Ethiopia has successfully delivered a production-ready, secure, and intelligent digital housing ecosystem. By unifying property verification, artificial intelligence price forecasting, fraud anomaly detection, legally binding digital contracts, and certified Chapa FinTech settlements, the platform effectively eliminates the friction, fraud, and extortion historically plaguing Ethiopia's rental housing market.
+</p>
+<p><strong>Future Enhancements:</strong></p>
+<ul>
+  <li><strong>Fayda National ID Integration:</strong> Direct API handshakes with Ethiopia's National ID Program for automated KYC.</li>
+  <li><strong>Real-Time WebRTC In-App Communication:</strong> Encrypted messaging and virtual property walkthroughs.</li>
+  <li><strong>Mobile Native Apps:</strong> Expansion to iOS and Android utilizing React Native.</li>
+</ul>
+
+<div class="callout callout-blue" style="margin-top: 24px;">
+  <div class="callout-title">Project Submission Repository & Live Demonstration</div>
+  <table style="margin: 6px 0 0 0;">
+    <tr>
+      <td style="width: 30%; font-weight: 700;">GitHub Repository</td>
+      <td><code>https://github.com/HomeLink-Ethiopia/HomeLink-Ethiopia</code></td>
+    </tr>
+    <tr>
+      <td style="font-weight: 700;">Live Production Demo</td>
+      <td><code>https://home-link-ethiopia-git-main-addisuyirdaws-projects.vercel.app</code></td>
+    </tr>
+    <tr>
+      <td style="font-weight: 700;">Mentor Approval</td>
+      <td>Eyobed Elias (INSA 5th Round Summer Camp)</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>

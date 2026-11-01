@@ -1,164 +1,155 @@
-# HomeLink Ethiopia
+<div align="center">
 
-**A trusted digital housing platform connecting tenants, landlords, and communities across Ethiopia.**
+# 🏠 HomeLink Ethiopia : https://home-link-ethiopia-vrzr.vercel.app/
 
-HomeLink solves Ethiopia's fragmented rental market by providing verified property listings, AI-powered matching, landlord verification, and end-to-end rental management — all in Amharic and English.
+**A Trusted Digital Housing Ecosystem**
 
----
+*"From finding a house to managing a trusted tenancy."*
 
-## Features
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-green?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 
-- **Property Discovery** — Search and filter properties across Ethiopian cities (Addis Ababa, Hawassa, Bahir Dar, Dire Dawa, Mekelle, and more)
-- **AI Matching** — Personalized property recommendations based on budget, location, and preferences
-- **Landlord Verification** — Document upload and admin approval workflow
-- **Property Management** — Full CRUD for landlords (create, edit, delete listings)
-- **Rental Applications** — Tenants apply, landlords review and approve
-- **Viewing Appointments** — Schedule, confirm, reschedule, or cancel property viewings
-- **Rental Agreements & Rent Tracking** — Digital agreements with confirmation workflow and payment records
-- **Email Verification & Password Reset** — Secure OTP-based account flows
-- **Role-Based Dashboards** — Separate experiences for tenants, landlords, and admins
-- **Bilingual Interface** — Full English ⇄ Amharic translation
+</div>
 
 ---
 
-## Tech Stack
+## 📖 Executive Summary
+
+HomeLink Ethiopia is a comprehensive, full-stack digital housing platform designed to solve the trust, transparency, and efficiency issues plaguing the Ethiopian rental market. It connects tenants, landlords, and property managers through a verified ecosystem, replacing fragmented, paper-based processes with a modern, secure, and data-driven solution.
+
+By integrating **AI-driven property matching**, **strict administrative verification workflows**, and **real-time digital payments via Chapa**, HomeLink ensures that finding and managing a home in Ethiopia is safe, seamless, and entirely digital.
+
+## 🚨 The Problem
+
+Ethiopia faces significant housing pressure associated with rapid urbanization. Beyond the physical shortage, the rental process itself is deeply flawed:
+*   **Lack of Trust:** Tenants frequently fall victim to fake listings, duplicate properties, or unverified landlords.
+*   **Fragmented Discovery:** Property discovery relies on brokers and social media, making it hard to compare prices.
+*   **Manual Processes:** Rental agreements, rent tracking, and maintenance requests are largely paper-based.
+
+## 💡 The Solution
+
+HomeLink provides a **three-sided marketplace** with a robust trust layer:
+
+### For Tenants
+*   **Verified Discovery:** Search for properties with geospatial filters and clear verification badges.
+*   **AI Recommendations:** Explainable AI that ranks properties based on your budget and preferences.
+*   **Digital Lifecycle:** Apply, sign lease agreements, and upload payment receipts all in one place.
+*   **Secure Payments:** Integrated with Chapa for Telebirr, CBE, and card payments.
+
+### For Landlords
+*   **Verification Workflow:** Upload identity and ownership documents to get a "Verified" badge.
+*   **Property Management:** Manage listings, images, applications, and tenant communication.
+*   **Rent Tracking:** Generate invoices and track who has paid.
+
+### For Administrators
+*   **Verification Dashboard:** Review documents and approve/reject properties.
+*   **Trust & Safety:** Monitor flagged listings, handle disputes, and suspend malicious accounts.
+
+## 🛠️ Technology Stack
 
 | Layer | Technology |
-|---|---|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Zustand |
-| Backend | Node.js, Express 5, Mongoose |
-| Database | MongoDB (Atlas) |
-| Auth | JWT + bcrypt, rate-limited OTP email verification (Resend) |
-| File uploads | Multer (property images, verification documents) |
+| :--- | :--- |
+| **Frontend** | Next.js 14 (App Router), React, TypeScript, Tailwind CSS |
+| **Backend** | Node.js, Express.js, JWT, Nodemailer (Email OTP) |
+| **Database** | MongoDB Atlas, Mongoose ODM |
+| **AI Microservice** | Python, FastAPI, Scikit-learn |
+| **Payments** | Chapa API (v1/v2 Integration) |
+| **Deployment** | Vercel (Frontend), Render (Backend) |
 
----
+## 🏗️ System Architecture
 
-## Project Structure
+```mermaid
+flowchart TD
+    %% Clients
+    subgraph Client Layer [Client Layer]
+        T[Tenant App]
+        L[Landlord App]
+        A[Admin Console]
+    end
 
-```
-HomeLink-Ethiopia/
-├── frontend/               # Next.js 14 App Router & TypeScript UI
-│   ├── app/                # Public, tenant, landlord, and admin routes
-│   ├── components/         # Reusable UI components & modals
-│   ├── lib/                # Client state, contexts, API configs
-│   ├── locales/            # Amharic & English translations
-│   ├── public/             # Images, icons, static assets
-│   ├── services/           # Backend API integration client
-│   └── package.json        # Frontend dependencies & Next scripts
-├── backend/                # Node.js Express 5 REST API & MongoDB
-│   ├── server.js           # Server entry point (port 5000)
-│   ├── src/
-│   │   ├── config/         # MongoDB Atlas connection
-│   │   ├── controller/     # Auth, property, and user controllers
-│   │   ├── middleware/     # JWT authentication, RBAC, uploads
-│   │   ├── models/         # Mongoose schemas
-│   │   └── routes/         # Express API routes
-│   └── package.json        # Backend dependencies
-├── ai/                     # Python FastAPI AI Engine (port 8000)
-│   ├── main.py             # FastAPI entry point
-│   ├── models/             # Trained ML models (Rent estimator)
-│   └── requirements.txt    # Python dependencies
-├── package.json            # Root convenience scripts (delegates to frontend & backend)
-├── start-project.bat       # Windows 1-click launcher for all services
-└── start-project.sh        # Linux/macOS launcher for all services
-```
+    %% Frontend
+    FE[Next.js Frontend<br/>Vercel]
+    T --> FE
+    L --> FE
+    A --> FE
 
----
+    %% Backend
+    BE[Express.js REST API<br/>Render]
+    FE -- "HTTPS / JSON<br/>JWT Auth" --> BE
 
-## Getting Started (Quick Start)
+    %% Database
+    DB[(MongoDB Atlas<br/>Cloud Database)]
+    BE -- "Mongoose ODM" --> DB
 
-Anyone cloning this repository can launch the entire project instantly.
+    %% External Services
+    subgraph External [External & In-Progress Integrations]
+        CHAPA[Chapa Payment Gateway<br/>Telebirr, CBE, Cards]
+        AI[FastAPI AI Microservice<br/>Recommendations & Fraud]
+    end
+    
+    BE -- "HTTPS (Initialize/Verify)" --> CHAPA
+    BE -- "REST API (In-Progress)" --> AI
+Getting Started (Local Setup)
+Prerequisites
+Node.js (v18+)
 
-### Prerequisites
+Python (v3.9+)
 
-- **Node.js 18+** & **npm 9+**
-- **Python 3.10+** (optional, for AI engine)
+MongoDB Atlas Account
 
-### 1. Install Dependencies
+Chapa Account (Test Keys)
 
-You can install all dependencies from the root:
+1. Clone the Repository
+bash
+git clone https://github.com/HomeLink-Ethiopia/HomeLink-Ethiopia.git
+cd HomeLink-Ethiopia
+2. Backend Setup
+bash
+cd backend
+npm install
+Create a .env file in the backend folder and add your secrets:
 
-```bash
-# Option A: From root (installs both frontend and backend)
-npm run install:all
+env
+PORT=5000
+MONGO_URI=your_mongodb_atlas_connection_string
+JWT_SECRET=your_jwt_secret
+CHAPA_SECRET_KEY=secret_test_key
+FRONTEND_URL=http://localhost:3000
+Start the backend server:
 
-# Option B: Individually
-cd frontend && npm install
-cd ../backend && npm install
-cd ../ai && pip install -r requirements.txt
-```
-
-### 2. Launch the Application
-
-**Option A — Automated One-Click Start (Recommended):**
-- **Windows:** Double-click `start-project.bat` (or run `.\start-project.bat` in PowerShell).
-- **Linux/macOS:** Run `./start-project.sh`.
-
-This automatically starts the Frontend (port 3000), Backend (port 5000), and AI Service (port 8000).
-
-**Option B — Run Directly:**
-```bash
-# Start frontend (from repository root or inside /frontend):
+bash
 npm run dev
+3. Frontend Setup
+Open a new terminal:
 
-# In a separate terminal, start backend (from /backend):
-cd backend && npm start
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser!
+bash
+cd frontend
+npm install
+Create a .env.local file in the frontend folder:
 
----
+env
+NEXT_PUBLIC_MOCK_MODE=false
+NEXT_PUBLIC_API_URL=http://localhost:5000
+Start the frontend server:
 
-## User Flows
+bash
+npm run dev
+4. Access the Application
+Open your browser and navigate to http://localhost:3000.
 
-**Tenant:** Register → verify email (6-digit code) → search/filter properties → save favorites → request viewing → apply → sign agreement → track rent.
+website:https://home-link-ethiopia-vrzr.vercel.app
 
-**Landlord:** Register → verify email → upload identity/ownership documents → admin approval → create property listings with photos → manage viewings, applications, agreements, and rent.
+👥 The Team
 
-**Admin:** Log in → review verification queue (identity documents, property ownership) → approve/reject with recorded reason → monitor fraud reports and disputes.
+Kidist Kinfe — Backend Lead (Node.js, Express, Auth, Payments, System Architecture),Database,Deployment,Payment,Testing
 
----
+Tsedenia Worku — Frontend Lead (Next.js, React, UI/UX, Client-side Logic)
 
-## API Overview
+Yirgalem — Database & Verification Lead
 
-Base URL: `http://localhost:5000`
+Addisu — Testing, DevOps & AI Lead (API Testing, CI/CD, FastAPI Microservice, Deployment)
 
-| Area | Endpoints |
-|---|---|
-| Auth | `POST /api/auth/register`, `/login`, `/verify-email`, `/resend-email-code`, `/forgot-password`, `/reset-password` |
-| Properties | `GET /api/v1/properties/search` (public), `POST /api/v1/properties` (landlord), `GET/PUT/DELETE /api/v1/properties/:id` |
-| Verification | `POST /api/v1/verification/submit-identity`, `GET /api/v1/verification/pending`, `PATCH /api/v1/verification/:id/review` (admin) |
-| Favorites | `POST/DELETE /api/v1/properties/:id/favourite`, `GET /api/v1/properties/favourites` |
-| Preferences | `GET/POST/PUT /api/v1/properties/preferences` (tenant) |
-
-Responses use `{ data: ... }` for success and `{ message: ... }` for errors. Protected routes require `Authorization: Bearer <token>`.
-
----
-
-## Email Delivery Note
-
-The development Resend account only delivers to `@resend.dev` addresses on the free tier. Registration still succeeds for any address (the user is saved and can verify with the on-screen development code). To deliver to real inboxes, verify a sending domain in the Resend dashboard and update the "from" address in `backend/src/utils/emailService.js`.
-
----
-
-## Scripts
-
-| Location | Command | Description |
-|---|---|---|
-| root | `npm run dev` | Start Next.js dev server (delegates to `frontend/`) |
-| root | `npm run build` | Production build (delegates to `frontend/`) |
-| root | `npm run lint` | ESLint checks |
-| root | `npm run install:all` | Install dependencies for both frontend and backend |
-| frontend | `npm run dev` | Start Next.js dev server directly |
-| backend | `npm start` | Start API server |
-| backend | `node scripts/seed-dev-accounts.js` | Seed dev accounts |
-
----
-
-## Team Roles
-
-| Member | Role |
-|---|---|
-| Kidist | Backend Lead — API, auth, business logic, security |
-| Tsedenia | Frontend Lead — dashboards, components, forms, API integration |
-| Yirgalem | Database & Verification — models, verification workflow, fraud detection |
-| Addisu | Testing, DevOps & AI — API testing, deployment, CI/CD, AI service |
+<div align="center"> <i>Built with ❤️ for the HomeLink Ethiopia Team.</i> </div> ```
